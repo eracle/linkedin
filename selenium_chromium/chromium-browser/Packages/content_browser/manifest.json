@@ -1,0 +1,176 @@
+{
+"services": [
+{
+"display_name": "Device Service", 
+"name": "device", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"service_manager": [
+"service_manager:all_users"
+]
+}, 
+"provides": {
+"device:power_monitor": [
+"device::mojom::PowerMonitor"
+], 
+"device:time_zone_monitor": [
+"device::mojom::TimeZoneMonitor"
+]
+}
+}
+}
+}, 
+{
+"display_name": "File Service", 
+"name": "file", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"*": [
+"app"
+]
+}, 
+"provides": {
+"file:leveldb": [
+"leveldb::mojom::LevelDBService"
+], 
+"file:filesystem": [
+"file::mojom::FileSystem"
+]
+}
+}
+}
+}, 
+{
+"display_name": "Media Service", 
+"name": "media", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"*": [
+"app"
+]
+}, 
+"provides": {
+"media:media": [
+"media::mojom::MediaService"
+]
+}
+}
+}
+}
+], 
+"display_name": "Content (browser process)", 
+"name": "content_browser", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"file": [
+"file:filesystem", 
+"file:leveldb"
+], 
+"content_renderer": [
+"browser"
+], 
+"media": [
+"media:media"
+], 
+"*": [
+"app"
+], 
+"content_plugin": [
+"browser"
+], 
+"content_utility": [
+"browser"
+], 
+"service_manager": [
+"service_manager:client_process", 
+"service_manager:instance_name", 
+"service_manager:user_id"
+], 
+"content_browser": [
+"ash"
+], 
+"content_gpu": [
+"browser"
+]
+}, 
+"provides": {
+"service_manager:service_factory": [
+"service_manager::mojom::ServiceFactory"
+], 
+"renderer": [
+"blink::mojom::BackgroundSyncService", 
+"blink::mojom::BroadcastChannelProvider", 
+"blink::mojom::BudgetService", 
+"blink::mojom::Hyphenation", 
+"blink::mojom::MimeRegistry", 
+"blink::mojom::NotificationService", 
+"blink::mojom::OffscreenCanvasCompositorFrameSinkProvider", 
+"blink::mojom::OffscreenCanvasSurfaceFactory", 
+"blink::mojom::PermissionService", 
+"blink::mojom::WebSocket", 
+"content::mojom::MemoryCoordinatorHandle", 
+"content::mojom::ServiceWorkerDispatcherHost", 
+"content::mojom::StoragePartitionService", 
+"content::mojom::URLLoaderFactory", 
+"content::mojom::VideoCaptureHost", 
+"device::BatteryMonitor", 
+"device::mojom::GamepadMonitor", 
+"device::mojom::LightSensor", 
+"device::mojom::MotionSensor", 
+"device::mojom::OrientationAbsoluteSensor", 
+"device::mojom::OrientationSensor", 
+"discardable_memory::mojom::DiscardableSharedMemoryManager", 
+"media::mojom::ImageCapture", 
+"memory_coordinator::mojom::MemoryCoordinatorHandle", 
+"payments::mojom::PaymentAppManager", 
+"ui::mojom::Gpu"
+], 
+"plugin": [
+"discardable_memory::mojom::DiscardableSharedMemoryManager", 
+"ui::mojom::Gpu"
+]
+}
+}, 
+"navigation:frame": {
+"requires": {
+"content_renderer": [
+"browser"
+]
+}, 
+"provides": {
+"renderer": [
+"autofill::mojom::AutofillDriver", 
+"autofill::mojom::PasswordManagerDriver", 
+"blink::mojom::MediaSessionService", 
+"blink::mojom::PermissionService", 
+"blink::mojom::PresentationService", 
+"blink::mojom::SensitiveInputVisibilityService", 
+"blink::mojom::WebBluetoothService", 
+"blink::mojom::WebSocket", 
+"content::mojom::BrowserTarget", 
+"device::mojom::VRService", 
+"device::VibrationManager", 
+"device::mojom::GeolocationService", 
+"device::mojom::SensorProvider", 
+"device::mojom::WakeLockService", 
+"device::nfc::mojom::NFC", 
+"device::usb::DeviceManager", 
+"discardable_memory::mojom::DiscardableSharedMemoryManager", 
+"media::mojom::InterfaceFactory", 
+"media::mojom::RemoterFactory", 
+"media::mojom::Renderer", 
+"mojom::MediaDevicesDispatcherHost", 
+"payments::mojom::PaymentRequest", 
+"shape_detection::mojom::BarcodeDetection", 
+"shape_detection::mojom::FaceDetectionProvider", 
+"shape_detection::mojom::TextDetection", 
+"ui::mojom::Gpu"
+]
+}
+}
+}
+}

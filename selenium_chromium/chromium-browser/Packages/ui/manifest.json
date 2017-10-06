@@ -1,0 +1,68 @@
+{
+"display_name": "UI Service", 
+"name": "ui", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"catalog": [
+"catalog:catalog"
+], 
+"*": [
+"app"
+], 
+"ui": [
+"ozone"
+], 
+"service_manager": [
+"service_manager:all_users"
+]
+}, 
+"provides": {
+"window_manager": [
+"discardable_memory::mojom::DiscardableSharedMemoryManager", 
+"display::mojom::DisplayController", 
+"display::mojom::TestDisplayController", 
+"ui::mojom::AccessibilityManager", 
+"ui::mojom::Clipboard", 
+"ui::mojom::DisplayCompositor", 
+"ui::mojom::DisplayManager", 
+"ui::mojom::Gpu", 
+"ui::mojom::IMEServer", 
+"ui::mojom::InputDeviceServer", 
+"ui::mojom::WindowManagerWindowTreeFactory"
+], 
+"discardable_memory": [
+"discardable_memory::mojom::DiscardableSharedMemoryManager"
+], 
+"app": [
+"discardable_memory::mojom::DiscardableSharedMemoryManager", 
+"ui::mojom::Clipboard", 
+"ui::mojom::DisplayCompositor", 
+"ui::mojom::DisplayManager", 
+"ui::mojom::Gpu", 
+"ui::mojom::IMEServer", 
+"ui::mojom::InputDeviceServer", 
+"ui::mojom::WindowTreeFactory"
+], 
+"ozone": [
+"ui::ozone::mojom::DeviceCursor"
+], 
+"user_access_manager": [
+"ui::mojom::UserAccessManager"
+], 
+"gpu_client": [
+"ui::mojom::Gpu"
+], 
+"test": [
+"ui::mojom::WindowServerTest"
+], 
+"ime_registrar": [
+"ui::mojom::IMERegistrar"
+], 
+"window_tree_host_factory": [
+"ui::mojom::WindowTreeHostFactory"
+]
+}
+}
+}
+}

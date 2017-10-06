@@ -1,0 +1,23 @@
+{
+"display_name": "Content (utility process)", 
+"name": "content_utility", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"device": [
+"device:power_monitor", 
+"device:time_zone_monitor"
+]
+}, 
+"provides": {
+"service_manager:service_factory": [
+"service_manager::mojom::ServiceFactory"
+], 
+"browser": [
+"IPC::mojom::ChannelBootstrap", 
+"service_manager::mojom::ServiceFactory"
+]
+}
+}
+}
+}

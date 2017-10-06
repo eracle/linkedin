@@ -1,0 +1,18 @@
+{
+"display_name": "Font Service", 
+"name": "font_service", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"*": [
+"app"
+]
+}, 
+"provides": {
+"app": [
+"font_service::mojom::FontService"
+]
+}
+}
+}
+}

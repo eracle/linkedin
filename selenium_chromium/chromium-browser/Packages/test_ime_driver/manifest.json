@@ -1,0 +1,16 @@
+{
+"display_name": "Test IME Driver", 
+"name": "test_ime_driver", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"ui": [
+"ime_registrar"
+]
+}, 
+"provides": {
+"ime:test_ime_driver": []
+}
+}
+}
+}

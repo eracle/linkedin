@@ -1,0 +1,27 @@
+{
+"display_name": "Content (plugin process)", 
+"name": "content_plugin", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"device": [
+"device:power_monitor"
+], 
+"content_browser": [
+"plugin"
+], 
+"ui": [
+"discardable_memory"
+]
+}, 
+"provides": {
+"service_manager:service_factory": [
+"service_manager::mojom::ServiceFactory"
+], 
+"browser": [
+"IPC::mojom::ChannelBootstrap"
+]
+}
+}
+}
+}

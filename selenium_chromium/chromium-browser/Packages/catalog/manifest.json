@@ -1,0 +1,21 @@
+{
+"display_name": "Application Resolver", 
+"name": "catalog", 
+"interface_provider_specs": {
+"service_manager:connector": {
+"requires": {
+"service_manager": [
+"service_manager:all_users"
+]
+}, 
+"provides": {
+"control": [
+"catalog::mojom::CatalogControl"
+], 
+"app": [
+"filesystem::mojom::Directory"
+]
+}
+}
+}
+}

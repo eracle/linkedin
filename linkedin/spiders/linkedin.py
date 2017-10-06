@@ -1,36 +1,41 @@
 import scrapy
+from selenium.webdriver.common.keys import Keys
 
-from selenium_utils import *
-import random
+from selenium_chromium import init_chromium
+
+from conf import EMAIL, PASSWORD
+from selenium_utils import get_by_xpath
 
 
 class Linkedin(scrapy.Spider):
     name = "linkedin"
-    start_urls = ['https://www.linkedin.com/in/ludovica-rain%C3%B2-8a1055113?authType=NAME_SEARCH&authToken=E2lZ&trk=tyah&trkInfo=clickedVertical%3Amynetwork%2CentityType%3AentityHistoryName%2CclickedEntityId%3Amynetwork_474885049%2Cidx%3A8']
-
+    start_urls = [
+        'https://it.linkedin.com/in/antonio-ercole-de-luca-1973401b'
+    ]
 
     def __init__(self):
-        logger.info('Init Firefox Browser')
+        webdriver = init_chromium(False)
+
+        # do wtf you want with webdriver
         profile = webdriver.FirefoxProfile()
         profile.set_preference('dom.disable_beforeunload', True)
         self.driver = webdriver.Firefox(profile)
 
         self.driver.get('https://it.linkedin.com/')
 
-        logger.info('Searching for the Login btn')
-        get_by_xpath(self.driver, '//*[@class="login-email"]').send_keys(email)
+        print('Searching for the Login btn')
+        get_by_xpath(self.driver, '//*[@class="login-email"]').send_keys(EMAIL)
 
-        logger.info('Searching for the password btn')
-        get_by_xpath(self.driver, '//*[@class="login-password"]').send_keys(password)
+        print('Searching for the password btn')
+        get_by_xpath(self.driver, '//*[@class="login-password"]').send_keys(PASSWORD)
 
-        logger.info('Searching for the submit')
+        print('Searching for the submit')
         get_by_xpath(self.driver, '//*[@id="login-submit"]').click()
-
 
     def parse(self, response):
         driver = self.driver
 
-        logger.info('Scrapy parse - get the names list')
+        print('Scrapy parse - get the names list')
         names = driver.find_elements_by_xpath('//ul[@class="browse-map-list"]/li/h4/a')
 
         frontier = []
@@ -41,7 +46,3 @@ class Linkedin(scrapy.Spider):
 
         for f in frontier:
             yield f
-
-
-
-

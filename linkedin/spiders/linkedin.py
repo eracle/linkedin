@@ -7,6 +7,9 @@ from conf import EMAIL, PASSWORD
 from selenium_utils import get_by_xpath
 
 
+LINKEDIN_URL = 'https://it.linkedin.com/'
+
+
 class Linkedin(scrapy.Spider):
     name = "linkedin"
     start_urls = [
@@ -14,14 +17,14 @@ class Linkedin(scrapy.Spider):
     ]
 
     def __init__(self):
-        webdriver = init_chromium(False)
+        self.driver = init_chromium(False)
 
-        # do wtf you want with webdriver
-        profile = webdriver.FirefoxProfile()
-        profile.set_preference('dom.disable_beforeunload', True)
-        self.driver = webdriver.Firefox(profile)
+        # Stop web page from asking me if really want to leave - past implementation, FIREFOX
+        # profile = webdriver.FirefoxProfile()
+        # profile.set_preference('dom.disable_beforeunload', True)
+        # self.driver = webdriver.Firefox(profile)
 
-        self.driver.get('https://it.linkedin.com/')
+        self.driver.get(LINKEDIN_URL)
 
         print('Searching for the Login btn')
         get_by_xpath(self.driver, '//*[@class="login-email"]').send_keys(EMAIL)

@@ -24,6 +24,10 @@ Rename the conf_template.py to conf.py, modify it with linkein username and pass
 scrapy crawl linkedin
 ```
 
+Instead, for use chrome headless:
+```bash
+scrapy crawl linkedin -a headless=True
+```
 
 
 

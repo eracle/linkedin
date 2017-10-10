@@ -24,8 +24,10 @@ class Linkedin(CrawlSpider):
              ),
     )
 
-    def __init__(self, *a, **kw):
-        self.driver = init_chromium(False)
+    def __init__(self, headless=False, *a, **kw):
+        if headless:
+            headless = True
+        self.driver = init_chromium(headless)
 
         # Stop web page from asking me if really want to leave - past implementation, FIREFOX
         # profile = webdriver.FirefoxProfile()

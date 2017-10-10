@@ -1,10 +1,11 @@
 # Linkedin Scraping
 Ubuntu, python3.
 
-Scraping software aimed to simply visit as more pages of the linkedin users as possible, the purpose is to gain visibility: since LinkedIn notifies a user visits to users.
+Scraping software aimed to visit as more pages of the linkedin users as possible, the purpose is to gain visibility: since LinkedIn notifies when you visit another user page.
 
-Uses: Scrapy, Selenium web driver, Chromium and python 3.
+Uses: Scrapy, Selenium web driver, Chromium headless and python3.
 
+Tested on Ubuntu 16.04.2 LTS
 
 
 # Install

@@ -17,6 +17,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 ```
+On Ubuntu, sometimes:
+```bash
+sudo apt-get install python3-dev
+```
+
 # Usage:
 Rename the conf_template.py to conf.py, modify it with linkein username and password and type:
 

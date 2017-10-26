@@ -3,8 +3,7 @@ from scrapy.spiders import CrawlSpider
 from scrapy.spiders import Rule
 
 from conf import EMAIL, PASSWORD
-from selenium_chromium import init_chromium
-from selenium_utils import get_by_xpath
+from linkedin.selenium_utils import get_by_xpath, init_chromium
 
 LINKEDIN_DOMAIN_URL = 'https://it.linkedin.com/'
 NETWORK_URL = 'https://www.linkedin.com/mynetwork/invite-connect/connections/'
@@ -24,10 +23,8 @@ class Linkedin(CrawlSpider):
              ),
     )
 
-    def __init__(self, headless=False, *a, **kw):
-        if headless:
-            headless = True
-        self.driver = init_chromium(headless)
+    def __init__(self, host='selenium', *a, **kw):
+        self.driver = init_chromium(host)
 
         # Stop web page from asking me if really want to leave - past implementation, FIREFOX
         # profile = webdriver.FirefoxProfile()
@@ -46,4 +43,3 @@ class Linkedin(CrawlSpider):
         get_by_xpath(self.driver, '//*[@id="login-submit"]').click()
 
         super().__init__(*a, **kw)
-

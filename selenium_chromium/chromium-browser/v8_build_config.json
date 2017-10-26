@@ -1,1 +1,0 @@
-{"v8_target_cpu": "x64", "is_cfi": false, "target_cpu": "x64", "dcheck_always_on": false, "is_component_build": true, "is_asan": false, "v8_enable_inspector": true, "is_debug": false, "v8_enable_i18n_support": true, "is_msan": false, "is_tsan": false, "v8_use_snapshot": true}

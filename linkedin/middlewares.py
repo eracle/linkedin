@@ -1,8 +1,8 @@
 from scrapy.http import HtmlResponse
 from scrapy.utils.python import to_bytes
-from selenium.webdriver.common.keys import Keys
 
-from selenium_utils import get_by_xpath
+
+from .selenium_utils import get_by_xpath
 
 
 class Selenium(object):

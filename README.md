@@ -4,7 +4,7 @@
 [![built with Python3](https://img.shields.io/badge/built%20with-Python3-red.svg)](https://www.python.org/)
 
 
-Scraping software aimed to visit as more pages of the linkedin users as possible, the purpose is to gain visibility: since LinkedIn notifies when you visit another user page.
+Scraping software aimed to visit as more linkedin's user pages as possible :-D, the objective is to gain visibility with your account: since LinkedIn notifies the issued User when someone visits his page.
 
 Uses: Scrapy, Selenium web driver, Chromium headless, docker and python3.
 

@@ -17,6 +17,12 @@ LINKEDIN_LOGIN_URL = 'https://www.linkedin.com/'
 from the scrapy controller to the selenium instance."""
 SELENIUM_HOSTNAME = 'selenium'
 
+"""
+Placeholder used to recognize the 'See all 27,569 employees on LinkedIn' clickable button,
+in the 'https://www.linkedin.com/company/toyota/' style pages.
+"""
+SEE_ALL_PLACEHOLDER = 'See all'
+
 
 def get_by_xpath(driver, xpath):
     """
@@ -48,24 +54,54 @@ def init_chromium(selenium_host):
     return driver
 
 
+def login(driver):
+    """
+    Logs in in Linkedin.
+    :param driver: The yet open selenium webdriver.
+    :return: Nothing
+    """
+    driver.get(LINKEDIN_LOGIN_URL)
+
+    print('Searching for the Login btn')
+    get_by_xpath(driver, '//*[@class="login-email"]').send_keys(EMAIL)
+
+    print('Searching for the password btn')
+    get_by_xpath(driver, '//*[@class="login-password"]').send_keys(PASSWORD)
+
+    print('Searching for the submit')
+    get_by_xpath(driver, '//*[@id="login-submit"]').click()
+
+
+def extract_see_all_url(driver):
+    """
+    Retrieve from the the Company front page the url of the page containing the list of its employees.
+    :param driver: The already opened (and logged in) webdriver.
+    :return: String: The URL.
+    """
+    print('Searching for the "See all * employees on LinkedIn" btn')
+    see_all_xpath = f'//a/strong[starts-with(text(),"{SEE_ALL_PLACEHOLDER}")]'
+    see_all_elem = get_by_xpath(driver, see_all_xpath)
+    see_all_ex_text = see_all_elem.text
+
+    a_elem = driver.find_element_by_link_text(see_all_ex_text)
+    see_all_url = a_elem.get_attribute('href')
+
+    print(f'Found the following URL: {see_all_url}')
+    return see_all_url
+
+
 class SeleniumSpiderMixin:
-    def __init__(self, *a, **kw):
-        self.driver = init_chromium(SELENIUM_HOSTNAME)
+    def __init__(self, selenium_hostname=None, **kwargs):
+        if selenium_hostname is None:
+            selenium_hostname = SELENIUM_HOSTNAME
+
+        self.driver = init_chromium(selenium_hostname)
 
         # Stop web page from asking me if really want to leave - past implementation, FIREFOX
         # profile = webdriver.FirefoxProfile()
         # profile.set_preference('dom.disable_beforeunload', True)
         # self.driver = webdriver.Firefox(profile)
 
-        self.driver.get(LINKEDIN_LOGIN_URL)
+        login(self.driver)
 
-        print('Searching for the Login btn')
-        get_by_xpath(self.driver, '//*[@class="login-email"]').send_keys(EMAIL)
-
-        print('Searching for the password btn')
-        get_by_xpath(self.driver, '//*[@class="login-password"]').send_keys(PASSWORD)
-
-        print('Searching for the submit')
-        get_by_xpath(self.driver, '//*[@id="login-submit"]').click()
-
-        super().__init__(*a, **kw)
+        super().__init__(**kwargs)

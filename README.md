@@ -25,8 +25,6 @@ sudo apt-get update
 sudo apt-get install vinagre
 ```
 
-Then connect to localhost:5900, password: secret
-
 ### 1. Set your linkedin login and password
 
 Open `conf.py` and fill the quotes with your credentials.
@@ -42,7 +40,11 @@ docker-compose up -d --build
 
 ### 3. See what your bot can do right now
 
-Run your VNC viewer, and type address and port `localhost:5900`. The password is `secret`.
+Open vinagre, and type address and port `localhost:5900`. The password is `secret`.
+or otherwise:
+```bash
+vinagre localhost:5900
+```
 
 ### 4. Stop the scraper
 
@@ -56,16 +58,14 @@ docker-compose down
 
 Create the selenium server:
 ```bash
-docker run --name selenium -p 4444:4444 -p 5900:5900 --publish-all --shm-size="128M" selenium/standalone-chrome-debug
-```
-
-
-```bash
-virtualenvs -p python .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-python -m unittest test.py
+    docker run --name selenium -p 4444:4444 -p 5900:5900 --publish-all --shm-size="128M" selenium/standalone-chrome-debug
+    
+    
+    virtualenvs -p python3.6 .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    
+    python -m unittest linkedin/tests.py
 
 ```
 

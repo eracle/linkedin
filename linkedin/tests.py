@@ -1,6 +1,6 @@
 import unittest
 
-from linkedin.selenium_utils import init_chromium
+from linkedin.spiders.selenium import init_chromium
 
 
 class TestChromium(unittest.TestCase):

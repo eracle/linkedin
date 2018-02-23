@@ -1,8 +1,7 @@
 from scrapy.http import HtmlResponse
 from scrapy.utils.python import to_bytes
 
-
-from .selenium_utils import get_by_xpath
+from linkedin.spiders.selenium import get_by_xpath
 
 
 class Selenium(object):

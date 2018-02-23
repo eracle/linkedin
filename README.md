@@ -38,12 +38,14 @@ docker-compose up -d --build
 ```
 
 
-###### 3. See what your bot can do right now
+###### 3. Have a look on the browser's activity:
 
 Open vinagre, and type address and port `localhost:5900`. The password is `secret`.
 or otherwise:
 ```bash
 vinagre localhost:5900
+or
+make view
 ```
 
 ###### 4. Stop the scraper
@@ -55,20 +57,22 @@ docker-compose down
 
 
 ###### Test & Development:
-
-Create the selenium server:
+Setup your python virtual environment (Trivial but mandatory):
 ```bash
-    make dev
-    
-    
     virtualenvs -p python3.6 .venv
     source .venv/bin/activate
     pip install -r requirements.txt
 ```
-- Test
+
+Create the selenium server, open the VNC window and launch the tests (three different terminals):
 ```bash
-    python -m unittest linkedin/tests.py
+    make dev
+    make view
+    make tests
 ```
+
+For more details have a look at the Makefile (used for shortcut not for builds).
+
 - Development:
 ```bash
     scrapy crawl linkedin -a selenium_hostname=localhost
@@ -76,11 +80,4 @@ Create the selenium server:
 or
 ```bash
     scrapy crawl companies -a selenium_hostname=localhost
-```
-
-###### Stop and delete selenium server:
-```bash
-docker stop $(docker ps -aq --filter name=selenium)
-
-docker rm $(docker ps -aq --filter name=selenium)
 ```

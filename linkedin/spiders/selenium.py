@@ -1,10 +1,12 @@
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 
 from conf import EMAIL, PASSWORD
+from linkedin.items import LinkedinUser
 
 """
 number of seconds used to wait the web page's loading.
@@ -72,11 +74,11 @@ def login(driver):
     get_by_xpath(driver, '//*[@id="login-submit"]').click()
 
 
-def extract_see_all_url(driver):
+def extracts_see_all_url(driver):
     """
     Retrieve from the the Company front page the url of the page containing the list of its employees.
-    :param driver: The already opened (and logged in) webdriver.
-    :return: String: The URL.
+    :param driver: The already opened (and logged in) webdriver, already located to the company's front page.
+    :return: String: The "See All" URL.
     """
     print('Searching for the "See all * employees on LinkedIn" btn')
     see_all_xpath = f'//a/strong[starts-with(text(),"{SEE_ALL_PLACEHOLDER}")]'
@@ -88,6 +90,28 @@ def extract_see_all_url(driver):
 
     print(f'Found the following URL: {see_all_url}')
     return see_all_url
+
+
+def extracts_linkedin_users(driver, company):
+    """
+    Gets from a page containing a list of users, all the users.
+    For instance: https://www.linkedin.com/search/results/people/?facetCurrentCompany=[%22221027%22]
+    :param driver: The webdriver, logged in, and located in the page which lists users.
+    :return: Iterator on LinkedinUser.
+    """
+
+    # scrolls to the end of the page
+    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+    for i in range(0, 10):
+        print(f'loading {i+1} user')
+        last_result_xpath = f'//li[{i}]/div/div[@class="search-result__wrapper"]'
+        result = get_by_xpath(driver, last_result_xpath)
+        name = result.find_element_by_xpath('.//*[@class="name actor-name"]').text
+        title = result.find_element_by_xpath('.//p').text
+        user = LinkedinUser(name=name, title=title, company=company)
+        print(user)
+        yield user
 
 
 class SeleniumSpiderMixin:
@@ -105,3 +129,6 @@ class SeleniumSpiderMixin:
         login(self.driver)
 
         super().__init__(**kwargs)
+
+    def closed(self, reason):
+        self.driver.close()

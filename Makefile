@@ -6,3 +6,6 @@ view:
 
 companies:
 	scrapy crawl companies -a selenium_hostname=localhost
+
+tests:
+	pytest linkedin/tests/*

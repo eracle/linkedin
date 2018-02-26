@@ -100,17 +100,20 @@ def extracts_linkedin_users(driver, company):
     :return: Iterator on LinkedinUser.
     """
 
-    # scrolls to the end of the page
-    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    for i in range(1, 11):
+        print(f'loading {i} user')
 
-    for i in range(0, 10):
-        print(f'loading {i+1} user')
         last_result_xpath = f'//li[{i}]/div/div[@class="search-result__wrapper"]'
+
         result = get_by_xpath(driver, last_result_xpath)
-        name = result.find_element_by_xpath('.//*[@class="name actor-name"]').text
-        title = result.find_element_by_xpath('.//p').text
+        name = get_by_xpath(result, './/*[@class="name actor-name"]').text
+        title = get_by_xpath(result, './/p').text
+
         user = LinkedinUser(name=name, title=title, company=company)
         print(user)
+
+        connect_elem = get_by_xpath(result, './/div[3]/div/button')
+        driver.execute_script("arguments[0].scrollIntoView();", connect_elem)
         yield user
 
 

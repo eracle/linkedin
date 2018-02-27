@@ -1,7 +1,7 @@
 import time
 
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, WebDriverException
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
@@ -35,18 +35,23 @@ def wait_invisibility_xpath(driver, xpath, wait_timeout=None):
     WebDriverWait(driver, wait_timeout).until(ec.invisibility_of_element_located((By.XPATH, xpath)))
 
 
-def get_by_xpath_or_none(driver, xpath, wait_timeout=None):
+def get_by_xpath_or_none(driver, xpath, wait_timeout=None, logs=True):
     """
     Get a web element through the xpath string passed.
     If a TimeoutException is raised the else_case is called and None is returned.
     :param driver: Selenium Webdriver to use.
     :param xpath: String containing the xpath.
     :param wait_timeout: optional amounts of seconds before TimeoutException is raised, default WAIT_TIMEOUT is used otherwise.
+    :param logs: optional, prints a status message to stdout if an exception occures.
     :return: The web element or None if nothing found.
     """
     try:
         return get_by_xpath(driver, xpath, wait_timeout=wait_timeout)
-    except TimeoutException:
+    except (TimeoutException, StaleElementReferenceException, WebDriverException) as e:
+        if logs:
+            print("Exception Occurred:")
+            print(f"XPATH:{xpath}")
+            print(f"Error:{e}")
         return None
 
 

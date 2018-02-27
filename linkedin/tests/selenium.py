@@ -9,8 +9,8 @@ class SeleniumTest(unittest.TestCase):
         self.driver = init_chromium('localhost')
 
     def tearDown(self):
-        pass
-        #self.driver.close()
+        # pass
+        self.driver.close()
 
 
 class ChromiumTest(SeleniumTest):

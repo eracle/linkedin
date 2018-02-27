@@ -13,7 +13,7 @@ class CompaniesTest(SeleniumTest):
         super().setUp()
         login(self.driver)
 
-    @pytest.mark.skip
+    #@pytest.mark.skip
     def test_extracts_see_all_url(self):
         self.driver.get(NISSAN)
         url = extracts_see_all_url(self.driver)

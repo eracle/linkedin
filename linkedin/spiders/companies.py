@@ -39,7 +39,8 @@ class CompaniesSpider(SeleniumSpiderMixin, Spider):
 
         no_result_response = get_by_xpath_or_none(driver=self.driver,
                                                   xpath=no_result_found_xpath,
-                                                  wait_timeout=NO_RESULT_WAIT_TIMEOUT, )
+                                                  wait_timeout=NO_RESULT_WAIT_TIMEOUT,
+                                                  logs=False)
 
         if no_result_response is not None:
             print('"No results" message shown, stop crawling this company')

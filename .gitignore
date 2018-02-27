@@ -6,3 +6,4 @@ selenium_prototype.py
 .venv/
 .pytest_cache/
 interactive.py
+users.csv

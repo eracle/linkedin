@@ -4,20 +4,13 @@ from scrapy.utils.python import to_bytes
 from linkedin.spiders.selenium import get_by_xpath
 
 
-class Selenium(object):
+class SeleniumDownloaderMiddleware:
+
     def process_request(self, request, spider):
         driver = spider.driver
 
         print('SeleniumMiddleware - getting the page')
         driver.get(request.url)
-
-        # print('SeleniumMiddleware - click more options')
-        # more_option = get_by_xpath(driver, '//div/div/button[@class="more-options dropdown-caret"]')
-        # more_option.send_keys(Keys.NULL)
-        # more_option.click()
-        # print('SeleniumMiddleware - wait for names')
-        # name = get_by_xpath(driver, '//ul[@class="browse-map-list"]/li/h4/a')
-        # name.send_keys(Keys.NULL)
 
         # request.meta['driver'] = self.driver  # to access driver from response
 

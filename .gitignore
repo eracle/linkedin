@@ -5,3 +5,4 @@ selenium_prototype.py
 .idea/
 .venv/
 .pytest_cache/
+interactive.py

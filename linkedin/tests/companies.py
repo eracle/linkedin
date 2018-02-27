@@ -1,11 +1,11 @@
 import pytest
 
-from linkedin.spiders.selenium import login, extracts_see_all_url, extracts_linkedin_users
+from linkedin.spiders.selenium import login, extracts_see_all_url, extracts_linkedin_users, extract_company
 from linkedin.tests.selenium import SeleniumTest
 
-
 NISSAN = 'https://www.linkedin.com/company/nissan-motor-corporation/'
-NISSAN_USERS_LIST = 'https://www.linkedin.com/search/results/people/?facetCurrentCompany=[%22221027%22]'
+TOYOTA_USERS_LIST = 'https://www.linkedin.com/search/results/people/?facetCurrentCompany=[' \
+                    '%222107%22]&origin=FACETED_SEARCH '
 
 
 class CompaniesTest(SeleniumTest):
@@ -21,8 +21,12 @@ class CompaniesTest(SeleniumTest):
         assert url.startswith("https://www.linkedin.com/search/results/people/?facetCurrentCompany=")
 
     def test_extracts_linkedin_users(self):
-        self.driver.get(NISSAN_USERS_LIST)
-        users = extracts_linkedin_users(self.driver, 'nissan')
+        self.driver.get(TOYOTA_USERS_LIST)
+
+        company = extract_company(self.driver)
+        self.assertEquals(company, 'Toyota North America')
+
+        users = extracts_linkedin_users(self.driver, company)
         self.assertEquals(len(list(users)), 10)
         for user in users:
             self.assertIsNotNone(user.get('name', None))

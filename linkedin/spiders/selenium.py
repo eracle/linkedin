@@ -1,3 +1,5 @@
+import time
+
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import DesiredCapabilities
@@ -26,14 +28,39 @@ in the 'https://www.linkedin.com/company/toyota/' style pages.
 SEE_ALL_PLACEHOLDER = 'See all'
 
 
-def get_by_xpath(driver, xpath):
+def wait_invisibility_xpath(driver, xpath, wait_timeout=None):
+    if wait_timeout is None:
+        wait_timeout = WAIT_TIMEOUT
+
+    WebDriverWait(driver, wait_timeout).until(ec.invisibility_of_element_located((By.XPATH, xpath)))
+
+
+def get_by_xpath_or_none(driver, xpath, wait_timeout=None):
+    """
+    Get a web element through the xpath string passed.
+    If a TimeoutException is raised the else_case is called and None is returned.
+    :param driver: Selenium Webdriver to use.
+    :param xpath: String containing the xpath.
+    :param wait_timeout: optional amounts of seconds before TimeoutException is raised, default WAIT_TIMEOUT is used otherwise.
+    :return: The web element or None if nothing found.
+    """
+    try:
+        return get_by_xpath(driver, xpath, wait_timeout=wait_timeout)
+    except TimeoutException:
+        return None
+
+
+def get_by_xpath(driver, xpath, wait_timeout=None):
     """
     Get a web element through the xpath passed by performing a Wait on it.
     :param driver: Selenium web driver to use.
     :param xpath: xpath to use.
-    :return: The web element
+    :param wait_timeout: optional amounts of seconds before TimeoutException is raised, default WAIT_TIMEOUT is used otherwise.
+    :return: The web element.
     """
-    return WebDriverWait(driver, WAIT_TIMEOUT).until(
+    if wait_timeout is None:
+        wait_timeout = WAIT_TIMEOUT
+    return WebDriverWait(driver, wait_timeout).until(
         ec.presence_of_element_located(
             (By.XPATH, xpath)
         ))
@@ -101,20 +128,40 @@ def extracts_linkedin_users(driver, company):
     """
 
     for i in range(1, 11):
-        print(f'loading {i} user')
+        print(f'loading {i}th user')
 
         last_result_xpath = f'//li[{i}]/div/div[@class="search-result__wrapper"]'
 
-        result = get_by_xpath(driver, last_result_xpath)
-        name = get_by_xpath(result, './/*[@class="name actor-name"]').text
-        title = get_by_xpath(result, './/p').text
+        result = get_by_xpath_or_none(driver, last_result_xpath)
+        if result is not None:
 
-        user = LinkedinUser(name=name, title=title, company=company)
-        print(user)
+            name_elem = get_by_xpath_or_none(result, './/*[@class="name actor-name"]')
+            name = name_elem.text if name_elem is not None else None
 
-        connect_elem = get_by_xpath(result, './/div[3]/div/button')
-        driver.execute_script("arguments[0].scrollIntoView();", connect_elem)
-        yield user
+            title_elem = get_by_xpath_or_none(result, './/p')
+            title = title_elem.text if name_elem is not None else None
+
+            user = LinkedinUser(name=name, title=title, company=company)
+
+            yield user
+
+            focus_elem_xpath = './/figure[@class="search-result__image"]/img'
+            focus_elem = get_by_xpath_or_none(result, focus_elem_xpath, wait_timeout=1)
+            if focus_elem is not None:
+                driver.execute_script("arguments[0].scrollIntoView();", focus_elem)
+        time.sleep(0.7)
+
+
+def extract_company(driver):
+    """
+    Extract company name from a search result page.
+    :param driver: The selenium webdriver.
+    :return: The company string, None if something wrong.
+    """
+    company_xpath = '//li[@class="search-s-facet search-s-facet--facetCurrentCompany inline-block ' \
+                    'search-s-facet--is-closed ember-view"]/form/button/div/div/h3 '
+    company_elem = get_by_xpath_or_none(driver, company_xpath)
+    return company_elem.text if company_elem is not None else None
 
 
 class SeleniumSpiderMixin:

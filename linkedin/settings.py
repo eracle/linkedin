@@ -90,5 +90,23 @@ ROBOTSTXT_OBEY = False
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 DOWNLOADER_MIDDLEWARES = {
-    'linkedin.middlewares.Selenium': 200
+    'linkedin.middlewares.SeleniumDownloaderMiddleware': 200,
+    'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware': None,
+    'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware': None,
+    'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
+    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
+    'scrapy.downloadermiddlewares.retry.RetryMiddleware': None,
+    'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware': None,
+    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': None,
+    'scrapy.downloadermiddlewares.redirect.RedirectMiddleware': None,
+    'scrapy.downloadermiddlewares.cookies.CookiesMiddleware': None,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None,
+    'scrapy.downloadermiddlewares.stats.DownloaderStats': None,
 }
+
+# needed to avoid concurrency using the selenium driver
+CONCURRENT_REQUESTS = 1
+CONCURRENT_REQUESTS_PER_DOMAIN = 1
+
+# with this a search result page will be paginated all, then the others companies pages
+DEPTH_PRIORITY = -1

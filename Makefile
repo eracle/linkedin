@@ -5,7 +5,7 @@ view:
 	vinagre localhost:5900
 
 companies:
-	scrapy crawl companies -a selenium_hostname=localhost -o users.csv
+	scrapy crawl companies -a selenium_hostname=localhost -o users.jsonlines
 
 tests:
 	pytest linkedin/tests/*

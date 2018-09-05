@@ -12,7 +12,7 @@ lxml==4.2.4
 parsel==1.5.0
 pluggy==0.7.1
 py==1.6.0
-pyasn1==0.4.2
+pyasn1==0.4.4
 pyasn1-modules==0.2.1
 pycparser==2.18
 PyDispatcher==2.0.5

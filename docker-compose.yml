@@ -6,11 +6,12 @@ services:
       - PYTHONUNBUFFERED=0
     build:
       context: .
-      dockerfile: ./docker_conf/prod/Dockerfile
+      dockerfile: compose/local/Dockerfile
     depends_on:
       - selenium
     volumes:
-      - ./logs:/code/logs
+      - .:/app
+      - ./logs:/app/logs
   selenium:
     container_name: selenium
     image: selenium/standalone-chrome-debug

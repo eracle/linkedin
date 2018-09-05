@@ -13,7 +13,7 @@ parsel==1.5.0
 pluggy==0.7.1
 py==1.6.0
 pyasn1==0.4.4
-pyasn1-modules==0.2.1
+pyasn1-modules==0.2.2
 pycparser==2.18
 PyDispatcher==2.0.5
 pyOpenSSL==17.5.0

@@ -90,3 +90,8 @@ or
 ```bash
     scrapy crawl linkedin -a selenium_hostname=localhost
 ```
+
+## Support on Beerpay
+Hey dude! Help me out for a couple of :beers:!
+
+[![Beerpay](https://beerpay.io/eracle/linkedin/badge.svg?style=beer-square)](https://beerpay.io/eracle/linkedin)  [![Beerpay](https://beerpay.io/eracle/linkedin/make-wish.svg?style=flat-square)](https://beerpay.io/eracle/linkedin?focus=wish)

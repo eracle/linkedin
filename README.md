@@ -2,14 +2,6 @@
 [![built with Python3](https://img.shields.io/badge/built%20with-Python3-red.svg)](https://www.python.org/)
 [![built with Selenium](https://img.shields.io/badge/built%20with-Selenium-yellow.svg)](https://github.com/SeleniumHQ/selenium)
 
-[![forthebadge](https://forthebadge.com/images/badges/powered-by-electricity.svg)](https://forthebadge.com)
-
-## Support on Beerpay
-Hey dude! Help me out for a couple of :beers:!
-
-[![Beerpay](https://beerpay.io/eracle/linkedin/badge.svg?style=beer-square)](https://beerpay.io/eracle/linkedin)  [![Beerpay](https://beerpay.io/eracle/linkedin/make-wish.svg?style=flat-square)](https://beerpay.io/eracle/linkedin?focus=wish)
-
-
 # Linkedin Automation:
 
 Uses: Scrapy, Selenium web driver, Chromium headless, docker and python3.

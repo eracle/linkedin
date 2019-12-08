@@ -15,7 +15,7 @@ number of seconds used to wait the web page's loading.
 """
 WAIT_TIMEOUT = 10
 
-LINKEDIN_LOGIN_URL = 'https://www.linkedin.com/'
+LINKEDIN_LOGIN_URL = 'https://www.linkedin.com/login'
 
 """ Hostname used in the inter-comuication between docker instances,
 from the scrapy controller to the selenium instance."""
@@ -97,13 +97,13 @@ def login(driver):
     driver.get(LINKEDIN_LOGIN_URL)
 
     print('Searching for the Login btn')
-    get_by_xpath(driver, '//*[@class="login-email"]').send_keys(EMAIL)
+    get_by_xpath(driver, '//*[@id="username"]').send_keys(EMAIL)
 
     print('Searching for the password btn')
-    get_by_xpath(driver, '//*[@class="login-password"]').send_keys(PASSWORD)
+    get_by_xpath(driver, '//*[@id="password"]').send_keys(PASSWORD)
 
     print('Searching for the submit')
-    get_by_xpath(driver, '//*[@id="login-submit"]').click()
+    get_by_xpath(driver, '//*[@type="submit"]').click()
 
 
 def extracts_see_all_url(driver):

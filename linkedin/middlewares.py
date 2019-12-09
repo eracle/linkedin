@@ -20,7 +20,7 @@ class SeleniumDownloaderMiddleware:
         get_by_xpath(driver, profile_xpath)
 
         print('SeleniumMiddleware - retrieving body')
-        # body = to_bytes(driver.page_source)  # body must be of type bytes
-        return Response(driver.current_url)
-            # HtmlResponse(driver.current_url, body=body, encoding='utf-8', request=request)
+        body = to_bytes(driver.page_source)  # body must be of type bytes
+        #return Response(driver.current_url)
+        return HtmlResponse(driver.current_url, body=body, encoding='utf-8', request=request)
 

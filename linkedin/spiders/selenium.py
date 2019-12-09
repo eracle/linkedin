@@ -113,7 +113,7 @@ def extracts_see_all_url(driver):
     :return: String: The "See All" URL.
     """
     print('Searching for the "See all * employees on LinkedIn" btn')
-    see_all_xpath = f'//a/strong[starts-with(text(),"{SEE_ALL_PLACEHOLDER}")]'
+    see_all_xpath = f'//*[starts-with(text(),"{SEE_ALL_PLACEHOLDER}")]'
     see_all_elem = get_by_xpath(driver, see_all_xpath)
     see_all_ex_text = see_all_elem.text
 
@@ -135,7 +135,7 @@ def extracts_linkedin_users(driver, company):
     for i in range(1, 11):
         print(f'loading {i}th user')
 
-        last_result_xpath = f'//li[{i}]/div/div[@class="search-result__wrapper"]'
+        last_result_xpath = f'//li[{i}]/*/div[@class="search-result__wrapper"]'
 
         result = get_by_xpath_or_none(driver, last_result_xpath)
         if result is not None:

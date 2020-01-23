@@ -139,7 +139,6 @@ def extracts_linkedin_users(driver, company, api_client):
 
         result = get_by_xpath_or_none(driver, last_result_xpath)
         if result is not None:
-
             link_elem = get_by_xpath_or_none(result, './/*[@class="search-result__result-link ember-view"]')
             link = link_elem.get_attribute('href') if link_elem is not None else None
 
@@ -155,10 +154,15 @@ def extracts_linkedin_users(driver, company, api_client):
 
             yield user
 
-            focus_elem_xpath = './/figure[@class="search-result__image"]/img'
-            focus_elem = get_by_xpath_or_none(result, focus_elem_xpath, wait_timeout=1)
-            if focus_elem is not None:
-                driver.execute_script("arguments[0].scrollIntoView();", focus_elem)
+            if link_elem is not None:
+                driver.execute_script("arguments[0].scrollIntoView();", link_elem)
+            elif name_elem is not None:
+                driver.execute_script("arguments[0].scrollIntoView();", name_elem)
+            elif title_elem is not None:
+                driver.execute_script("arguments[0].scrollIntoView();", title_elem)
+            else:
+                print("Was not possible to scroll")
+
         time.sleep(0.7)
 
 

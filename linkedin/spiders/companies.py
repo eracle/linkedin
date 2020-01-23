@@ -3,7 +3,7 @@ from scrapy import Request
 from scrapy.spiders import Spider
 
 from linkedin.spiders.selenium import SeleniumSpiderMixin, extracts_see_all_url, extracts_linkedin_users, \
-    get_by_xpath_or_none, wait_invisibility_xpath, extract_company
+    get_by_xpath_or_none, extract_company
 
 """
 Number of seconds to wait checking if the page is a "No Result" type.
@@ -24,6 +24,15 @@ class CompaniesSpider(SeleniumSpiderMixin, Spider):
 
     with open(URLS_FILE, "rt") as f:
         start_urls = [url.strip() for url in f]
+
+    def wait_page_completion(self, driver):
+        """
+        Abstract function, used to customize how the specific spider have to wait for page completion.
+        Blank by default
+        :param driver:
+        :return:
+        """
+        pass
 
     def parse(self, response):
         url = extracts_see_all_url(self.driver) + f'&page={FIRST_PAGE_INDEX}'
@@ -49,7 +58,7 @@ class CompaniesSpider(SeleniumSpiderMixin, Spider):
             company = extract_company(self.driver)
             print(f'Company:{company}')
 
-            users = extracts_linkedin_users(self.driver, company=company)
+            users = extracts_linkedin_users(self.driver, company=company, api_client=self.api_client)
             for user in users:
                 yield user
 

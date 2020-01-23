@@ -2,7 +2,7 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider
 from scrapy.spiders import Rule
 
-from linkedin.spiders.selenium import SeleniumSpiderMixin
+from linkedin.spiders.selenium import SeleniumSpiderMixin, get_by_xpath_or_none
 
 NETWORK_URL = 'https://www.linkedin.com/mynetwork/invite-connect/connections/'
 
@@ -45,6 +45,16 @@ class Linkedin(SeleniumSpiderMixin, CrawlSpider):
              follow=True,
              ),
     )
+
+    def wait_page_completion(self, driver):
+        """
+        Abstract function, used to customize how the specific spider have to wait for page completion.
+        Blank by default
+        :param driver:
+        :return:
+        """
+        # waiting links to other users are shown so the crawl can continue
+        get_by_xpath_or_none(driver, '//*/span/span/span[1]', wait_timeout=3)
 
     def extract_profile_id_from_url(self, response):
         # extract_profile_id_from_url

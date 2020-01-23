@@ -9,7 +9,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from conf import EMAIL, PASSWORD
 from linkedin.integration import CustomLinkedinClient
-from linkedin.items import LinkedinUser
 
 """
 number of seconds used to wait the web page's loading.
@@ -124,13 +123,14 @@ def extracts_see_all_url(driver):
     return see_all_url
 
 
-def extracts_linkedin_users(driver, company):
+def extracts_linkedin_users(driver, company, api_client):
     """
     Gets from a page containing a list of users, all the users.
     For instance: https://www.linkedin.com/search/results/people/?facetCurrentCompany=[%22221027%22]
     :param driver: The webdriver, logged in, and located in the page which lists users.
     :return: Iterator on LinkedinUser.
     """
+    from linkedin.spiders.linkedin import extract_contact_info
 
     for i in range(1, 11):
         print(f'loading {i}th user')
@@ -139,7 +139,6 @@ def extracts_linkedin_users(driver, company):
 
         result = get_by_xpath_or_none(driver, last_result_xpath)
         if result is not None:
-
 
             link_elem = get_by_xpath_or_none(result, './/*[@class="search-result__result-link ember-view"]')
             link = link_elem.get_attribute('href') if link_elem is not None else None
@@ -150,7 +149,9 @@ def extracts_linkedin_users(driver, company):
             title_elem = get_by_xpath_or_none(result, './/p')
             title = title_elem.text if name_elem is not None else None
 
-            user = LinkedinUser(name=name, title=title, company=company, link=link)
+            # extract_profile_id_from_url
+            profile_id = link.split('/')[-2]
+            user = extract_contact_info(api_client, profile_id)
 
             yield user
 

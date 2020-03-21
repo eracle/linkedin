@@ -6,7 +6,7 @@ selenium>=3.14.0 # pyup: < 4.0  # https://github.com/SeleniumHQ/selenium
 
 # Testing
 # todo: move them to a dedicated req file
-pytest==5.3.2
+pytest==5.4.1
 pytest-sugar==0.9.2
 
 # Linkedin API library

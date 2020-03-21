@@ -24,7 +24,7 @@ Needed:
 - python3.6;
 - virtualenvs;
 
-###### 0. Preparations;
+###### 0. Prepare your environment:
 
 Install docker from the official website [https://www.docker.com/](https://www.docker.com/)
 
@@ -36,10 +36,10 @@ sudo apt-get update
 sudo apt-get install vinagre
 ```
 
-###### 1. Set your Linkedin login and password;
+###### 1. Set up Linkedin login and password:
 Copy `conf_template.py` in `conf.py` and fill the quotes with your credentials.
 
-###### 2. Run and build containers with docker-compose;
+###### 2. Run and build containers with docker-compose:
 Only linkedin spider, not the companies spider.
 Open your terminal, move to the project folder and type:
 
@@ -90,7 +90,11 @@ For more details have a look at the Makefile (here is used to shortcut and not t
 ```
 or
 ```bash
-    scrapy crawl linkedin -a selenium_hostname=localhost -o output.csv
+    scrapy crawl random -a selenium_hostname=localhost -o output.csv
+```
+or
+```bash
+    scrapy crawl byname -a selenium_hostname=localhost -o output.csv
 ```
 ## Legal
 

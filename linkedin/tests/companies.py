@@ -1,6 +1,8 @@
 import pytest
 
-from linkedin.spiders.selenium import login, extracts_see_all_url, extracts_linkedin_users, extract_company
+from linkedin.spiders.selenium import login
+from linkedin.spiders.search import extracts_linkedin_users
+from linkedin.spiders.companies import extracts_see_all_url, extract_company
 from linkedin.tests.selenium import SeleniumTest
 
 GOOGLE = 'https://www.linkedin.com/company/google'
@@ -12,13 +14,14 @@ class CompaniesTest(SeleniumTest):
         super().setUp()
         login(self.driver)
 
-    #@pytest.mark.skip
+    @pytest.mark.skip
     def test_extracts_see_all_url(self):
         self.driver.get(GOOGLE)
         url = extracts_see_all_url(self.driver)
         print(url)
         assert url.startswith("https://www.linkedin.com/search/results/people/?facetCurrentCompany=")
 
+    @pytest.mark.skip
     def test_extracts_linkedin_users(self):
         self.driver.get(GOOGLE_USERS_LIST)
 

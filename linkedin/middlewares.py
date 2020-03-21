@@ -16,8 +16,8 @@ class SeleniumDownloaderMiddleware:
         # request.meta['driver'] = self.driver  # to access driver from response
 
         print('waiting for page loading')
-        profile_xpath = "//*[@id='nav-settings__dropdown-trigger']/img"
-        get_by_xpath(driver, profile_xpath)
+        # profile_xpath = "//*[@id='nav-settings__dropdown-trigger']/img"
+        # get_by_xpath_or_none(driver, profile_xpath)
 
         spider.wait_page_completion(driver=driver)
 

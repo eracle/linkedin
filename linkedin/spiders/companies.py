@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
 from scrapy import Request
-from scrapy.spiders import Spider
 
-from linkedin.spiders.selenium import SeleniumSpiderMixin, extracts_see_all_url, extracts_linkedin_users, \
-    get_by_xpath_or_none, extract_company
+from linkedin.spiders.search import SearchSpider
+from linkedin.spiders.selenium import get_by_xpath_or_none, get_by_xpath
 
-"""
-Number of seconds to wait checking if the page is a "No Result" type.
-"""
-NO_RESULT_WAIT_TIMEOUT = 3
-
-"""
-First page to scrape from on the search results list (default to 1).
-"""
-FIRST_PAGE_INDEX = 1
 
 URLS_FILE = "urls.txt"
 
+"""
+Placeholder used to recognize the 'See all 27,569 employees on LinkedIn' clickable button,
+in the 'https://www.linkedin.com/company/*/' style pages.
+"""
+SEE_ALL_PLACEHOLDER = 'See all'
 
-class CompaniesSpider(SeleniumSpiderMixin, Spider):
+
+class CompaniesSpider(SearchSpider):
     name = 'companies'
     allowed_domains = ['www.linkedin.com']
 
@@ -27,7 +23,7 @@ class CompaniesSpider(SeleniumSpiderMixin, Spider):
 
     def wait_page_completion(self, driver):
         """
-        Abstract function, used to customize how the specific spider have to wait for page completion.
+        Abstract function, used to customize how the specific spider must wait for a search page completion.
         Blank by default
         :param driver:
         :return:
@@ -35,41 +31,41 @@ class CompaniesSpider(SeleniumSpiderMixin, Spider):
         pass
 
     def parse(self, response):
-        url = extracts_see_all_url(self.driver) + f'&page={FIRST_PAGE_INDEX}'
+        url = extracts_see_all_url(self.driver) + f'&page=1'
         return Request(url=url,
-                       callback=self.parser_search_results_page,
+                       callback=super().parser_search_results_page,
                        dont_filter=True,
                        )
 
-    def parser_search_results_page(self, response):
-        print('Now parsing search result page')
 
-        no_result_found_xpath = '//*[text()="No results found."]'
+######################
+# Module's functions:
+######################
 
-        no_result_response = get_by_xpath_or_none(driver=self.driver,
-                                                  xpath=no_result_found_xpath,
-                                                  wait_timeout=NO_RESULT_WAIT_TIMEOUT,
-                                                  logs=False)
+def extracts_see_all_url(driver):
+    """
+    Retrieve from the the Company front page the url of the page containing the list of its employees.
+    :param driver: The already opened (and logged in) webdriver, already located to the company's front page.
+    :return: String: The "See All" URL.
+    """
+    print('Searching for the "See all * employees on LinkedIn" btn')
+    see_all_xpath = f'//*[starts-with(text(),"{SEE_ALL_PLACEHOLDER}")]'
+    see_all_elem = get_by_xpath(driver, see_all_xpath)
+    see_all_ex_text = see_all_elem.text
 
-        if no_result_response is not None:
-            print('"No results" message shown, stop crawling this company')
-            return
-        else:
-            company = extract_company(self.driver)
-            print(f'Company:{company}')
+    a_elem = driver.find_element_by_link_text(see_all_ex_text)
+    see_all_url = a_elem.get_attribute('href')
+    print(f'Found the following URL: {see_all_url}')
+    return see_all_url
 
-            users = extracts_linkedin_users(self.driver, company=company, api_client=self.api_client)
-            for user in users:
-                yield user
 
-            # incrementing the index at the end of the url
-            url = response.request.url
-            next_url_split = url.split('=')
-            index = int(next_url_split[-1])
-            next_url = '='.join(next_url_split[:-1]) + '=' + str(index + 1)
-
-            yield Request(url=next_url,
-                          callback=self.parser_search_results_page,
-                          meta={'company': company},
-                          dont_filter=True,
-                          )
+def extract_company(driver):
+    """
+    Extract company name from a search result page.
+    :param driver: The selenium webdriver.
+    :return: The company string, None if something wrong.
+    """
+    company_xpath = '//li[@class="search-s-facet search-s-facet--facetCurrentCompany inline-block ' \
+                    'search-s-facet--is-closed ember-view"]/form/button/div/div/h3 '
+    company_elem = get_by_xpath_or_none(driver, company_xpath)
+    return company_elem.text if company_elem is not None else None

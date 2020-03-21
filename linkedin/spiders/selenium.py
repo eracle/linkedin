@@ -1,5 +1,3 @@
-import time
-
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, WebDriverException
 from selenium.webdriver import DesiredCapabilities
@@ -21,11 +19,27 @@ LINKEDIN_LOGIN_URL = 'https://www.linkedin.com/login'
 from the scrapy controller to the selenium instance."""
 SELENIUM_HOSTNAME = 'selenium'
 
-"""
-Placeholder used to recognize the 'See all 27,569 employees on LinkedIn' clickable button,
-in the 'https://www.linkedin.com/company/*/' style pages.
-"""
-SEE_ALL_PLACEHOLDER = 'See all'
+
+class SeleniumSpiderMixin:
+    """
+    Abstract Spider based on Selenium.
+    It takes care of login on linkedin.
+    """
+    def __init__(self, selenium_hostname=None, **kwargs):
+        if selenium_hostname is None:
+            selenium_hostname = SELENIUM_HOSTNAME
+
+        self.driver = init_chromium(selenium_hostname)
+
+        # initializing also API's client
+        self.api_client = CustomLinkedinClient(EMAIL, PASSWORD, debug=True)
+
+        login(self.driver)
+
+        super().__init__(**kwargs)
+
+    def closed(self, reason):
+        self.driver.close()
 
 
 def wait_invisibility_xpath(driver, xpath, wait_timeout=None):
@@ -105,92 +119,3 @@ def login(driver):
     print('Searching for the submit')
     get_by_xpath(driver, '//*[@type="submit"]').click()
 
-
-def extracts_see_all_url(driver):
-    """
-    Retrieve from the the Company front page the url of the page containing the list of its employees.
-    :param driver: The already opened (and logged in) webdriver, already located to the company's front page.
-    :return: String: The "See All" URL.
-    """
-    print('Searching for the "See all * employees on LinkedIn" btn')
-    see_all_xpath = f'//*[starts-with(text(),"{SEE_ALL_PLACEHOLDER}")]'
-    see_all_elem = get_by_xpath(driver, see_all_xpath)
-    see_all_ex_text = see_all_elem.text
-
-    a_elem = driver.find_element_by_link_text(see_all_ex_text)
-    see_all_url = a_elem.get_attribute('href')
-    print(f'Found the following URL: {see_all_url}')
-    return see_all_url
-
-
-def extracts_linkedin_users(driver, company, api_client):
-    """
-    Gets from a page containing a list of users, all the users.
-    For instance: https://www.linkedin.com/search/results/people/?facetCurrentCompany=[%22221027%22]
-    :param driver: The webdriver, logged in, and located in the page which lists users.
-    :return: Iterator on LinkedinUser.
-    """
-    from linkedin.spiders.linkedin import extract_contact_info
-
-    for i in range(1, 11):
-        print(f'loading {i}th user')
-
-        last_result_xpath = f'//li[{i}]/*/div[@class="search-result__wrapper"]'
-
-        result = get_by_xpath_or_none(driver, last_result_xpath)
-        if result is not None:
-            link_elem = get_by_xpath_or_none(result, './/*[@class="search-result__result-link ember-view"]')
-            link = link_elem.get_attribute('href') if link_elem is not None else None
-
-            name_elem = get_by_xpath_or_none(result, './/*[@class="name actor-name"]')
-            name = name_elem.text if name_elem is not None else None
-
-            title_elem = get_by_xpath_or_none(result, './/p')
-            title = title_elem.text if name_elem is not None else None
-
-            # extract_profile_id_from_url
-            profile_id = link.split('/')[-2]
-            user = extract_contact_info(api_client, profile_id)
-
-            yield user
-
-            if link_elem is not None:
-                driver.execute_script("arguments[0].scrollIntoView();", link_elem)
-            elif name_elem is not None:
-                driver.execute_script("arguments[0].scrollIntoView();", name_elem)
-            elif title_elem is not None:
-                driver.execute_script("arguments[0].scrollIntoView();", title_elem)
-            else:
-                print("Was not possible to scroll")
-
-        time.sleep(0.7)
-
-
-def extract_company(driver):
-    """
-    Extract company name from a search result page.
-    :param driver: The selenium webdriver.
-    :return: The company string, None if something wrong.
-    """
-    company_xpath = '//li[@class="search-s-facet search-s-facet--facetCurrentCompany inline-block ' \
-                    'search-s-facet--is-closed ember-view"]/form/button/div/div/h3 '
-    company_elem = get_by_xpath_or_none(driver, company_xpath)
-    return company_elem.text if company_elem is not None else None
-
-
-class SeleniumSpiderMixin:
-    def __init__(self, selenium_hostname=None, **kwargs):
-        if selenium_hostname is None:
-            selenium_hostname = SELENIUM_HOSTNAME
-
-        self.driver = init_chromium(selenium_hostname)
-
-        # initializing also API's client
-        self.api_client = CustomLinkedinClient(EMAIL, PASSWORD, debug=True)
-
-        login(self.driver)
-
-        super().__init__(**kwargs)
-
-    def closed(self, reason):
-        self.driver.close()

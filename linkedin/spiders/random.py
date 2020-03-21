@@ -2,38 +2,17 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider
 from scrapy.spiders import Rule
 
+from linkedin.spiders.search import extract_contact_info
 from linkedin.spiders.selenium import SeleniumSpiderMixin, get_by_xpath_or_none
 
+"""
+Variable holding where to search for first profiles to scrape.
+"""
 NETWORK_URL = 'https://www.linkedin.com/mynetwork/invite-connect/connections/'
 
 
-def extract_contact_info(api_client, contact_public_id):
-    contact_profile = api_client.get_profile(contact_public_id)
-    contact_info = api_client.get_profile_contact_info(contact_public_id)
-
-    lastName = contact_profile['lastName']
-    firstName = contact_profile['firstName']
-
-    email_address = contact_info['email_address']
-    phone_numbers = contact_info['phone_numbers']
-
-    education = contact_profile['education']
-    experience = contact_profile['experience']
-
-    current_work = [exp for exp in experience if exp.get('timePeriod', {}).get('endDate') is None]
-
-    return dict(lastName=lastName,
-                firstName=firstName,
-                email_address=email_address,
-                phone_numbers=phone_numbers,
-                education=education,
-                experience=experience,
-                current_work=current_work,
-                )
-
-
-class Linkedin(SeleniumSpiderMixin, CrawlSpider):
-    name = "linkedin"
+class RandomSpider(SeleniumSpiderMixin, CrawlSpider):
+    name = "random"
     start_urls = [
         NETWORK_URL,
     ]

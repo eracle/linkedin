@@ -17,29 +17,33 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
     """
 
     def parser_search_results_page(self, response):
-        print('Now parsing search result page')
+        # getting optional callback's arguments:
 
+        # maximum number for pagination
+        max_page = response.meta.get('max_page', None)
+
+        # stop_criteria : returns True if search must stop
+        stop_criteria = response.meta.get('stop_criteria', None)
+        stop_criteria_args = response.meta.get('stop_criteria_args', None)
+
+        # Now parsing search result page
         no_result_found_xpath = '//*[text()="No results found."]'
-
         no_result_response = get_by_xpath_or_none(driver=self.driver,
                                                   xpath=no_result_found_xpath,
                                                   wait_timeout=NO_RESULT_WAIT_TIMEOUT,
                                                   logs=False)
 
         if no_result_response is not None:
-            print('"No results" message shown, stop crawling this company')
+            # no results message shown: stop crawling this company
             return
         else:
-            # company extraction temporary disabled
-            # company = extract_company(self.driver)
-            # print(f'Company:{company}')
-
-            users = extracts_linkedin_users(self.driver,
-                                            #company=company,
-                                            api_client=self.api_client)
+            users = extracts_linkedin_users(self.driver, api_client=self.api_client)
             for user in users:
+                if stop_criteria is not None:
+                    if stop_criteria(user, stop_criteria_args):
+                        # if stop criteria is matched stops the crawl, and also next pages
+                        return
                 yield user
-
 
             # incrementing the index at the end of the url
             url = response.request.url
@@ -47,14 +51,13 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
             index = int(next_url_split[-1])
             next_url = '='.join(next_url_split[:-1]) + '=' + str(index + 1)
 
-            max_page = response.meta.get('max_page', None)
             if max_page is not None:
                 if index >= max_page:
                     return
 
             yield Request(url=next_url,
                           callback=self.parser_search_results_page,
-                          meta={'max_page': max_page},
+                          meta=response.meta,
                           dont_filter=True,
                           )
     

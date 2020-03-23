@@ -1,9 +1,11 @@
+import copy
 import time
 
-from scrapy import Spider
 from scrapy import Request
+from scrapy import Spider
 
 from linkedin.spiders.selenium import get_by_xpath_or_none, SeleniumSpiderMixin
+
 
 """
 Number of seconds to wait checking if the page is a "No Result" type.
@@ -57,7 +59,7 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
 
             yield Request(url=next_url,
                           callback=self.parser_search_results_page,
-                          meta=response.meta,
+                          meta=copy.deepcopy(response.meta),
                           dont_filter=True,
                           )
     

@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 from linkedin.spiders.selenium import init_chromium, login
 
 
@@ -15,10 +17,12 @@ class SeleniumTest(unittest.TestCase):
 
 class ChromiumTest(SeleniumTest):
 
+    @pytest.mark.skip
     def test_init(self):
         self.assertIsNotNone(self.driver)
         print("type: %s" % type(self.driver))
 
+    @pytest.mark.skip
     def test_login(self):
         login(self.driver)
 

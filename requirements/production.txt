@@ -3,11 +3,7 @@ Scrapy>=1.5.1 # pyup: < 2.0  # https://github.com/scrapy/scrapy
 
 # Selenium
 selenium>=3.14.0 # pyup: < 4.0  # https://github.com/SeleniumHQ/selenium
-
-# Testing
-# todo: move them to a dedicated req file
-pytest==5.4.1
-pytest-sugar==0.9.2
+scrapy-selenium==0.0.7
 
 # Linkedin API library
 -e git+https://github.com/tomquirk/linkedin-api.git@f5962d05e92d135b1be21146a5ce9d41eaf6d423#egg=linkedin_api

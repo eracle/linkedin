@@ -40,7 +40,7 @@ sudo apt-get install vinagre
 Copy `conf_template.py` in `conf.py` and fill the quotes with your credentials.
 
 ###### 2. Run and build containers with docker-compose:
-Only linkedin spider, not the companies spider.
+Only linkedin random spider, not the companies spider.
 Open your terminal, move to the project folder and type:
 
 ```bash

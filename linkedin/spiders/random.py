@@ -40,4 +40,6 @@ class RandomSpider(SeleniumSpiderMixin, CrawlSpider):
         profile_id = response.url.split('/')[-2]
         item = extract_contact_info(self.api_client, profile_id)
 
+        driver = response.meta.pop('driver')
+        driver.close()
         yield item

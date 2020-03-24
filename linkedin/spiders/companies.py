@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import copy
+
 from scrapy import Request
 
 from linkedin.spiders.search import SearchSpider
-from linkedin.spiders.selenium import get_by_xpath_or_none, get_by_xpath
-
+from linkedin.spiders.selenium import get_by_xpath_or_none, get_by_xpath, init_chromium, login
 
 URLS_FILE = "urls.txt"
 
@@ -21,20 +22,14 @@ class CompaniesSpider(SearchSpider):
     with open(URLS_FILE, "rt") as f:
         start_urls = [url.strip() for url in f]
 
-    def wait_page_completion(self, driver):
-        """
-        Abstract function, used to customize how the specific spider must wait for a search page completion.
-        Blank by default
-        :param driver:
-        :return:
-        """
-        pass
-
     def parse(self, response):
-        url = extracts_see_all_url(self.driver) + f'&page=1'
+        driver = response.meta.pop('driver')
+        url = extracts_see_all_url(driver) + f'&page=1'
+        driver.close()
         return Request(url=url,
                        callback=super().parser_search_results_page,
                        dont_filter=True,
+                       meta=copy.deepcopy(response.meta),
                        )
 
 

@@ -25,21 +25,24 @@ class SeleniumSpiderMixin:
     Abstract Spider based on Selenium.
     It takes care of login on linkedin.
     """
+
     def __init__(self, selenium_hostname=None, **kwargs):
         if selenium_hostname is None:
             selenium_hostname = SELENIUM_HOSTNAME
-
-        self.driver = init_chromium(selenium_hostname)
+        self.selenium_hostname = selenium_hostname
 
         # initializing also API's client
         self.api_client = CustomLinkedinClient(EMAIL, PASSWORD, debug=True)
 
-        login(self.driver)
+        # logging in and saving cookies
+        driver = init_chromium(self.selenium_hostname)
+        self.cookies = login(driver)
+        driver.close()
 
         super().__init__(**kwargs)
 
     def closed(self, reason):
-        self.driver.close()
+        pass
 
 
 def wait_invisibility_xpath(driver, xpath, wait_timeout=None):
@@ -85,7 +88,7 @@ def get_by_xpath(driver, xpath, wait_timeout=None):
         ))
 
 
-def init_chromium(selenium_host):
+def init_chromium(selenium_host, cookies=None):
     selenium_url = 'http://%s:4444/wd/hub' % selenium_host
 
     print('Initializing chromium, remote url: %s' % selenium_url)
@@ -99,6 +102,12 @@ def init_chromium(selenium_host):
 
     driver = webdriver.Remote(command_executor=selenium_url,
                               desired_capabilities=chrome_options)
+
+    if cookies is not None:
+        driver.get("https://www.linkedin.com/404error")
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+
     return driver
 
 
@@ -119,3 +128,4 @@ def login(driver):
     print('Searching for the submit')
     get_by_xpath(driver, '//*[@type="submit"]').click()
 
+    return driver.get_cookies()

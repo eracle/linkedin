@@ -4,8 +4,7 @@ import time
 from scrapy import Request
 from scrapy import Spider
 
-from linkedin.spiders.selenium import get_by_xpath_or_none, SeleniumSpiderMixin
-
+from linkedin.spiders.selenium import get_by_xpath_or_none, SeleniumSpiderMixin, init_chromium
 
 """
 Number of seconds to wait checking if the page is a "No Result" type.
@@ -18,8 +17,20 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
     Abstract class for for generic search on linkedin.
     """
 
+    def wait_page_completion(self, driver):
+        """
+        Abstract function, used to customize how the specific spider must wait for a search page completion.
+        Blank by default
+        :param driver:
+        :return:
+        """
+        # profile_xpath = "//*[@id='nav-settings__dropdown-trigger']/img"
+        # get_by_xpath_or_none(driver, profile_xpath)
+        pass
+
     def parser_search_results_page(self, response):
         # getting optional callback's arguments:
+        driver = response.meta.pop('driver')
 
         # maximum number for pagination
         max_page = response.meta.get('max_page', None)
@@ -30,20 +41,22 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
 
         # Now parsing search result page
         no_result_found_xpath = '//*[text()="No results found."]'
-        no_result_response = get_by_xpath_or_none(driver=self.driver,
+        no_result_response = get_by_xpath_or_none(driver=driver,
                                                   xpath=no_result_found_xpath,
                                                   wait_timeout=NO_RESULT_WAIT_TIMEOUT,
                                                   logs=False)
 
         if no_result_response is not None:
             # no results message shown: stop crawling this company
+            driver.close()
             return
         else:
-            users = extracts_linkedin_users(self.driver, api_client=self.api_client)
+            users = extracts_linkedin_users(driver, api_client=self.api_client)
             for user in users:
                 if stop_criteria is not None:
                     if stop_criteria(user, stop_criteria_args):
                         # if stop criteria is matched stops the crawl, and also next pages
+                        driver.close()
                         return
                 yield user
 
@@ -55,18 +68,20 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
 
             if max_page is not None:
                 if index >= max_page:
+                    driver.close()
                     return
 
+            driver.close()
             yield Request(url=next_url,
                           callback=self.parser_search_results_page,
                           meta=copy.deepcopy(response.meta),
                           dont_filter=True,
                           )
-    
+
 ######################
 # Module's functions:
 ######################
-def extracts_linkedin_users(driver, api_client, company=None):
+def extracts_linkedin_users(driver, api_client):
     """
     Gets from a page containing a list of users, all the users.
     For instance: https://www.linkedin.com/search/results/people/?facetCurrentCompany=[%22221027%22]

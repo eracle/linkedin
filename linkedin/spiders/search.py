@@ -78,6 +78,7 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
                           dont_filter=True,
                           )
 
+
 ######################
 # Module's functions:
 ######################
@@ -123,6 +124,20 @@ def extracts_linkedin_users(driver, api_client):
         time.sleep(0.7)
 
 
+def filter_istr_dict(elem):
+    wanted_istr = {'schoolName', 'degreeName', 'fieldOfStudy', 'timePeriod',
+                   # 'description',
+                   'grade'}
+    return dict([(k, v) for k, v in elem.items() if k in wanted_istr])
+
+
+def filter_experience_dict(elem):
+    wanted_experience = {'companyName', 'industries', 'title', 'startDate', 'timePeriod', 'geoLocationName',
+                         # 'description',
+                         'locationName', 'company', }
+    return dict([(k, v) for k, v in elem.items() if k in wanted_experience])
+
+
 def extract_contact_info(api_client, contact_public_id):
     contact_profile = api_client.get_profile(contact_public_id)
     contact_info = api_client.get_profile_contact_info(contact_public_id)
@@ -133,10 +148,10 @@ def extract_contact_info(api_client, contact_public_id):
     email_address = contact_info['email_address']
     phone_numbers = contact_info['phone_numbers']
 
-    education = contact_profile['education']
-    experience = contact_profile['experience']
+    education = list(map(filter_istr_dict, contact_profile['education']))
+    experience = list(map(filter_experience_dict, contact_profile['experience']))
 
-    current_work = [exp for exp in experience if exp.get('timePeriod', {}).get('endDate') is None]
+    # current_work = [exp for exp in experience if exp.get('timePeriod', {}).get('endDate') is None]
 
     return dict(lastName=lastName,
                 firstName=firstName,
@@ -144,6 +159,5 @@ def extract_contact_info(api_client, contact_public_id):
                 phone_numbers=phone_numbers,
                 education=education,
                 experience=experience,
-                current_work=current_work,
+                # current_work=current_work,
                 )
-

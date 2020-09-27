@@ -33,7 +33,7 @@ class RandomSpider(SeleniumSpiderMixin, CrawlSpider):
         :return:
         """
         # waiting links to other users are shown so the crawl can continue
-        get_by_xpath_or_none(driver, '//*/span/span/span[1]', wait_timeout=3)
+        get_by_xpath_or_none(driver, "//*/div[@class='pv-deferred-area ember-view']", wait_timeout=3)
 
     def extract_profile_id_from_url(self, response):
         # extract_profile_id_from_url

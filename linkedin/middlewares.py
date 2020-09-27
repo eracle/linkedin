@@ -2,7 +2,7 @@
 from scrapy.http import HtmlResponse
 from scrapy.utils.python import to_bytes
 
-from linkedin.spiders.selenium import get_by_xpath, get_by_xpath_or_none, init_chromium
+from linkedin.spiders.selenium import init_chromium
 
 
 class SeleniumDownloaderMiddleware:

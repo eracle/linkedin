@@ -27,7 +27,7 @@ class CustomLinkedinClient(Linkedin):
         """
         return super()._post(uri, evade, **kwargs)
 
-    def get_profile(self, public_id=None, urn_id=None):
+    def get_profile(self, public_id=None, urn_id=None, with_skills=True):
         """
         Return data for a single profile.
 

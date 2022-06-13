@@ -1,3 +1,5 @@
+import logging
+
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, WebDriverException
 from selenium.webdriver import DesiredCapabilities
@@ -52,7 +54,7 @@ def wait_invisibility_xpath(driver, xpath, wait_timeout=None):
     WebDriverWait(driver, wait_timeout).until(ec.invisibility_of_element_located((By.XPATH, xpath)))
 
 
-def get_by_xpath_or_none(driver, xpath, wait_timeout=None, logs=True):
+def get_by_xpath_or_none(driver, xpath, wait_timeout=None):
     """
     Get a web element through the xpath string passed.
     If a TimeoutException is raised the else_case is called and None is returned.
@@ -65,10 +67,7 @@ def get_by_xpath_or_none(driver, xpath, wait_timeout=None, logs=True):
     try:
         return get_by_xpath(driver, xpath, wait_timeout=wait_timeout)
     except (TimeoutException, StaleElementReferenceException, WebDriverException) as e:
-        if logs:
-            print("Exception Occurred:")
-            print(f"XPATH:{xpath}")
-            print(f"Error:{e}")
+        logging.warning(f"Exception Occurred:\nXPATH:{xpath}\nError:{e}")
         return None
 
 
@@ -106,6 +105,8 @@ def init_chromium(selenium_host, cookies=None):
     if cookies is not None:
         driver.get("https://www.linkedin.com/404error")
         for cookie in cookies:
+            if 'expiry' in cookie:
+                del cookie['expiry']
             driver.add_cookie(cookie)
 
     return driver

@@ -14,6 +14,8 @@ This spider aims to collect all the users working for a company on linkedin.
 2. Clicks on "See all 1M employees" button;
 3. Starts collecting User related Scapy items.
 
+#### Support the project:
+[![https://dashboard.iproyal.com/img/b/468_3.jpg](https://dashboard.iproyal.com/img/b/468_3.jpg)](https://iproyal.com?r=80250)
 
 ### Install
 Needed:

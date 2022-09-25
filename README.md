@@ -1,21 +1,23 @@
 [![built with Python3](https://img.shields.io/badge/built%20with-Python3-red.svg)](https://www.python.org/)
 [![built with Selenium](https://img.shields.io/badge/built%20with-Selenium-yellow.svg)](https://github.com/SeleniumHQ/selenium)
 
-# Linkedin Automation:
+## Linkedin Automation:
 
 Uses: Scrapy, Selenium web driver, Chromium headless, docker and python3.
 
-#### Linkedin spider:
+
+### Support the project:
+[![https://dashboard.iproyal.com/img/b/468_3.jpg](https://dashboard.iproyal.com/img/b/468_3.jpg)](https://iproyal.com?r=80250)
+
+### Linkedin spider:
 The first spider aims to visit as more linkedin's user pages as possible :-D, the objective is to gain visibility with your account: since LinkedIn notifies the issued User when someone visits his page.
 
-#### Companies spider:
+### Companies spider:
 This spider aims to collect all the users working for a company on linkedin.
 1. It goes on the company's front-page;
 2. Clicks on "See all 1M employees" button;
 3. Starts collecting User related Scapy items.
 
-#### Support the project:
-[![https://dashboard.iproyal.com/img/b/468_3.jpg](https://dashboard.iproyal.com/img/b/468_3.jpg)](https://iproyal.com?r=80250)
 
 ### Install
 Needed:
@@ -25,7 +27,7 @@ Needed:
 - python3.6;
 - virtualenvs;
 
-###### 0. Prepare your environment:
+##### 0. Prepare your environment:
 
 Install docker from the official website [https://www.docker.com/](https://www.docker.com/)
 
@@ -37,10 +39,10 @@ sudo apt-get update
 sudo apt-get install vinagre
 ```
 
-###### 1. Set up Linkedin login and password:
+##### 1. Set up Linkedin login and password:
 Copy `conf_template.py` in `conf.py` and fill the quotes with your credentials.
 
-###### 2. Run and build containers with docker-compose:
+##### 2. Run and build containers with docker-compose:
 Only linkedin random spider, not the companies spider.
 Open your terminal, move to the project folder and type:
 
@@ -49,7 +51,7 @@ docker-compose up -d --build
 ```
 
 
-###### 3. Take a look on the browser's activity:
+##### 3. Take a look on the browser's activity:
 
 Open vinagre, and type address and port `localhost:5900`. The password is `secret`.
 or otherwise:
@@ -59,7 +61,7 @@ or
 make view
 ```
 
-###### 4. Stop the scraper;
+##### 4. Stop the scraper;
 
 Use your terminal again, type in the same window:
 
@@ -68,7 +70,7 @@ docker-compose down
 ```
 
 
-###### Test & Development:
+##### Test & Development:
 Setup your python virtual environment (trivial but mandatory):
 
 ```bash

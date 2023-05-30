@@ -5,11 +5,11 @@
 
 Uses: Scrapy, Selenium web driver, Chromium headless, docker and python3.
 
-## Sponsor:
+### Sponsor:
 
-[![Proxycurl APIs enrich people and company profiles with structured data](https://drive.google.com/file/d/146KWuBPPrfCdRrAM05rfHishs_pGKegu/view?usp=sharing)](https://bit.ly/proxycurl-api)
+[![Proxycurl APIs enrich people and company profiles with structured data](https://github.com/josephlimtech/linkedin/blob/master/Proxycurl%20logo.png?raw=true)](https://bit.ly/proxycurl-api)
 
-Scrape public LinkedIn profile data at scale with [Proxycurl APIs](https://bit.ly/proxycurl-api).
+Scrape public LinkedIn people and company profile data at scale with [Proxycurl APIs](https://bit.ly/proxycurl-api).
 
 - Scraping Public profiles are battle tested in court in HiQ VS LinkedIn case
 - GDPR, CCPA, SOC2 compliant

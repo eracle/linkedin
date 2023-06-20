@@ -21,9 +21,6 @@ Scrape public LinkedIn people and company profile data at scale with [Proxycurl 
 
 Built for developers, by developers.
 
-### Support the project:
-[![https://dashboard.iproyal.com/img/b/468_3.jpg](https://dashboard.iproyal.com/img/b/468_3.jpg)](https://iproyal.com?r=80250)
-
 ### Linkedin spider:
 The first spider aims to visit as more linkedin's user pages as possible :-D, the objective is to gain visibility with your account: since LinkedIn notifies the issued User when someone visits his page.
 

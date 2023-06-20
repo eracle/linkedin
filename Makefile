@@ -15,3 +15,15 @@ byname:
 
 tests:
 	pytest linkedin/tests/*
+
+attach:
+	docker-compose logs -f scrapy
+
+stop:
+	docker-compose stop
+
+build:
+	docker-compose build
+
+up: build
+	docker-compose up

@@ -39,7 +39,7 @@ class CompaniesSpider(SearchSpider):
 
 def extracts_see_all_url(driver):
     """
-    Retrieve from the the Company front page the url of the page containing the list of its employees.
+    Retrieve from the Company front page the url of the page containing the list of its employees.
     :param driver: The already opened (and logged in) webdriver, already located to the company's front page.
     :return: String: The "See All" URL.
     """

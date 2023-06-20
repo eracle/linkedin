@@ -1,7 +1,7 @@
 version: '3'
 services:
   scrapy:
-    command: ["./wait-for-selenium.sh", "http://selenium:4444/wd/hub", "--", "scrapy", "crawl", "random"]
+    command: /start
     environment:
       - PYTHONUNBUFFERED=0
     build:

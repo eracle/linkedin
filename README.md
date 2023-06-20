@@ -59,7 +59,7 @@ Only linkedin random spider, not the companies spider.
 Open your terminal, move to the project folder and type:
 
 ```bash
-docker-compose up -d --build
+make up
 ```
 
 
@@ -78,7 +78,7 @@ make view
 Use your terminal again, type in the same window:
 
 ```bash
-docker-compose down
+make down
 ```
 
 

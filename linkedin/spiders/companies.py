@@ -17,7 +17,7 @@ SEE_ALL_PLACEHOLDER = 'See all'
 
 class CompaniesSpider(SearchSpider):
     name = 'companies'
-    allowed_domains = ['www.linkedin.com']
+    allowed_domains = ['linkedin.com']
 
     with open(URLS_FILE, "rt") as f:
         start_urls = [url.strip() for url in f]

@@ -1,9 +1,9 @@
-[![built with Python3](https://img.shields.io/badge/built%20with-Python3-red.svg)](https://www.python.org/)
-[![built with Selenium](https://img.shields.io/badge/built%20with-Selenium-yellow.svg)](https://github.com/SeleniumHQ/selenium)
+![built with Python3](https://img.shields.io/badge/built%20with-Python3-red.svg)
+![built with Selenium](https://img.shields.io/badge/built%20with-Selenium-yellow.svg)
 
-## Linkedin Automation:
+# LinkedIn Automation Tool
 
-Uses: Scrapy, Selenium web driver, Chromium headless, docker and python3.
+This tool is designed for automating tasks on LinkedIn. It leverages technologies such as Scrapy, Selenium WebDriver, Chromium (in headless mode), Docker, and Python3.
 
 ### Sponsor:
 
@@ -21,98 +21,89 @@ Scrape public LinkedIn people and company profile data at scale with [Proxycurl 
 
 Built for developers, by developers.
 
-### Linkedin spider:
-The first spider aims to visit as more linkedin's user pages as possible :-D, the objective is to gain visibility with your account: since LinkedIn notifies the issued User when someone visits his page.
+## Features
 
-### Companies spider:
-This spider aims to collect all the users working for a company on linkedin.
-1. It goes on the company's front-page;
-2. Clicks on "See all 1M employees" button;
-3. Starts collecting User related Scapy items.
+### LinkedIn Spider
 
+The LinkedIn Spider is designed to visit as many LinkedIn user pages as possible. The goal is to increase the visibility of your account, as LinkedIn notifies users when their profile has been viewed.
 
-### Install
-Needed:
-- docker;
-- docker-compose;
-- VNC viewer, like vinagre (ubuntu);
-- python3.6;
-- virtualenvs;
+### Companies Spider
 
-##### 0. Prepare your environment:
+The Companies Spider is designed to gather information about all users working for a specific company on LinkedIn. It operates by:
 
-Install docker from the official website [https://www.docker.com/](https://www.docker.com/)
+1. Navigating to the company's LinkedIn page.
+2. Clicking on the "See all employees" button.
+3. Collecting user-related data.
 
-Install VNC viewer if you do not have one. 
-For ubuntu, go for vinagre:
+## Installation and Setup
+
+You will need the following:
+
+- Docker
+- Docker Compose
+- A VNC viewer (e.g., Vinagre for Ubuntu)
+- Python 3.6
+- Virtualenv
+
+### Steps
+
+1. **Prepare your environment**: Install Docker from the [official website](https://www.docker.com/). If you don't have a VNC viewer, install one. For Ubuntu, you can use Vinagre:
 
 ```bash
 sudo apt-get update
 sudo apt-get install vinagre
 ```
 
-##### 1. Set up Linkedin login and password:
-Copy `conf_template.py` in `conf.py` and fill the quotes with your credentials.
+2. **Set up LinkedIn login and password**: Copy `conf_template.py` to `conf.py` and fill in your LinkedIn credentials.
 
-##### 2. Run and build containers with docker-compose:
-Only linkedin random spider, not the companies spider.
-Open your terminal, move to the project folder and type:
+3. **Run and build containers with Docker Compose**: This step only applies to the LinkedIn random spider, not the companies spider. Open your terminal, navigate to the project folder, and type:
 
 ```bash
 make up
 ```
 
+4. **Monitor the browser's activity**: Open Vinagre and connect to `localhost:5900`. The password is `secret`. Alternatively, you can use the command:
 
-##### 3. Take a look on the browser's activity:
-
-Open vinagre, and type address and port `localhost:5900`. The password is `secret`.
-or otherwise:
 ```bash
-vinagre localhost:5900
-or
 make view
 ```
 
-##### 4. Stop the scraper;
-
-Use your terminal again, type in the same window:
+5. **Stop the scraper**: To stop the scraper, use the command:
 
 ```bash
 make down
 ```
 
+## Testing and Development
 
-##### Test & Development:
-Setup your python virtual environment (trivial but mandatory):
+Set up your Python virtual environment:
 
 ```bash
-    virtualenvs -p python3.6 .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
+virtualenvs -p python3.6 .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Create the selenium server, open the VNC window and launch the tests, type those in three different terminals on the project folder:
+To create the Selenium server, open the VNC window, and launch the tests, type the following in three different terminals in the project folder:
+
 ```bash
-    make dev
-    make view
-    make tests
+make dev
+make view
+make tests
 ```
 
-For more details have a look at the Makefile (here is used to shortcut and not to build).
-- Development:
-```bash
-    scrapy crawl companies -a selenium_hostname=localhost -o output.csv
-```
-or
-```bash
-    scrapy crawl random -a selenium_hostname=localhost -o output.csv
-```
-or
-```bash
-    scrapy crawl byname -a selenium_hostname=localhost -o output.csv
-```
-## Legal
+For more details, refer to the Makefile. Here are some commands you can use for development:
 
-This code is in no way affiliated with, authorized, maintained, sponsored or endorsed by Linkedin or any of its affiliates or subsidiaries. This is an independent and unofficial project. Use at your own risk.
+```bash
+scrapy crawl companies -a selenium_hostname=localhost -o output.csv
+scrapy crawl random -a selenium_hostname=localhost -o output.csv
+scrapy crawl byname -a selenium_hostname=localhost -o output.csv
+```
 
-This project violates Linkedin's User Agreement Section 8.2, and because of this, Linkedin may (and will) temporarily or permantly ban your account. We are not responsible for your account being banned.
+## Legal Disclaimer
+
+This code is not affiliated with, authorized, maintained, sponsored, or endorsed by LinkedIn or any of its affiliates or subsidiaries. This is an independent and unofficial project. Use at your own risk.
+
+This project violates LinkedIn's User Agreement Section 8.2. As a result, LinkedIn may temporarily or permanently ban your account. We are not responsible for any actions taken by LinkedIn in response to the use of this tool.
+
+---

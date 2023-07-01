@@ -1,0 +1,5 @@
+-r base.txt
+
+# Testing
+pytest==7.4.0
+pytest-sugar==0.9.7

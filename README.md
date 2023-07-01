@@ -79,9 +79,9 @@ make down
 Set up your Python virtual environment:
 
 ```bash
-virtualenvs -p python3.6 .venv
+virtualenv -p python3.6 .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements/local.txt 
 ```
 
 To create the Selenium server, open the VNC window, and launch the tests, type the following in three different terminals in the project folder:

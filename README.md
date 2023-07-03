@@ -42,8 +42,7 @@ You will need the following:
 - Docker
 - Docker Compose
 - A VNC viewer (e.g., Vinagre for Ubuntu)
-- Python 3.6
-- Virtualenv
+
 
 ### Steps
 
@@ -56,10 +55,14 @@ sudo apt-get install vinagre
 
 2. **Set up LinkedIn login and password**: Copy `conf_template.py` to `conf.py` and fill in your LinkedIn credentials.
 
-3. **Run and build containers with Docker Compose**: This step only applies to the LinkedIn random spider, not the companies spider. Open your terminal, navigate to the project folder, and type:
+3. **Run and build containers with Docker Compose**: Open your terminal, navigate to the project folder, and type:
 
 ```bash
-make up
+make companies
+or
+make random
+or
+make byname
 ```
 
 4. **Monitor the browser's activity**: Open Vinagre and connect to `localhost:5900`. The password is `secret`. Alternatively, you can use the command:
@@ -74,30 +77,10 @@ make view
 make down
 ```
 
-## Testing and Development
-
-Set up your Python virtual environment:
+## Testing
 
 ```bash
-virtualenv -p python3.6 .venv
-source .venv/bin/activate
-pip install -r requirements/local.txt 
-```
-
-To create the Selenium server, open the VNC window, and launch the tests, type the following in three different terminals in the project folder:
-
-```bash
-make dev
-make view
-make tests
-```
-
-For more details, refer to the Makefile. Here are some commands you can use for development:
-
-```bash
-scrapy crawl companies -a selenium_hostname=localhost -o output.csv
-scrapy crawl random -a selenium_hostname=localhost -o output.csv
-scrapy crawl byname -a selenium_hostname=localhost -o output.csv
+make test
 ```
 
 ## Legal Disclaimer

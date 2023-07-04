@@ -6,7 +6,7 @@ from scrapy import Request
 from linkedin.spiders.search import SearchSpider
 from linkedin.spiders.selenium import get_by_xpath_or_none, get_by_xpath, init_chromium, login
 
-URLS_FILE = "urls.txt"
+URLS_FILE = "data/urls.txt"
 
 """
 Placeholder used to recognize the 'See all 27,569 employees on LinkedIn' clickable button,

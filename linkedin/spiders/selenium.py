@@ -66,7 +66,7 @@ def get_by_xpath_or_none(driver, xpath, wait_timeout=None):
     try:
         return get_by_xpath(driver, xpath, wait_timeout=wait_timeout)
     except (TimeoutException, StaleElementReferenceException, WebDriverException) as e:
-        logging.warning(f"Exception Occurred:\nXPATH:{xpath}\nError:{e}")
+        logging.warning(f"Current URL:{driver.current_url}\nException Occurred:\nXPATH:{xpath}\nError:{e}")
         return None
 
 

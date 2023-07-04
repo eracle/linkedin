@@ -5,7 +5,7 @@ from scrapy import Request
 from linkedin.spiders.search import SearchSpider
 from linkedin.spiders.selenium import init_chromium, login
 
-NAMES_FILE = 'names.txt'
+NAMES_FILE = 'data/names.txt'
 
 
 def name_not_matching_stop_criteria(user, name):

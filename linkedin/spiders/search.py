@@ -7,6 +7,7 @@ from scrapy import Spider
 
 from linkedin.spiders.selenium import get_by_xpath_or_none, SeleniumSpiderMixin
 
+logger = logging.getLogger(__name__)
 
 """
 Number of seconds to wait checking if the page is a "No Result" type.
@@ -98,7 +99,7 @@ def extracts_linkedin_users(driver, api_client):
     """
 
     for i in range(1, 11):
-        print(f'loading {i}th user')
+        logger.debug(f'loading {i}th user')
 
         last_result_xpath = f'//li[{i}]/*/div[@class="search-result__wrapper"]'
 
@@ -126,7 +127,7 @@ def extracts_linkedin_users(driver, api_client):
             elif title_elem is not None:
                 driver.execute_script("arguments[0].scrollIntoView();", title_elem)
             else:
-                print("Was not possible to scroll")
+                logger.debug("Was not possible to scroll")
 
         time.sleep(0.7)
 

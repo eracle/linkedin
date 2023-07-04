@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 import copy
+import logging
 
 from scrapy import Request
 
 from linkedin.spiders.search import SearchSpider
 from linkedin.spiders.selenium import get_by_xpath_or_none, get_by_xpath, init_chromium, login
+
+logger = logging.getLogger(__name__)
 
 URLS_FILE = "data/urls.txt"
 
@@ -43,14 +46,14 @@ def extracts_see_all_url(driver):
     :param driver: The already opened (and logged in) webdriver, already located to the company's front page.
     :return: String: The "See All" URL.
     """
-    print('Searching for the "See all * employees on LinkedIn" btn')
+    logger.debug('Searching for the "See all * employees on LinkedIn" btn')
     see_all_xpath = f'//*[starts-with(text(),"{SEE_ALL_PLACEHOLDER}")]'
     see_all_elem = get_by_xpath(driver, see_all_xpath)
     see_all_ex_text = see_all_elem.text
 
     a_elem = driver.find_element_by_link_text(see_all_ex_text)
     see_all_url = a_elem.get_attribute('href')
-    print(f'Found the following URL: {see_all_url}')
+    logger.debug(f'Found the following URL: {see_all_url}')
     return see_all_url
 
 

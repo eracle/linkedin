@@ -10,6 +10,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from conf import EMAIL, PASSWORD
 from linkedin.integration import CustomLinkedinClient
 
+logger = logging.getLogger(__name__)
+
 """
 number of seconds used to wait the web page's loading.
 """
@@ -29,14 +31,12 @@ class SeleniumSpiderMixin:
     """
 
     def __init__(self, selenium_hostname=None, **kwargs):
-        if selenium_hostname is None:
-            selenium_hostname = SELENIUM_HOSTNAME
-        self.selenium_hostname = selenium_hostname
+        self.selenium_hostname = selenium_hostname or SELENIUM_HOSTNAME
 
         # initializing also API's client
         self.api_client = CustomLinkedinClient(EMAIL, PASSWORD, debug=True)
 
-        # logging in and saving cookies
+        # logging and saving cookies
         driver = init_chromium(self.selenium_hostname)
         self.cookies = login(driver)
         driver.close()
@@ -89,7 +89,7 @@ def get_by_xpath(driver, xpath, wait_timeout=None):
 def init_chromium(selenium_host, cookies=None):
     selenium_url = 'http://%s:4444/wd/hub' % selenium_host
 
-    print('Initializing chromium, remote url: %s' % selenium_url)
+    logger.debug(f'Initializing chromium, remote url: {selenium_url}')
 
     chrome_options = DesiredCapabilities.CHROME
     # chrome_options.add_argument('--disable-notifications')
@@ -119,13 +119,13 @@ def login(driver):
     """
     driver.get(LINKEDIN_LOGIN_URL)
 
-    print('Searching for the Login btn')
+    logger.debug('Searching for the Login btn')
     get_by_xpath(driver, '//*[@id="username"]').send_keys(EMAIL)
 
-    print('Searching for the password btn')
+    logger.debug('Searching for the password btn')
     get_by_xpath(driver, '//*[@id="password"]').send_keys(PASSWORD)
 
-    print('Searching for the submit')
+    logger.debug('Searching for the submit')
     get_by_xpath(driver, '//*[@type="submit"]').click()
 
     return driver.get_cookies()

@@ -1,8 +1,12 @@
+import logging
+import random
 from time import sleep
 
-import random
 from linkedin_api import Linkedin
+from linkedin_api.client import Client
 from linkedin_api.utils.helpers import get_id_from_urn
+
+logger = logging.getLogger(__name__)
 
 
 def my_default_evade():
@@ -13,7 +17,48 @@ def my_default_evade():
     sleep(random.uniform(0.2, 0.7))  # sleep a random duration to try and evade suspention
 
 
-class CustomLinkedinClient(Linkedin):
+class CustomClient(Client):
+    def _set_session_cookies(self, cookies):
+        """
+        Set cookies of the current session and save them to a file named as the username.
+        """
+        for cookie in cookies:
+            self.session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'], path=cookie['path'])
+        self.session.headers["csrf-token"] = self.session.cookies["JSESSIONID"].strip(
+            '"'
+        )
+
+
+class CustomLinkedin(Linkedin):
+    def __init__(
+            self,
+            username,
+            password,
+            *,
+            authenticate=True,
+            refresh_cookies=False,
+            debug=False,
+            proxies={},
+            cookies=None,
+            cookies_dir=None,
+    ):
+        """Constructor method"""
+        self.client = CustomClient(
+            refresh_cookies=refresh_cookies,
+            debug=debug,
+            proxies=proxies,
+            cookies_dir=cookies_dir,
+        )
+        logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+        self.logger = logger
+
+        if authenticate:
+            if cookies:
+                # If the cookies are expired, the API won't work anymore since
+                # `username` and `password` are not used at all in this case.
+                self.client._set_session_cookies(cookies)
+            else:
+                self.client.authenticate(username, password)
 
     def _fetch(self, uri, evade=my_default_evade, **kwargs):
         """

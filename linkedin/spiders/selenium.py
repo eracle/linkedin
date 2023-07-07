@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 
 from conf import EMAIL, PASSWORD
-from linkedin.integration import CustomLinkedinClient
+from linkedin.integration import CustomLinkedin
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,12 @@ class SeleniumSpiderMixin:
     def __init__(self, selenium_hostname=None, **kwargs):
         self.selenium_hostname = selenium_hostname or SELENIUM_HOSTNAME
 
-        # initializing also API's client
-        self.api_client = CustomLinkedinClient(EMAIL, PASSWORD, debug=True)
-
         # logging and saving cookies
         driver = init_chromium(self.selenium_hostname)
         self.cookies = login(driver)
+
+        # initializing also API's client
+        self.api_client = CustomLinkedin(username=None, password=None, authenticate=True, cookies=self.cookies, debug=True)
         driver.close()
 
         super().__init__(**kwargs)
@@ -96,6 +96,7 @@ def init_chromium(selenium_host, cookies=None):
         options=chrome_options
     )
 
+    # add cookies to selenium
     if cookies is not None:
         driver.get("https://www.linkedin.com/404error")
         for cookie in cookies:

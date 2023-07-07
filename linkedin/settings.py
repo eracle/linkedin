@@ -77,7 +77,7 @@ TELNETCONSOLE_ENABLED = False
 #REACTOR_THREADPOOL_MAXSIZE=1
 
 DOWNLOADER_MIDDLEWARES = {
-    'linkedin.middlewares.SeleniumDownloaderMiddleware': 200,
+    'linkedin.middlewares.SeleniumMiddleware': 200,
     'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware': None,
     'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware': None,
     'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,

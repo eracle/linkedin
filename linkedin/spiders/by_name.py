@@ -3,7 +3,6 @@ import urllib.parse
 from scrapy import Request
 
 from linkedin.spiders.search import SearchSpider
-from linkedin.spiders.selenium import init_chromium, login
 
 NAMES_FILE = 'data/names.txt'
 

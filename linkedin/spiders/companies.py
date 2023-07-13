@@ -5,7 +5,7 @@ import logging
 from scrapy import Request
 
 from linkedin.spiders.search import SearchSpider
-from linkedin.spiders.selenium import get_by_xpath_or_none, get_by_xpath, init_chromium, login
+from linkedin.middlewares.selenium import get_by_xpath, get_by_xpath_or_none
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class CompaniesSpider(SearchSpider):
     def parse(self, response):
         driver = response.meta.pop('driver')
         url = extracts_see_all_url(driver) + f'&page=1'
-        driver.close()
+        driver.quit()
         return Request(url=url,
                        callback=super().parser_search_results_page,
                        dont_filter=True,

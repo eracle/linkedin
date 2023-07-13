@@ -5,7 +5,7 @@ import time
 from scrapy import Request
 from scrapy import Spider
 
-from linkedin.spiders.selenium import get_by_xpath_or_none, SeleniumSpiderMixin
+from linkedin.middlewares.selenium import get_by_xpath_or_none
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ Number of seconds to wait checking if the page is a "No Result" type.
 NO_RESULT_WAIT_TIMEOUT = 3
 
 
-class SearchSpider(SeleniumSpiderMixin, Spider):
+class SearchSpider(Spider):
     """
     Abstract class for generic search on linkedin.
     """
@@ -71,7 +71,7 @@ class SearchSpider(SeleniumSpiderMixin, Spider):
                 driver.close()
                 return
 
-            driver.close()
+            driver.quit()
             yield Request(url=next_url,
                           callback=self.parser_search_results_page,
                           meta=copy.deepcopy(response.meta),

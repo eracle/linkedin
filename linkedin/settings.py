@@ -21,7 +21,7 @@ NEWSPIDER_MODULE = 'linkedin.spiders'
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS = 1
+CONCURRENT_REQUESTS = 1
 
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
@@ -77,7 +77,6 @@ TELNETCONSOLE_ENABLED = False
 # REACTOR_THREADPOOL_MAXSIZE=1
 
 DOWNLOADER_MIDDLEWARES = {
-    'linkedin.middlewares.SeleniumMiddleware': 200,
     'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware': None,
     'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware': None,
     'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware': None,
@@ -89,6 +88,7 @@ DOWNLOADER_MIDDLEWARES = {
     'scrapy.downloadermiddlewares.cookies.CookiesMiddleware': None,
     'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None,
     'scrapy.downloadermiddlewares.stats.DownloaderStats': 100,
+    'linkedin.middlewares.selenium.SeleniumMiddleware': 800,
 }
 
 # needed to avoid concurrency using the selenium driver

@@ -1,10 +1,13 @@
 import logging
 import random
 from time import sleep
+from urllib.parse import urlparse
 
 from linkedin_api import Linkedin
 from linkedin_api.client import Client
 from linkedin_api.utils.helpers import get_id_from_urn
+
+from linkedin.spiders.search import extract_contact_info
 
 logger = logging.getLogger(__name__)
 
@@ -137,3 +140,28 @@ class CustomLinkedin(Linkedin):
         profile["education"] = education
 
         return profile
+
+
+def extract_profile_id(response):
+    logger.debug(f"Extracting profile info from: {response.url}")
+    # initializing also API's client
+    driver = response.meta.pop('driver')
+    return extract_profile_id_from_url(response.url, driver.get_cookies())
+
+
+def extract_profile_id_from_url(url, cookies):
+    logger.debug(f"extract_profile_id_from_url: {url}")
+    api_client = CustomLinkedin(username=None,
+                                password=None,
+                                authenticate=True,
+                                cookies=cookies,
+                                debug=True)
+
+    # Parse the URL
+    parsed_url = urlparse(url)
+
+    # Split the path and get the second part
+    profile_id = parsed_url.path.split('/')[2]
+
+    logger.debug(f"profile_id: {profile_id}")
+    return extract_contact_info(api_client, profile_id)

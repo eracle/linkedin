@@ -22,7 +22,6 @@ class ByNameSpider(SearchSpider):
     Spider who searches People by name.
     """
     name = 'byname'
-    allowed_domains = ['www.linkedin.com']
 
     start_urls = []
 

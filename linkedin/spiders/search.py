@@ -1,11 +1,10 @@
-import copy
 import logging
 import time
 
 from scrapy import Request
 from scrapy import Spider
 
-from linkedin.middlewares.selenium import get_by_xpath_or_none
+from linkedin.integrations.selenium import get_by_xpath_or_none
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +18,7 @@ class SearchSpider(Spider):
     """
     Abstract class for generic search on linkedin.
     """
+    allowed_domains = ('linkedin.com',)
 
     def wait_page_completion(self, driver):
         """
@@ -27,9 +27,7 @@ class SearchSpider(Spider):
         :param driver:
         :return:
         """
-        # profile_xpath = "//*[@id='nav-settings__dropdown-trigger']/img"
-        # get_by_xpath_or_none(driver, profile_xpath)
-        pass
+        get_by_xpath_or_none(driver, "//*[@id='global-nav']/div", wait_timeout=5)
 
     def parser_search_results_page(self, response):
         # getting optional callback's arguments:
@@ -43,7 +41,7 @@ class SearchSpider(Spider):
         stop_criteria_args = response.meta.get('stop_criteria_args', None)
 
         # Now parsing search result page
-        no_result_found_xpath = '//*[text()="No results found."]'
+        no_result_found_xpath = "//div[contains(@class, 'search-reusable-search-no-results')]"
         no_result_response = get_by_xpath_or_none(driver=driver,
                                                   xpath=no_result_found_xpath,
                                                   wait_timeout=NO_RESULT_WAIT_TIMEOUT)
@@ -51,7 +49,6 @@ class SearchSpider(Spider):
         if no_result_response is not None:
             # no results message shown: stop crawling this company
             logging.warning("no results message shown: stop crawling this company")
-            driver.close()
             return
         else:
             users = extracts_linkedin_users(driver, api_client=self.api_client)
@@ -64,27 +61,26 @@ class SearchSpider(Spider):
                 else:
                     yield user
 
-            index, next_url = self.increment_index_at_end_url(response)
+            index, next_url = increment_index_at_end_url(response)
 
             if max_page is not None and index >= max_page:
                 logging.warning("index >= max_page: stops the crawl")
                 driver.close()
                 return
 
-            driver.quit()
             yield Request(url=next_url,
                           callback=self.parser_search_results_page,
-                          meta=copy.deepcopy(response.meta),
                           dont_filter=True,
                           )
 
-    def increment_index_at_end_url(self, response):
-        # incrementing the index at the end of the url
-        url = response.request.url
-        next_url_split = url.split('=')
-        index = int(next_url_split[-1])
-        next_url = '='.join(next_url_split[:-1]) + '=' + str(index + 1)
-        return index, next_url
+
+def increment_index_at_end_url(response):
+    # incrementing the index at the end of the url
+    url = response.request.url
+    next_url_split = url.split('=')
+    index = int(next_url_split[-1])
+    next_url = '='.join(next_url_split[:-1]) + '=' + str(index + 1)
+    return index, next_url
 
 
 ######################

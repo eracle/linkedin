@@ -2,7 +2,7 @@ import unittest
 
 import pytest
 
-from linkedin.middlewares.selenium import selenium_login
+from linkedin.integrations.selenium import selenium_login
 
 
 @pytest.mark.skip

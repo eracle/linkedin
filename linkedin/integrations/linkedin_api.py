@@ -151,10 +151,10 @@ def extract_profile_id(response):
     logger.debug(f"Extracting profile info from: {response.url}")
     # initializing also API's client
     driver = response.meta.pop("driver")
-    return extract_profile_id_from_url(response.url, driver.get_cookies())
+    return extract_profile_from_url(response.url, driver.get_cookies())
 
 
-def extract_profile_id_from_url(url, cookies):
+def extract_profile_from_url(url, cookies):
     logger.debug(f"extract_profile_id_from_url: {url}")
     api_client = CustomLinkedin(
         username=None, password=None, authenticate=True, cookies=cookies, debug=True
@@ -167,7 +167,7 @@ def extract_profile_id_from_url(url, cookies):
     profile_id = parsed_url.path.split("/")[2]
 
     logger.debug(f"profile_id: {profile_id}")
-    return extract_contact_info(api_client, profile_id)
+    return extract_profile_info(api_client, profile_id)
 
 
 def filter_istruction_dict(elem):
@@ -197,20 +197,28 @@ def filter_experience_dict(elem):
     return dict([(k, v) for k, v in elem.items() if k in wanted_experience])
 
 
-def extract_contact_info(api_client, contact_public_id):
+def extract_profile_info(api_client, contact_public_id):
+    """
+    Extracts profile information for a given LinkedIn user.
+
+    Args:
+        api_client: The API client instance.
+        contact_public_id: The public ID of the LinkedIn user.
+
+    Returns:
+        A dictionary containing the user's profile information.
+    """
     contact_profile = api_client.get_profile(contact_public_id)
     contact_info = api_client.get_profile_contact_info(contact_public_id)
 
-    lastName = contact_profile["lastName"]
-    firstName = contact_profile["firstName"]
+    lastName = contact_profile.get("lastName")
+    firstName = contact_profile.get("firstName")
 
-    email_address = contact_info["email_address"]
-    phone_numbers = contact_info["phone_numbers"]
+    email_address = contact_info.get("email_address")
+    phone_numbers = contact_info.get("phone_numbers")
 
-    education = list(map(filter_istruction_dict, contact_profile["education"]))
-    experience = list(map(filter_experience_dict, contact_profile["experience"]))
-
-    # current_work = [exp for exp in experience if exp.get('timePeriod', {}).get('endDate') is None]
+    education = list(map(filter_istruction_dict, contact_profile.get("education", [])))
+    experience = list(map(filter_experience_dict, contact_profile.get("experience", [])))
 
     return dict(
         lastName=lastName,
@@ -219,5 +227,5 @@ def extract_contact_info(api_client, contact_public_id):
         phone_numbers=phone_numbers,
         education=education,
         experience=experience,
-        # current_work=current_work,
     )
+

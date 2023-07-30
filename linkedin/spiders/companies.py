@@ -7,8 +7,6 @@ from linkedin.spiders.search import SearchSpider
 
 logger = logging.getLogger(__name__)
 
-URLS_FILE = "data/urls.txt"
-
 
 def extracts_see_all_url(driver):
     """
@@ -29,13 +27,10 @@ class CompaniesSpider(SearchSpider):
     name = "companies"
 
     def start_requests(self):
-        with open(URLS_FILE, "rt") as f:
-            urls = [url.strip() for url in f]
-            if len(urls) >= 1:
-                logger.warning(f"At the moment accepting only one company in {URLS_FILE}, ignoring the rest")
-            yield Request(urls[0], priority=-2, callback=self.parse_company)
+        yield Request(self.start_url, priority=-2, callback=self.parse_company)
 
     def parse_company(self, response):
         driver = response.meta.pop("driver")
         url = extracts_see_all_url(driver) + f"&page=1"
         yield Request(url=url, priority=-1, callback=self.parse_search_list)
+

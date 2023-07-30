@@ -10,6 +10,10 @@ COPY ./compose/production/start /start
 RUN sed -i 's/\r$//g' /start
 RUN chmod +x /start
 
+COPY ./compose/production/start_companies /start_companies
+RUN sed -i 's/\r$//g' /start_companies
+RUN chmod +x /start_companies
+
 COPY ./compose/production/wait-for-selenium /wait-for-selenium
 RUN sed -i 's/\r$//g' /wait-for-selenium
 RUN chmod +x /wait-for-selenium

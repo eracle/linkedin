@@ -45,5 +45,6 @@ class ByNameSpider(SearchSpider):
         last_name = self.user_profile["lastName"].lower().strip()
         first_name = self.user_profile["firstName"].lower().strip()
         user_name_set = set(last_name.split() + first_name.split())
+        should_stop = not name_set == user_name_set
 
-        return not name_set == user_name_set
+        return super().should_stop(response) and should_stop

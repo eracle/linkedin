@@ -102,3 +102,39 @@ DEPTH_PRIORITY = -1
 
 # https://docs.scrapy.org/en/latest/topics/request-response.html#request-fingerprinter-implementation
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
+
+# settings.py
+MAX_PROFILES_TO_SCRAPE = 1  # replace with your desired maximum
+
+# Feature Flag: SEND_CONNECTION_REQUESTS
+# If set to True, the spider will send connection requests to LinkedIn profiles
+# it visits during the scraping process. This can be useful for automating
+# networking on LinkedIn, but use it with caution. Excessive connection requests
+# can lead to your LinkedIn account being flagged or banned.
+# If set to False, the spider will only scrape data without sending any connection requests.
+SEND_CONNECTION_REQUESTS = True
+
+# List of roles to send connection requests to when SEND_CONNECTION_REQUESTS is enabled
+ROLES_FOR_CONNECTION_REQUESTS = [
+    'Recruiter',
+    'Talent Acquisition',
+    'Human Resources Manager',
+    'Hiring Manager',
+    'Head of Talent',
+    'HR Director',
+    'Chief People Officer',
+    'HR Business Partner',
+    'Talent Acquisition Manager',
+    'HR Coordinator',
+    'HR Specialist',
+    'HR Generalist',
+    'HR Recruiter',
+    'Talent Acquisition Specialist',
+    'Recruitment Consultant',
+    'Recruitment Manager',
+    'Recruitment Coordinator',
+    'Recruitment Director',
+    'Head of Recruitment',
+    'VP of Human Resources',
+    'Director of Talent Acquisition',
+]

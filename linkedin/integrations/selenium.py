@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 """
 Number of seconds used to wait the web page's loading.
 """
-WAIT_TIMEOUT = 10
+WAIT_TIMEOUT = 15
 
 LINKEDIN_LOGIN_URL = "https://www.linkedin.com/login"
 

@@ -8,7 +8,7 @@ from linkedin.spiders.companies import CompaniesSpider  # replace with your actu
 
 def run_spider(url):
     # Extract company name from the URL and use it as the file name
-    company_name = url.split('/')[-1]  # adjust this line to correctly extract the company name from the URL
+    company_name = url.strip().rstrip("/").split('/')[-1]
     file_name = f"data/companies/{company_name}.csv"
 
     # Erase the past content of the file

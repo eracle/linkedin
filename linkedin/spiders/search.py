@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 
 from scrapy import Request, Spider
 
@@ -8,6 +9,7 @@ from linkedin.middlewares.selenium import SeleniumSpiderMixin
 
 logger = logging.getLogger(__name__)
 
+SLEEP_TIME_BETWEEN_CLICKS = 1.5
 
 def increment_index_at_end_url(response):
     # incrementing the index at the end of the url
@@ -16,6 +18,20 @@ def increment_index_at_end_url(response):
     index = int(next_url_split[-1])
     next_url = "=".join(next_url_split[:-1]) + "=" + str(index + 1)
     return index, next_url
+
+
+def extract_user_url(user_container):
+    # Use this XPath to select the <a> element
+    link_elem = get_by_xpath_or_none(
+        user_container,
+        ".//a[contains(@class, 'app-aware-link') and contains(@href, '/in/')]",
+    )
+    return link_elem.get_attribute("href") if link_elem else logger.warning("Can't extract user URL")
+
+
+def click(driver, element):
+    driver.execute_script("arguments[0].scrollIntoView();", element)
+    driver.execute_script("arguments[0].click();", element)
 
 
 class SearchSpider(Spider, SeleniumSpiderMixin):
@@ -36,27 +52,45 @@ class SearchSpider(Spider, SeleniumSpiderMixin):
         """
         get_by_xpath_or_none(driver, "//*[@id='global-nav']/div", wait_timeout=5)
 
-    def send_connection_request(self, driver, user_profile_url):
-        return
-        # todo: continue from here
-        # Navigate to the user's profile
-        driver.get(user_profile_url)
-
+    def send_connection_request(self, driver, user_container, message):
         # Click the "Connect" button
-        connect_button = driver.find_element_by_xpath("//button[text()='Connect']")
-        connect_button.click()
+        connect_button = get_by_xpath_or_none(
+            user_container,
+            ".//button[contains(@aria-label, 'connect')]/span",
+            wait_timeout=5,
+        )
+        if not connect_button:
+            logger.debug("Connect button not found")
+            return False
+
+        click(driver, connect_button)
+        sleep(SLEEP_TIME_BETWEEN_CLICKS)
 
         # Click the "Add a note" button
-        add_note_button = driver.find_element_by_xpath("//button[text()='Add a note']")
-        add_note_button.click()
+        add_note_button = get_by_xpath_or_none(
+            driver,
+            "//button[contains(@aria-label, 'note')]",
+        )
+        click(driver, add_note_button) if add_note_button else logger.warning("Add note button unreachable")
+        sleep(SLEEP_TIME_BETWEEN_CLICKS)
 
         # Write the message in the textarea
-        message_textarea = driver.find_element_by_xpath("//textarea[@name='message']")
-        message_textarea.send_keys("Your personalized message here")
+        message_textarea = get_by_xpath_or_none(
+            driver,
+            "//textarea[@name='message' and @id='custom-message']",
+        )
+        message_textarea.send_keys(message) \
+            if message_textarea else logger.warning("Textarea unreachable")
+        sleep(SLEEP_TIME_BETWEEN_CLICKS)
 
         # Click the "Send" button
-        send_button = driver.find_element_by_xpath("//button[text()='Send']")
-        send_button.click()
+        send_button = get_by_xpath_or_none(
+            driver,
+            "//button[@aria-label='Send now']",
+        )
+        click(driver, send_button) if send_button else logger.warning("Send button unreachable")
+        sleep(SLEEP_TIME_BETWEEN_CLICKS)
+        return True
 
     def parse_search_list(self, response):
         continue_scrape = True
@@ -65,7 +99,9 @@ class SearchSpider(Spider, SeleniumSpiderMixin):
             logger.warning("No results found. Stopping crawl.")
             return
 
-        for user_profile_url in self.iterate_users(driver):
+        for user_container in self.iterate_containers(driver):
+            user_profile_url = extract_user_url(user_container)
+            logger.debug(f"Found user URL:{user_profile_url}")
             self.user_profile = extract_profile_from_url(user_profile_url, driver.get_cookies())
             if self.should_stop(response):
                 continue_scrape = False
@@ -75,7 +111,9 @@ class SearchSpider(Spider, SeleniumSpiderMixin):
             self.profile_counter += 1
 
             if self.should_send_connection_request():
-                self.send_connection_request(driver, user_profile_url)
+                message = "I want to connect"
+                conn_sent = self.send_connection_request(driver, user_container, message=message)
+                logger.info(f"Connection request sent to {user_profile_url}\n Message:\n{message}") if conn_sent else None
 
         if continue_scrape:
             next_url = self.get_next_url(response)
@@ -97,7 +135,7 @@ class SearchSpider(Spider, SeleniumSpiderMixin):
         return any(role in self.settings.get('ROLES_FOR_CONNECTION_REQUESTS') for role in current_roles)
 
     def should_send_connection_request(self):
-        return self.settings.getbool('SEND_CONNECTION_REQUESTS') and self.role_filter()
+        return self.settings.getbool('SEND_CONNECTION_REQUESTS')  # and self.role_filter()
 
     def get_next_url(self, response):
         index, next_url = increment_index_at_end_url(response)
@@ -106,24 +144,15 @@ class SearchSpider(Spider, SeleniumSpiderMixin):
     def create_next_request(self, next_url, response):
         return Request(url=next_url, priority=-1, callback=self.parse_search_list, meta=response.meta)
 
-    def iterate_users(self, driver):
+    def iterate_containers(self, driver):
         for i in range(1, 11):
             self.sleep()
             container_xpath = f"//li[contains(@class, 'result-container')][{i}]"
-            last_result = get_by_xpath_or_none(driver, container_xpath)
-            if last_result:
-                logger.debug(f"loading {i}th user")
-                driver.execute_script("arguments[0].scrollIntoView();", last_result)
-                # Use this XPath to select the <a> element
-                link_elem = get_by_xpath_or_none(
-                    last_result,
-                    ".//a[contains(@class, 'app-aware-link') and contains(@href, '/in/')]",
-                )
-                if link_elem:
-                    # Then extract the href attribute
-                    user_url = link_elem.get_attribute("href")
-                    logger.debug(f"Found user link:{user_url}")
-                    yield user_url
+            container_elem = get_by_xpath_or_none(driver, container_xpath)
+            if container_elem:
+                logger.debug(f"Loading {i}th user")
+                driver.execute_script("arguments[0].scrollIntoView();", container_elem)
+                yield container_elem
 
     def should_stop(self, response):
         max_num_profiles = self.profile_counter >= self.settings.getint('MAX_PROFILES_TO_SCRAPE')

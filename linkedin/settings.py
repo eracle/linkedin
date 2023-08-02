@@ -104,7 +104,7 @@ DEPTH_PRIORITY = -1
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 
 # settings.py
-MAX_PROFILES_TO_SCRAPE = 1  # replace with your desired maximum
+MAX_PROFILES_TO_SCRAPE = 20  # replace with your desired maximum
 
 # Feature Flag: SEND_CONNECTION_REQUESTS
 # If set to True, the spider will send connection requests to LinkedIn profiles

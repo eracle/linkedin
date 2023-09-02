@@ -1,5 +1,5 @@
 -r base.txt
 
 # Testing
-pytest
+pytest==7.4.1
 pytest-sugar

@@ -1,39 +1,23 @@
+# LinkedIn Data Scraper
+
 ![built with Python3](https://img.shields.io/badge/built%20with-Python3-red.svg)
 ![built with Selenium](https://img.shields.io/badge/built%20with-Selenium-yellow.svg)
 
-# LinkedIn Automation Tool
-
-This tool is designed for automating tasks on LinkedIn. It leverages technologies such as Scrapy, Selenium WebDriver, Chromium (in headless mode), Docker, and Python3.
-
-### Sponsor:
-
-[![Proxycurl APIs enrich people and company profiles with structured data](https://github.com/josephlimtech/linkedin/blob/master/Proxycurl%20logo.png?raw=true)](https://bit.ly/proxycurl-api)
-
-Scrape public LinkedIn people and company profile data at scale with [Proxycurl APIs](https://bit.ly/proxycurl-api).
-
-- Scraping Public profiles are battle tested in court in HiQ VS LinkedIn case
-- GDPR, CCPA, SOC2 compliant
-- High rate limit - 300 requests/minute
-- Fast - APIs respond in ~2s
-- Fresh data - 88% of data is scraped real-time, other 12% are not older than 29 days
-- High accuracy
-- Tons of data points returned per profile
-
-Built for developers, by developers.
+LinkedIn Data Scraper is a powerful open-source tool designed to extract valuable data from LinkedIn. It leverages technologies such as Scrapy, Selenium WebDriver, Chromium, Docker, and Python3 to navigate LinkedIn profiles and gather insightful information.
 
 ## Features
 
-### LinkedIn Spider
+### Profile Data Extraction
 
-The LinkedIn Spider is designed to visit as many LinkedIn user pages as possible. The goal is to increase the visibility of your account, as LinkedIn notifies users when their profile has been viewed.
+The tool is designed to visit LinkedIn user pages and extract valuable data. This includes phone numbers, emails, education, work experiences, and much more. The data is formatted in a CSV file, making it easy to use for further analysis or input for LinkedIn automation software like lemlist.
 
-### Companies Spider
+### Company Data Extraction
 
-The Companies Spider is designed to gather information about all users working for a specific company on LinkedIn. It operates by:
+The tool can also gather information about all users working for a specific company on LinkedIn. It navigates to the company's LinkedIn page, clicks on the "See all employees" button, and collects user-related data.
 
-1. Navigating to the company's LinkedIn page.
-2. Clicking on the "See all employees" button.
-3. Collecting user-related data.
+### Name-Based Data Extraction
+
+The tool also offers a unique feature that allows you to extract data based on a specific name. By having the name of a person on the names.txt file, the tool will navigate to the LinkedIn profiles associated with that name and extract the relevant data. This feature can be incredibly useful for targeted research or networking. To use this feature, simply use the `make byname` command and input the name when prompted.
 
 ## Installation and Setup
 
@@ -42,7 +26,6 @@ You will need the following:
 - Docker
 - Docker Compose
 - A VNC viewer (e.g., Vinagre for Ubuntu)
-
 
 ### Steps
 

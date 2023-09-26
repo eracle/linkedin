@@ -33,4 +33,3 @@ class CompaniesSpider(SearchSpider):
         driver = response.meta.pop("driver")
         url = extracts_see_all_url(driver) + f"&page=1"
         yield Request(url=url, priority=-1, callback=self.parse_search_list)
-

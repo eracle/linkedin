@@ -22,14 +22,16 @@ class ByNameSpider(SearchSpider):
         with open(NAMES_FILE, "rt") as f:
             names = [line.rstrip() for line in f]
             if len(names) > 1:
-                logger.warning(f"At the moment accepting only one name in {NAMES_FILE}, ignoring the rest")
+                logger.warning(
+                    f"At the moment accepting only one name in {NAMES_FILE}, ignoring the rest"
+                )
 
             searched_name = names[0]
             logging.debug(f"encoded_name: {searched_name.lower()}")
             params = {
                 "origin": "GLOBAL_SEARCH_HEADER",
                 "keywords": searched_name.lower(),
-                "page": 1
+                "page": 1,
             }
             search_url = BASE_SEARCH_URL + "?" + urlencode(params)
 
@@ -40,7 +42,7 @@ class ByNameSpider(SearchSpider):
             )
 
     def should_stop(self, response):
-        name_set = set(response.meta['searched_name'].lower().strip().split())
+        name_set = set(response.meta["searched_name"].lower().strip().split())
 
         last_name = self.user_profile["lastName"].lower().strip()
         first_name = self.user_profile["firstName"].lower().strip()

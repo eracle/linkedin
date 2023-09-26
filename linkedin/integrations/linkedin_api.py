@@ -218,7 +218,9 @@ def extract_profile_info(api_client, contact_public_id):
     phone_numbers = contact_info.get("phone_numbers")
 
     education = list(map(filter_istruction_dict, contact_profile.get("education", [])))
-    experience = list(map(filter_experience_dict, contact_profile.get("experience", [])))
+    experience = list(
+        map(filter_experience_dict, contact_profile.get("experience", []))
+    )
 
     return dict(
         lastName=lastName,
@@ -228,4 +230,3 @@ def extract_profile_info(api_client, contact_public_id):
         education=education,
         experience=experience,
     )
-

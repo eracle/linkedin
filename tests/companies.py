@@ -1,7 +1,6 @@
 import pytest
 
 from linkedin.spiders.companies import extracts_see_all_url
-
 from tests.selenium import SeleniumTest
 
 GOOGLE = "https://www.linkedin.com/company/google"

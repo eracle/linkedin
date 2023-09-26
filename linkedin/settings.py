@@ -102,29 +102,3 @@ DEPTH_PRIORITY = -1
 
 # https://docs.scrapy.org/en/latest/topics/request-response.html#request-fingerprinter-implementation
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
-
-
-# List of roles to send connection requests to when SEND_CONNECTION_REQUESTS is enabled
-ROLES_FOR_CONNECTION_REQUESTS = [
-    'Recruiter',
-    'Talent Acquisition',
-    'Human Resources Manager',
-    'Hiring Manager',
-    'Head of Talent',
-    'HR Director',
-    'Chief People Officer',
-    'HR Business Partner',
-    'Talent Acquisition Manager',
-    'HR Coordinator',
-    'HR Specialist',
-    'HR Generalist',
-    'HR Recruiter',
-    'Talent Acquisition Specialist',
-    'Recruitment Consultant',
-    'Recruitment Manager',
-    'Recruitment Coordinator',
-    'Recruitment Director',
-    'Head of Recruitment',
-    'VP of Human Resources',
-    'Director of Talent Acquisition',
-]

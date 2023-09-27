@@ -17,7 +17,7 @@ from conf import (
     SEND_CONNECTION_REQUESTS,
 )
 from linkedin.integrations.linkedin_api import extract_profile_from_url
-from linkedin.integrations.selenium import get_by_xpath_or_none
+from linkedin.integrations.selenium import build_driver, get_by_xpath_or_none
 from linkedin.items import LinkedinUser
 from linkedin.middlewares.selenium import SeleniumSpiderMixin
 
@@ -170,8 +170,10 @@ class SearchSpider(Spider, SeleniumSpiderMixin):
 
     allowed_domains = ("linkedin.com",)
 
-    def __init__(self, name=None, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, start_url, driver=None, name=None, *args, **kwargs):
+        super().__init__(name=name, *args, **kwargs)
+        self.start_url = start_url
+        self.driver = driver or build_driver()
         self.user_profile = None
         self.profile_counter = 0
         self.connections_sent_counter = 0

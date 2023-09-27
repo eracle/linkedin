@@ -1,5 +1,6 @@
 import logging
 
+from selenium import webdriver
 from selenium.common import (
     StaleElementReferenceException,
     TimeoutException,
@@ -72,3 +73,17 @@ def get_by_xpath_or_none(driver, xpath, wait_timeout=None, log=False):
         if hasattr(driver, "current_url"):
             logger.warning(f"Current URL:\n{driver.current_url}")
         logger.warning(f"WebDriverException:\nXPATH: {xpath}\nError:{e}")
+
+
+def is_security_check(driver):
+    return get_by_xpath_or_none(driver, f'//h1[contains(text(), "security check")]')
+
+
+def build_driver(login=False):
+    SELENIUM_HOSTNAME = "selenium"
+    selenium_url = f"http://{SELENIUM_HOSTNAME}:4444/wd/hub"
+    chrome_options = webdriver.ChromeOptions()
+    driver = webdriver.Remote(command_executor=selenium_url, options=chrome_options)
+    if login:
+        selenium_login(driver)
+    return driver

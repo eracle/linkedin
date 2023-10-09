@@ -10,12 +10,14 @@ from linkedin.spiders.companies import CompaniesSpider
 
 file_name = f"data/companies/data.csv"
 
+logging.basicConfig(level=logging.DEBUG)
+
 
 @defer.inlineCallbacks
 def run_spiders_sequentially(runner, urls, driver):
     for url in urls:
         yield runner.crawl(CompaniesSpider, start_url=url, driver=driver)
-    yield driver.close()
+     yield driver.close()
 
 
 if __name__ == "__main__":
@@ -34,19 +36,24 @@ if __name__ == "__main__":
             time.sleep(1)
 
         logging.info("***** SECURITY CHECK COMPLETED *****")
+    else:
+        logging.debug("Security check not asked, continuing")
+    # Erase the past content of the file
+    open(file_name, "w").close()
 
-        # Erase the past content of the file
-        open(file_name, "w").close()
+    settings = get_project_settings()
+    settings.set('LOG_LEVEL', 'DEBUG')
+    settings.set('LOG_ENABLED', True)
+    settings.set('LOG_STDOUT', True)
 
-        settings = get_project_settings()
-        settings.set("FEEDS", {file_name: {"format": "csv"}})
+    settings.set("FEEDS", {file_name: {"format": "csv"}})
 
-        runner = CrawlerRunner(settings)
-        urls = [url.strip() for url in open("data/companies.txt", "r")]
+    runner = CrawlerRunner(settings)
+    urls = [url.strip() for url in open("data/companies.txt", "r")]
 
-        # Run the spiders sequentially
-        sequential_spiders = run_spiders_sequentially(runner, urls, driver)
-        sequential_spiders.addBoth(
-            lambda _: reactor.stop()
-        )  # Stop the reactor when all spiders are done
-        reactor.run()  # Start the reactor
+    # Run the spiders sequentially
+    sequential_spiders = run_spiders_sequentially(runner, urls, driver)
+    sequential_spiders.addBoth(
+        lambda _: reactor.stop()
+    )  # Stop the reactor when all spiders are done
+    reactor.run()  # Start the reactor

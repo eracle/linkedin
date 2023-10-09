@@ -2,7 +2,7 @@ import logging
 
 from scrapy import Request
 
-from linkedin.integrations.selenium import get_by_xpath
+from linkedin.integrations.selenium import get_by_xpath_or_none
 from linkedin.spiders.search import SearchSpider
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,9 @@ def extracts_see_all_url(driver):
     """
     logger.debug('Searching for the "See all * employees on LinkedIn" btn')
     see_all_xpath = "//a[contains(@href, '/search/results/people/')]"
-    see_all_elem = get_by_xpath(driver, see_all_xpath)
+    see_all_elem = get_by_xpath_or_none(driver, see_all_xpath)
+    if not see_all_elem:
+        logger.debug('"See all * employees on LinkedIn" btn not found')
     logger.debug(f"See all found: {see_all_elem.text}")
     see_all_url = see_all_elem.get_attribute("href")
     logger.debug(f"Found the following URL: {see_all_url}")

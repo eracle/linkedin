@@ -23,7 +23,11 @@ The tool can also gather information about all users working for a specific comp
 
 ### Name-Based Data Extraction
 
-The tool also offers a unique feature that allows you to extract data based on a specific name. By having the name of a person on the names.txt file, the tool will navigate to the LinkedIn profiles associated with that name and extract the relevant data. This feature can be incredibly useful for targeted research or networking. To use this feature, simply use the `make byname` command and input the name when prompted.
+The tool also offers a unique feature that allows you to extract data based on a specific name. By having the name of a person on the `names.txt` file, the tool will navigate to the LinkedIn profiles associated with that name and extract the relevant data. This feature can be incredibly useful for targeted research or networking. To use this feature, simply use the `make byname` command and input the name when prompted.
+
+### Custom Connection Messages using ChatGPT API
+
+The software can be configured to send custom connection messages to LinkedIn users using the ChatGPT API. By passing in the person's profile details, the tool can craft a personalized message that is highly tailored and relevant, significantly increasing the acceptance rate of connection requests. This feature leverages OpenAI's language model to analyze the profile and generate a message that reflects the user's work experiences, skills, and primary language, making outreach more effective.
 
 ## Installation and Setup
 

@@ -2,4 +2,4 @@
 
 # Testing
 pytest
-pytest-sugar
+pytest-sugar==1.1.1

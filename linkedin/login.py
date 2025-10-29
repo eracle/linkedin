@@ -1,3 +1,5 @@
+# linkedin/login.py # noqa
+
 import logging
 
 from playwright.sync_api import Error, TimeoutError, sync_playwright

@@ -21,4 +21,4 @@ export DISPLAY=:99
 x11vnc -display :99 -forever -shared -nopw &
 
 # Run the main Python script/module
-python linkedin/login.py
+python main.py

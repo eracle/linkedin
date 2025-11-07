@@ -18,8 +18,6 @@ RUN pip install uv
 COPY ./requirements /requirements
 RUN uv pip install --system -r /requirements/${BUILD_ENV}.txt
 
-# Install Playwright and playwright-stealth using uv (no need for 'playwright install --with-deps' as browsers/deps are pre-installed)
-RUN uv pip install --system playwright playwright-stealth
 
 # Copy necessary startup scripts
 COPY ./compose/linkedin/start /start

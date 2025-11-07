@@ -7,7 +7,7 @@ import time
 from playwright.sync_api import Error, TimeoutError, sync_playwright
 from playwright_stealth import Stealth  # Updated for version 2.0.0 API
 
-from conf import LINKEDIN_EMAIL, LINKEDIN_PASSWORD
+from .conf import LINKEDIN_EMAIL, LINKEDIN_PASSWORD
 
 logger = logging.getLogger(__name__)
 """

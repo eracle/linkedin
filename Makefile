@@ -22,5 +22,5 @@ up-view: ## run the defined service in Docker Compose and open vinagre
 	docker compose -f local.yml logs -f app
 
 view: ## open vinagre to view the app
-	@sh -c 'vinagre localhost:5900 > /dev/null 2>&1 &'
+	@sh -c 'vinagre vnc://127.0.0.1:5900 > /dev/null 2>&1 &'
 

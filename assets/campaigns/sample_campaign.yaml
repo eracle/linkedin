@@ -1,0 +1,73 @@
+# ----------------------------------------------------------------------
+# LinkedIn Automation – Campaign configuration (YAML)
+#
+# This file defines a *single* campaign. A campaign is a sequence of
+# steps that are executed for each profile.
+# ----------------------------------------------------------------------
+campaign_name: example_campaign
+
+# --------------------------------------------------------------------
+# List of steps. Order matters – the engine processes the list top‑to‑bottom.
+# Some steps are actions, while others are "wait" conditions that must
+# be met before the next step can run.
+# --------------------------------------------------------------------
+steps:
+
+  # ------------------------------------------------------------------
+  # 1. READ_URLS
+  # ------------------------------------------------------------------
+  - type: read_urls
+    csv_file: ./inputs/urls.csv
+    url_column: linkedin_url
+
+  # ------------------------------------------------------------------
+  # 2. GET_PROFILE_INFO
+  # ------------------------------------------------------------------
+  - type: get_profile_info
+    method: linkedin_api
+    output_csv: ./output/profiles_{timestamp}.csv
+
+  # ------------------------------------------------------------------
+  # 3. CONNECT (send a connection request)
+  # ------------------------------------------------------------------
+  - type: connect
+    search_method: emulate_human
+    note_template: ./templates/notes/connect_note.j2
+
+  # ------------------------------------------------------------------
+  # 4. WAIT_FOR_CONNECTION
+  # This is a "pooling node" that checks if a condition is met.
+  # It will pause the workflow for a profile until the connection
+  # request is accepted. If the timeout is reached, the workflow
+  # for that profile will stop.
+  # ------------------------------------------------------------------
+  - type: wait_for_connection
+    # How long to wait for the condition to be met.
+    # Examples: 14d (days), 8h (hours), 30m (minutes)
+    timeout: 14d
+    # How often to check for the condition.
+    check_interval: 6h
+
+  # ------------------------------------------------------------------
+  # 5. SEND_MESSAGE (follow‑up after the connection is accepted)
+  # This step only runs if the 'wait_for_connection' step succeeds.
+  # ------------------------------------------------------------------
+  - type: send_message
+    template_type: ai_prompt
+    template_file: ./templates/prompts/followup_prompt.j2
+    ai_model: general
+
+# --------------------------------------------------------------------
+# GLOBAL SETTINGS (apply to the whole campaign run)
+# --------------------------------------------------------------------
+settings:
+  limits:
+    # LinkedIn daily caps – adjust to stay under the platform limits.
+    # Values are **per account**; the scheduler respects them across runs.
+    daily_connections: 50             # Max connection requests per day
+    daily_messages: 20                # Max follow‑up messages per day
+
+  delays:
+    # Human‑like random delays between individual actions.
+    delay_min: 5                      # Minimum seconds to wait (int)
+    delay_max: 15                     # Maximum seconds to wait (int)

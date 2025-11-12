@@ -1,122 +1,173 @@
 import random
-import time  # For random delays
+import time
 from datetime import datetime, timedelta
+from typing import Dict, Any, Callable
 
-import yaml
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# Load YAML config
-try:
-    with open('../campaigns/example_campaign.yaml', 'r') as f:
-        config = yaml.safe_load(f)
-    # Reassign to the nested 'campaign' dict for simpler access
-    config = config.get('campaign', {})
-except FileNotFoundError:
-    print("Error: YAML config file not found.")
-    exit(1)
-except yaml.YAMLError as e:
-    print(f"Error parsing YAML: {e}")
-    exit(1)
+from . import campaign_parser
 
-if not config:
-    print("Error: Invalid or empty campaign configuration.")
-    exit(1)
+# --- Action Functions (Stubs) ---
+# These functions contain the actual logic for interacting with LinkedIn.
 
-# Example action functions (stubbed; implement based on your tools)
-def read_urls(profile_id, csv_file, url_column):
-    # Logic to read URL from CSV for a specific profile_id
-    print(f"Reading URL for profile {profile_id}")
-    return {'url': 'https://linkedin.com/in/example'}  # Return data for next steps
+def read_urls(state: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
+    print(f"Executing step: read_urls for profile {state.get('profile_id')}")
+    # In a real implementation, you would read from params['csv_file']
+    state['linkedin_url'] = 'https://linkedin.com/in/example'
+    return state
 
-def get_profile_info(profile_data):
-    # Use linkedin_api to fetch info
-    print(f"Fetching profile info for {profile_data['url']}")
-    profile_data['full_name'] = 'John Doe'  # Mock
-    # Write to output CSV as per config
-    return profile_data
+def get_profile_info(state: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
+    print(f"Executing step: get_profile_info for {state['linkedin_url']}")
+    state['full_name'] = 'John Doe'
+    state['current_company'] = 'Acme Corp'
+    return state
 
-def connect(profile_data, note_template):
-    # Use playwright to emulate human search and connect
-    print(f"Sending connect request to {profile_data['full_name']}")
-    # Check if connect succeeds or is pending; return status
-    status = 'pending'  # Mock; in reality, detect via API or page inspection
-    return status
+def connect(state: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
+    print(f"Executing step: connect with {state['full_name']}")
+    # In a real implementation, this would return 'pending', 'accepted', or 'failed'
+    state['connection_status'] = 'pending' 
+    return state
 
-def send_message(profile_data, template_file, template_type, ai_model):
-    # Generate and send message
-    print(f"Sending message to {profile_data['full_name']}")
+def send_message(state: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
+    print(f"Executing step: send_message to {state['full_name']}")
+    return state
 
-def process_profile(profile_id):
-    try:
-        # Load or fetch profile data (e.g., from persisted storage or CSV)
-        profile_data = read_urls(profile_id, config['actions'][0]['csv_file'], config['actions'][0]['url_column'])
-        profile_data = get_profile_info(profile_data)
+# --- Condition Check Functions ---
 
-        # Apply random delay from config
-        time.sleep(random.randint(config['settings']['limits']['delay_min'], config['settings']['limits']['delay_max']))
-
-        connect_status = connect(profile_data, config['actions'][2].get('note_template'))
-
-        if connect_status == 'pending':
-            # Reschedule a check job for this profile in, say, 1 day
-            check_time = datetime.now() + timedelta(days=1)
-            scheduler.add_job(check_connection_and_message, 'date', run_date=check_time,
-                              kwargs={'profile_id': profile_id, 'profile_data': profile_data},
-                              id=f'check_{profile_id}')  # Unique ID for easy rescheduling
-            print(f"Rescheduled check for profile {profile_id} in 1 day")
-        elif connect_status == 'accepted':
-            send_message(profile_data, config['actions'][3]['template_file'],
-                         config['actions'][3]['template_type'], config['actions'][3]['ai_model'])
-        else:
-            # Handle failure, log, etc.
-            pass
-    except KeyError as e:
-        print(f"Configuration error for profile {profile_id}: Missing key {e}")
-    except Exception as e:
-        print(f"Unexpected error for profile {profile_id}: {e}")
-
-def check_connection_and_message(profile_id, profile_data):
-    # Re-check connection status (e.g., via API)
-    status = 'accepted'  # Mock check
-    if status == 'accepted':
-        send_message(profile_data, config['actions'][3]['template_file'],
-                     config['actions'][3]['template_type'], config['actions'][3]['ai_model'])
+def is_connection_accepted(state: Dict[str, Any]) -> bool:
+    """Checks if a connection request was accepted."""
+    print(f"Checking connection status for {state['full_name']}...")
+    # In a real implementation, this would involve an API call or browser check.
+    # To simulate, let's randomly accept it.
+    is_accepted = random.choice([True, False])
+    if is_accepted:
+        print("Connection accepted!")
+        state['connection_status'] = 'accepted'
+        return True
     else:
-        # Still pending? Reschedule again or give up after X attempts
-        scheduler.reschedule_job(f'check_{profile_id}',
-                                 trigger='date',
-                                 run_date=datetime.now() + timedelta(days=1))
-        print(f"Still pending; rescheduled check for {profile_id}")
+        print("Connection still pending.")
+        return False
 
-# Configure job store for persistence
-jobstores = {
-    'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')  # Persists to jobs.sqlite file
-}
-executors = {
-    'default': ThreadPoolExecutor(20)  # Adjust for concurrency (e.g., to enforce daily limits)
-}
+# --- Workflow Engine ---
 
-scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors)
-scheduler.start()
+class WorkflowEngine:
+    def __init__(self):
+        self.action_map: Dict[str, Callable] = {
+            'read_urls': read_urls,
+            'get_profile_info': get_profile_info,
+            'connect': connect,
+            'send_message': send_message,
+        }
+        self.condition_map: Dict[str, Callable] = {
+            'wait_for_connection': is_connection_accepted
+        }
 
-# Example: Queue initial jobs for all profiles (e.g., from CSV)
-# Assume you have a list of profile_ids from the input CSV
-profile_ids = [1, 2, 3]  # Extract from CSV
-for pid in profile_ids:
-    scheduler.add_job(process_profile,
-                      trigger='date',
-                      run_date=datetime.now() + timedelta(seconds=5),
-                      kwargs={'profile_id': pid},
-                      id=f'process_{pid}')
+    def start_workflow(self, profile_id: Any, campaign: campaign_parser.Campaign):
+        """Initiates the first step of a campaign for a given profile."""
+        print(f"\nStarting workflow for profile '{profile_id}' with campaign '{campaign.campaign_name}'")
+        initial_state = {'profile_id': profile_id}
+        self._execute_step(initial_state, campaign, 0)
 
-# To enforce global limits (e.g., daily connections), track via a shared counter or DB
-# and pause/reschedule if limits hit.
+    def _execute_step(self, state: Dict[str, Any], campaign: campaign_parser.Campaign, step_index: int):
+        """Executes a single step of the campaign."""
+        if step_index >= len(campaign.steps):
+            print(f"Workflow for profile {state['profile_id']} completed.")
+            return
 
-# Keep the script running to process jobs
-try:
-    while True:
-        time.sleep(1)  # Or use signals for shutdown
-except (KeyboardInterrupt, SystemExit):
-    scheduler.shutdown()
+        step = campaign.steps[step_index]
+        step_type = step.type
+        
+        if step_type in self.action_map:
+            action_func = self.action_map[step_type]
+            updated_state = action_func(state, step.model_dump())
+            self._execute_step(updated_state, campaign, step_index + 1)
+
+        elif step_type in self.condition_map:
+            print(f"Executing step: {step_type}")
+            job_id = f"check_{state['profile_id']}_{step_index}"
+            
+            SCHEDULER.add_job(
+                check_condition_and_proceed_job,
+                trigger='date',
+                run_date=datetime.now() + timedelta(seconds=5),
+                kwargs={
+                    'state': state,
+                    'campaign': campaign,
+                    'step_index': step_index
+                },
+                id=job_id
+            )
+        else:
+            print(f"Warning: Unknown step type '{step_type}' for profile {state['profile_id']}. Skipping.")
+            self._execute_step(state, campaign, step_index + 1)
+
+    def _check_condition_and_proceed(self, state: Dict[str, Any], campaign: campaign_parser.Campaign, step_index: int):
+        """The logic that periodically checks a condition."""
+        step = campaign.steps[step_index]
+        condition_func = self.condition_map[step.type]
+
+        if condition_func(state):
+            self._execute_step(state, campaign, step_index + 1)
+        else:
+            job_id = f"check_{state['profile_id']}_{step_index}"
+            job = SCHEDULER.get_job(job_id)
+            
+            if job and job.next_run_time > datetime.now() + timedelta(days=1):
+                 print(f"Timeout reached for step '{step.type}' on profile {state['profile_id']}. Workflow stopping.")
+                 SCHEDULER.remove_job(job.id)
+                 return
+
+            reschedule_time = datetime.now() + timedelta(seconds=15)
+            SCHEDULER.reschedule_job(job_id, trigger='date', run_date=reschedule_time)
+            print(f"Rescheduled check for profile {state['profile_id']} at {reschedule_time.isoformat()}")
+
+# --- Global Instances and Scheduler Callback ---
+
+SCHEDULER: BackgroundScheduler = None
+ENGINE: WorkflowEngine = None
+
+def check_condition_and_proceed_job(state: Dict[str, Any], campaign: campaign_parser.Campaign, step_index: int):
+    """Standalone function for APScheduler to call, avoiding serialization issues."""
+    ENGINE._check_condition_and_proceed(state, campaign, step_index)
+
+
+def main():
+    """Main function to set up and run the scheduler and workflows."""
+    global SCHEDULER, ENGINE
+    
+    print("Initializing scheduler...")
+    jobstores = {'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')}
+    executors = {'default': ThreadPoolExecutor(5)}
+    SCHEDULER = BackgroundScheduler(jobstores=jobstores, executors=executors)
+    SCHEDULER.start()
+
+    print("Loading campaigns...")
+    try:
+        campaigns = campaign_parser.load_campaigns()
+        if not campaigns:
+            print("No campaigns found. Exiting.")
+            return
+    except ValueError as e:
+        print(f"Could not load campaigns: {e}")
+        return
+
+    ENGINE = WorkflowEngine()
+    campaign_to_run = campaigns[0]
+
+    profile_ids = [1, 2, 3]
+    for pid in profile_ids:
+        ENGINE.start_workflow(pid, campaign_to_run)
+
+    print("\nScheduler is running. Press Ctrl+C to exit.")
+    try:
+        while True:
+            time.sleep(1)
+    except (KeyboardInterrupt, SystemExit):
+        print("Shutting down scheduler...")
+        SCHEDULER.shutdown()
+        print("Shutdown complete.")
+
+if __name__ == "__main__":
+    main()

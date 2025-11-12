@@ -28,28 +28,26 @@ Join our Telegram group for discussions, and check the star history to see commu
 
 - **Campaigns**
     - [x] Definition of action sequences
-    - [ ] Support creation of action sequences
+    - [x] Support creation of action sequences
     - [ ] Enable execution of action sequences
     - [ ] Implement profile search functionality
     - [ ] Add sending of personalized connection requests
     - [ ] Develop follow-up message capabilities
-    - [ ] Configure campaigns using YAML files
+    - [x] Configure campaigns using YAML files
 
 - **Future Planning/Scheduling**
-    - [ ] Implement time-based action queuing
+    - [x] Implement time-based action queuing
     - [ ] Set up drip campaigns
-    - [ ] Add support for recurring tasks
-    - [ ] Use async libraries for scheduling
-    - [ ] Add persistence mechanisms for resuming interrupted sessions
+    - [x] Add support for recurring tasks
+    - [x] Use async libraries for scheduling
+    - [x] Add persistence mechanisms for resuming interrupted sessions
 
 - **Local Database**
-    - [ ] Integrate DuckDB as the primary database
-    - [ ] Set up fallback to SQLite if needed
+    - [ ] Integrate SQLite as the primary database
     - [ ] Store scraped data in the database
     - [ ] Log campaign activities
     - [ ] Store schedules and tasks
     - [ ] Track metrics in the database
-    - [ ] Leverage DuckDB's analytical features for querying data
 
 - **Personalized Messages with AI**
     - [ ] Integrate open AI models

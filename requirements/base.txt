@@ -2,3 +2,4 @@ playwright
 playwright-stealth
 linkedin-api
 APScheduler #==3.11.1
+pydantic

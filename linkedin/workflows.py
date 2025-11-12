@@ -1,115 +1,122 @@
-# workflows.py
-import asyncio
 import random
-from datetime import timedelta
+import time  # For random delays
+from datetime import datetime, timedelta
 
-from temporalio import activity
-from temporalio import workflow
-from temporalio.client import Client
-from temporalio.worker import Worker
+import yaml
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
 
+# Load YAML config
+try:
+    with open('../campaigns/example_campaign.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+    # Reassign to the nested 'campaign' dict for simpler access
+    config = config.get('campaign', {})
+except FileNotFoundError:
+    print("Error: YAML config file not found.")
+    exit(1)
+except yaml.YAMLError as e:
+    print(f"Error parsing YAML: {e}")
+    exit(1)
 
+if not config:
+    print("Error: Invalid or empty campaign configuration.")
+    exit(1)
 
-@activity.defn
-async def linkedin_login(creds: dict) -> str:
-    print(f"Logging in with credentials: {creds}")
-    return "Login successful"
+# Example action functions (stubbed; implement based on your tools)
+def read_urls(profile_id, csv_file, url_column):
+    # Logic to read URL from CSV for a specific profile_id
+    print(f"Reading URL for profile {profile_id}")
+    return {'url': 'https://linkedin.com/in/example'}  # Return data for next steps
 
+def get_profile_info(profile_data):
+    # Use linkedin_api to fetch info
+    print(f"Fetching profile info for {profile_data['url']}")
+    profile_data['full_name'] = 'John Doe'  # Mock
+    # Write to output CSV as per config
+    return profile_data
 
-@activity.defn
-async def send_connection_request(profile_url: str) -> str:
-    print(f"Sending connection request to profile: {profile_url}")
-    return "Request sent"
+def connect(profile_data, note_template):
+    # Use playwright to emulate human search and connect
+    print(f"Sending connect request to {profile_data['full_name']}")
+    # Check if connect succeeds or is pending; return status
+    status = 'pending'  # Mock; in reality, detect via API or page inspection
+    return status
 
+def send_message(profile_data, template_file, template_type, ai_model):
+    # Generate and send message
+    print(f"Sending message to {profile_data['full_name']}")
 
-@activity.defn
-async def check_connection_accepted(profile_url: str) -> bool:
-    print(f"Checking if connection accepted for profile: {profile_url}")
-    # Simulate non-acceptance with 0.9 probability
-    if random.random() < 0.9:
-        print(f"Connection not yet accepted for {profile_url}")
-        return False
+def process_profile(profile_id):
+    try:
+        # Load or fetch profile data (e.g., from persisted storage or CSV)
+        profile_data = read_urls(profile_id, config['actions'][0]['csv_file'], config['actions'][0]['url_column'])
+        profile_data = get_profile_info(profile_data)
+
+        # Apply random delay from config
+        time.sleep(random.randint(config['settings']['limits']['delay_min'], config['settings']['limits']['delay_max']))
+
+        connect_status = connect(profile_data, config['actions'][2].get('note_template'))
+
+        if connect_status == 'pending':
+            # Reschedule a check job for this profile in, say, 1 day
+            check_time = datetime.now() + timedelta(days=1)
+            scheduler.add_job(check_connection_and_message, 'date', run_date=check_time,
+                              kwargs={'profile_id': profile_id, 'profile_data': profile_data},
+                              id=f'check_{profile_id}')  # Unique ID for easy rescheduling
+            print(f"Rescheduled check for profile {profile_id} in 1 day")
+        elif connect_status == 'accepted':
+            send_message(profile_data, config['actions'][3]['template_file'],
+                         config['actions'][3]['template_type'], config['actions'][3]['ai_model'])
+        else:
+            # Handle failure, log, etc.
+            pass
+    except KeyError as e:
+        print(f"Configuration error for profile {profile_id}: Missing key {e}")
+    except Exception as e:
+        print(f"Unexpected error for profile {profile_id}: {e}")
+
+def check_connection_and_message(profile_id, profile_data):
+    # Re-check connection status (e.g., via API)
+    status = 'accepted'  # Mock check
+    if status == 'accepted':
+        send_message(profile_data, config['actions'][3]['template_file'],
+                     config['actions'][3]['template_type'], config['actions'][3]['ai_model'])
     else:
-        print(f"Connection accepted for {profile_url}")
-        return True
+        # Still pending? Reschedule again or give up after X attempts
+        scheduler.reschedule_job(f'check_{profile_id}',
+                                 trigger='date',
+                                 run_date=datetime.now() + timedelta(days=1))
+        print(f"Still pending; rescheduled check for {profile_id}")
 
+# Configure job store for persistence
+jobstores = {
+    'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')  # Persists to jobs.sqlite file
+}
+executors = {
+    'default': ThreadPoolExecutor(20)  # Adjust for concurrency (e.g., to enforce daily limits)
+}
 
-@activity.defn
-async def send_message(params: dict) -> str:
-    print(f"Sending message to profile {params['profile_url']}: {params['message']}")
-    return "Message sent"
+scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors)
+scheduler.start()
 
+# Example: Queue initial jobs for all profiles (e.g., from CSV)
+# Assume you have a list of profile_ids from the input CSV
+profile_ids = [1, 2, 3]  # Extract from CSV
+for pid in profile_ids:
+    scheduler.add_job(process_profile,
+                      trigger='date',
+                      run_date=datetime.now() + timedelta(seconds=5),
+                      kwargs={'profile_id': pid},
+                      id=f'process_{pid}')
 
-@workflow.defn
-class LinkedInWorkflow:
-    @workflow.run
-    async def run(self, params: dict) -> str:
-        # params expected to contain: 'login_creds', 'profile_urls' (list), 'message'
-        # Execute login once
-        login_result = await workflow.execute_activity(
-            linkedin_login,
-            params['login_creds'],
-            start_to_close_timeout=timedelta(seconds=10)
-        )
+# To enforce global limits (e.g., daily connections), track via a shared counter or DB
+# and pause/reschedule if limits hit.
 
-        # Define an async function to handle each profile
-        async def handle_profile(profile_url: str) -> str:
-            # Send connection request
-            await workflow.execute_activity(
-                send_connection_request,
-                profile_url,
-                start_to_close_timeout=timedelta(seconds=10)
-            )
-
-            # Poll for connection acceptance with max attempts to prevent infinite loop
-            accepted = False
-            attempts = 0
-            max_attempts = 20  # Adjust as needed to limit runtime
-            while not accepted and attempts < max_attempts:
-                accepted = await workflow.execute_activity(
-                    check_connection_accepted,
-                    profile_url,
-                    start_to_close_timeout=timedelta(seconds=10)
-                )
-                if not accepted:
-                    await workflow.sleep(
-                        timedelta(seconds=5))  # Short delay for simulation/testing; increase for real use
-                attempts += 1
-
-            if accepted:
-                # Send message once accepted
-                send_result = await workflow.execute_activity(
-                    send_message,
-                    {'profile_url': profile_url, 'message': params['message']},
-                    start_to_close_timeout=timedelta(seconds=10)
-                )
-                return send_result
-            else:
-                return f"Failed to get acceptance for {profile_url} after {max_attempts} attempts"
-
-        # Run all profile handlers in parallel
-        tasks = [handle_profile(url) for url in params['profile_urls']]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Process results (handle any exceptions if needed)
-        success_count = sum(1 for r in results if isinstance(r, str) and "Message sent" in r)
-
-        return f"LinkedIn workflow completed for {len(params['profile_urls'])} profiles ({success_count} successful)"
-
-
-async def main():
-    # Connect to the local Temporal server
-    client = await Client.connect("localhost:7233", namespace="default")
-
-    # Create and run the worker
-    worker = Worker(
-        client,
-        task_queue="linkedin-task-queue",  # Task queue name (can be anything unique)
-        workflows=[LinkedInWorkflow],
-        activities=[linkedin_login, send_connection_request, check_connection_accepted, send_message]
-    )
-    await worker.run()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# Keep the script running to process jobs
+try:
+    while True:
+        time.sleep(1)  # Or use signals for shutdown
+except (KeyboardInterrupt, SystemExit):
+    scheduler.shutdown()

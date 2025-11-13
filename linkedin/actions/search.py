@@ -2,8 +2,8 @@
 import logging
 from urllib.parse import urlencode, urlparse
 
-from linkedin.login import build_playwright
-from linkedin.my_linkedin_api import CustomLinkedin
+from .login import build_playwright
+from ..my_linkedin_api import CustomLinkedin
 
 logger = logging.getLogger(__name__)
 

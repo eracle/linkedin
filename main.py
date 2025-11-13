@@ -1,5 +1,5 @@
 import logging
-from linkedin.search import search
+from linkedin.actions.search import search
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

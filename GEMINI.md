@@ -10,7 +10,7 @@ The core functionalities of the tool, as described in the README, include:
 *   **Automation Engine**: Using Playwright for browser automation.
 *   **Campaigns**: Executing sequences of actions from YAML configuration.
 *   **Scheduling**: Queuing actions for future execution.
-*   **Local Database**: Storing scraped data and logs in DuckDB or SQLite.
+*   **Local Database**: Storing scraped data and logs in SQLite.
 *   **AI-powered Messaging**: Generating personalized messages using AI models.
 *   **Analytics**: Tracking key performance metrics.
 

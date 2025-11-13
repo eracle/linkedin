@@ -10,7 +10,7 @@ This open-source tool is designed to streamline and automate interactions on Lin
 techniques powered by Playwright. It enables users to create and manage campaigns for
 tasks like searching profiles, sending personalized connection requests, and following up with AI-generated messages
 tailored to individual profiles. With features such as multi-account support, scheduling for drip campaigns, a local
-database (using DuckDB or SQLite) for storing data and tracking metrics, and strong analytics for monitoring engagement,
+database (using SQLite) for storing data and tracking metrics, and strong analytics for monitoring engagement,
 this project aims to enhance productivity for networking and outreach efforts. Built with stealth features to mimic
 human behavior, it emphasizes ethical use while providing a flexible YAML-based configuration. Please note the legal
 disclaimer: this is an unofficial tool that may violate LinkedIn's terms, so proceed with caution and at your own risk.
@@ -43,8 +43,8 @@ Join our Telegram group for discussions, and check the star history to see commu
     - [x] Add persistence mechanisms for resuming interrupted sessions
 
 - **Local Database**
-    - [ ] Integrate SQLite as the primary database
-    - [ ] Store scraped data in the database
+    - [x] Integrate SQLite as the primary database
+    - [x] Store scraped data in the database
     - [ ] Log campaign activities
     - [ ] Store schedules and tasks
     - [ ] Track metrics in the database
@@ -59,13 +59,14 @@ Join our Telegram group for discussions, and check the star history to see commu
     - [ ] Execute multiple accounts campaigns
 
 - **Strong Analytics**
-    - [ ] Track action success rates
+    - [ ] Track action success rates    
     - [ ] Monitor engagement metrics (e.g., connection accepts, replies)
     - [ ] Log errors for analysis
     - [ ] Develop dashboards for viewing metrics
 
 - **Architecture**
-    - For a detailed explanation of the system's design, data models, and workflows, please see the [System Architecture Documentation](./docs/architecture.md).
+    - For a detailed explanation of the system's design, data models, and workflows, please see
+      the [System Architecture Documentation](./docs/architecture.md).
 
 ## Installation and Setup
 

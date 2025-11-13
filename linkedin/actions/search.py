@@ -3,7 +3,7 @@ import logging
 from urllib.parse import urlencode, urlparse
 
 from .login import build_playwright
-from ..my_linkedin_api import CustomLinkedin
+from ..api.client import CustomLinkedin
 
 logger = logging.getLogger(__name__)
 

@@ -6,6 +6,9 @@ help:
 attach: ## follow the logs of the service
 	docker compose -f local.yml logs -f
 
+test: ## run the test suite
+	docker compose -f local.yml run --remove-orphans app py.test -vv --cache-clear
+
 stop: ## stop all services defined in Docker Compose
 	docker compose -f local.yml stop
 

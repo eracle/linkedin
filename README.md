@@ -64,6 +64,9 @@ Join our Telegram group for discussions, and check the star history to see commu
     - [ ] Log errors for analysis
     - [ ] Develop dashboards for viewing metrics
 
+- **Architecture**
+    - For a detailed explanation of the system's design, data models, and workflows, please see the [System Architecture Documentation](./docs/architecture.md).
+
 ## Installation and Setup
 
 You will need the following:

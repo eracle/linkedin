@@ -47,15 +47,24 @@ The main Python dependencies are `playwright` and `playwright-stealth`. These ar
 
 ### Configuration
 
-The project's configuration is managed in `linkedin/conf.py`. Currently, it contains hardcoded LinkedIn credentials, which is a security risk. These should be replaced with environment variables.
+The project's configuration is managed in `linkedin/conf.py`. Credentials like `LINKEDIN_EMAIL` and `LINKEDIN_PASSWORD` are loaded from environment variables for security.
 
 ### Testing
 
-The project uses `pytest` for testing, as indicated by the `pytest.ini` file. However, there are no tests implemented yet.
+The project uses `pytest` for testing, as indicated by the `pytest.ini` file. All tests are located in the `tests/` directory. We follow a Test-Driven Development (TDD) approach to ensure code quality and maintainability.
+
+To run tests:
+*   **Using Docker (recommended)**: `make test`
+*   **Locally**: `pytest`
+    *   If you encounter `PytestCacheWarning`s due to permissions, you can run tests with the cache disabled: `pytest -p no:cacheprovider`
 
 ### Code Style
 
 The code seems to follow the PEP 8 style guide, but there is no linter configured to enforce it.
+
+### Error Handling
+
+The application should crash on unexpected errors. `try...except` blocks should be used sparingly and only for expected and recoverable errors. Do not use them to suppress exceptions broadly. We prefer explicit checks for potential errors, like using `os.path.exists()` before file access.
 
 ## Project Structure
 

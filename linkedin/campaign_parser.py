@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 class Step(BaseModel):
     """A single step in a campaign workflow."""
-    type: str
+    action: str = Field(..., min_length=1)
+    step_type: str = "action"
     # Allow any other parameters for flexibility
     model_config = ConfigDict(extra='allow')
 

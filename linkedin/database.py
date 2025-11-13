@@ -4,19 +4,31 @@ from linkedin.db_models import Base, Profile as DbProfile, Company as DbCompany
 from linkedin.models import Profile, Company
 import json
 
-engine = create_engine('sqlite:///linkedin.db')
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = None
+SessionLocal = None
+
+def init_db(db_url: str):
+    """
+    Initializes the database engine and session.
+    """
+    global engine, SessionLocal
+    engine = create_engine(db_url)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def create_tables():
     """
     Creates all tables in the database.
     """
+    if not engine:
+        raise Exception("Database not initialized. Call init_db() first.")
     Base.metadata.create_all(bind=engine)
 
 def get_session():
     """
     Returns a new database session.
     """
+    if not SessionLocal:
+        raise Exception("Database not initialized. Call init_db() first.")
     return SessionLocal()
 
 def save_profile(session, profile: Profile):

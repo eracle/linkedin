@@ -16,21 +16,21 @@ steps:
   # ------------------------------------------------------------------
   # 1. READ_URLS
   # ------------------------------------------------------------------
-  - type: read_urls
-    csv_file: ./inputs/urls.csv
+  - action: linkedin.actions.read_urls.read_urls
+    csv_file: ../inputs/urls.csv
     url_column: linkedin_url
 
   # ------------------------------------------------------------------
   # 2. GET_PROFILE_INFO
   # ------------------------------------------------------------------
-  - type: get_profile_info
+  - action: linkedin.actions.profile.get_profile_info
     method: linkedin_api
     output_csv: ./output/profiles_{timestamp}.csv
 
   # ------------------------------------------------------------------
   # 3. CONNECT (send a connection request)
   # ------------------------------------------------------------------
-  - type: connect
+  - action: linkedin.actions.connect.connect
     search_method: emulate_human
     note_template: ./templates/notes/connect_note.j2
 
@@ -41,7 +41,8 @@ steps:
   # request is accepted. If the timeout is reached, the workflow
   # for that profile will stop.
   # ------------------------------------------------------------------
-  - type: wait_for_connection
+  - action: linkedin.actions.profile.is_connection_accepted
+    step_type: condition
     # How long to wait for the condition to be met.
     # Examples: 14d (days), 8h (hours), 30m (minutes)
     timeout: 14d
@@ -52,7 +53,7 @@ steps:
   # 5. SEND_MESSAGE (follow‑up after the connection is accepted)
   # This step only runs if the 'wait_for_connection' step succeeds.
   # ------------------------------------------------------------------
-  - type: send_message
+  - action: linkedin.actions.message.send_message
     template_type: ai_prompt
     template_file: ./templates/prompts/followup_prompt.j2
     ai_model: general

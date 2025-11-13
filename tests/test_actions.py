@@ -1,5 +1,6 @@
 # tests/test_actions.py
-from linkedin.actions import connect, send_message
+from linkedin.actions.connect import connect
+from linkedin.actions.message import send_message
 
 def test_connect_action(capfd):
     """

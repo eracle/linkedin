@@ -7,47 +7,62 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from . import campaign_parser, database, actions
+from importlib import import_module
+from . import campaign_parser, database
+
+def get_function(function_path: str) -> Callable:
+    """Dynamically imports a function from a string path."""
+    try:
+        module_path, function_name = function_path.rsplit('.', 1)
+        module = import_module(module_path)
+        return getattr(module, function_name)
+    except (ImportError, AttributeError) as e:
+        raise ImportError(f"Could not import function '{function_path}': {e}")
 
 # --- Global Instances ---
 SCHEDULER: BackgroundScheduler = None
 
-# Maps step types from campaign YAML to their corresponding action functions.
-ACTION_MAP: Dict[str, Callable] = {
-    'read_urls': actions.read_urls,
-    'get_profile_info': actions.get_profile_info,
-    'connect': actions.connect,
-    'send_message': actions.send_message,
-}
-
-# Maps step types from campaign YAML to their corresponding condition check functions.
-CONDITION_MAP: Dict[str, Callable] = {
-    'wait_for_connection': actions.is_connection_accepted
-}
-
 # --- Workflow Functions ---
 
-def start_workflow(linkedin_url: str, campaign: campaign_parser.Campaign):
+def start_workflow(linkedin_url: str, campaign: campaign_parser.Campaign, start_step_index: int = 0):
     """Initiates the first step of a campaign for a given URL."""
-    print(f"\nStarting workflow for URL '{linkedin_url}' with campaign '{campaign.campaign_name}'")
-    execute_step(linkedin_url, campaign, 0)
+    if linkedin_url:
+        print(f"\nStarting workflow for URL '{linkedin_url}' with campaign '{campaign.campaign_name}'")
+    else:
+        print(f"\nStarting campaign '{campaign.campaign_name}'")
+    execute_step(linkedin_url, campaign, start_step_index)
 
 def execute_step(linkedin_url: str, campaign: campaign_parser.Campaign, step_index: int):
     """Executes a single step of the campaign."""
     if step_index >= len(campaign.steps):
-        print(f"Workflow for {linkedin_url} completed.")
+        if linkedin_url:
+            print(f"Workflow for {linkedin_url} completed.")
         return
 
     step = campaign.steps[step_index]
-    step_type = step.type
 
-    if step_type in ACTION_MAP:
-        action_func = ACTION_MAP[step_type]
-        action_func(linkedin_url, step.model_dump())
+    try:
+        func = get_function(step.action)
+    except ImportError as e:
+        print(f"Error: {e}. Skipping step.")
+        execute_step(linkedin_url, campaign, step_index + 1)
+        return
+
+    if "read_urls" in step.action:
+        profile_urls = func(None, step.model_dump())
+        if not profile_urls:
+            print("No profile URLs found in the CSV file. Exiting.")
+            return
+        for url in profile_urls:
+            start_workflow(url, campaign, step_index + 1)
+        return
+
+    if step.step_type == 'action':
+        func(linkedin_url, step.model_dump())
         execute_step(linkedin_url, campaign, step_index + 1)
 
-    elif step_type in CONDITION_MAP:
-        print(f"Executing step: {step_type}")
+    elif step.step_type == 'condition':
+        print(f"Executing step: {step.action}")
         # Create a unique job ID for rescheduling
         job_id = f"check_{linkedin_url.replace('/', '_').replace(':', '')}_{step_index}"
 
@@ -64,16 +79,16 @@ def execute_step(linkedin_url: str, campaign: campaign_parser.Campaign, step_ind
             replace_existing=True # Ensure only one job for this step/url exists
         )
     else:
-        print(f"Warning: Unknown step type '{step_type}' for {linkedin_url}. Skipping.")
+        print(f"Warning: Unknown step type '{step.step_type}' for {linkedin_url}. Skipping.")
         execute_step(linkedin_url, campaign, step_index + 1)
 
 def check_condition_and_proceed(linkedin_url: str, campaign: campaign_parser.Campaign, step_index: int):
     """The logic that periodically checks a condition."""
     step = campaign.steps[step_index]
-    condition_func = CONDITION_MAP[step.type]
+    condition_func = get_function(step.action)
 
     if condition_func(linkedin_url):
-        print(f"Condition '{step.type}' met for {linkedin_url}. Proceeding to next step.")
+        print(f"Condition '{step.action}' met for {linkedin_url}. Proceeding to next step.")
         execute_step(linkedin_url, campaign, step_index + 1)
     else:
         job_id = f"check_{linkedin_url.replace('/', '_').replace(':', '')}_{step_index}"
@@ -93,15 +108,16 @@ def check_condition_and_proceed_job(linkedin_url: str, campaign: campaign_parser
 
 # --- Main Execution ---
 
-def main():
+def main(db_url: str = "sqlite:///linkedin.db"):
     """Main function to set up and run the scheduler and workflows."""
     global SCHEDULER
 
     print("Initializing database...")
-    database.initialize_database()
+    database.init_db(db_url)
+    database.create_tables()
 
     print("Initializing scheduler...")
-    jobstores = {'default': SQLAlchemyJobStore(url='sqlite:///linkedin.db')}
+    jobstores = {'default': SQLAlchemyJobStore(url=db_url)}
     executors = {'default': ThreadPoolExecutor(5)}
     SCHEDULER = BackgroundScheduler(jobstores=jobstores, executors=executors)
     SCHEDULER.start()
@@ -118,15 +134,8 @@ def main():
 
     campaign_to_run = campaigns[0]
 
-    # For demonstration purposes, we're hardcoding a few URLs.
-    # In a real scenario, these would be read from a CSV via the 'read_urls' campaign step.
-    profile_urls = [
-        "https://linkedin.com/in/johndoe",
-        "https://linkedin.com/in/janedoe",
-        "https://linkedin.com/in/peterjones"
-    ]
-    for url in profile_urls:
-        start_workflow(url, campaign_to_run)
+    # Start the campaign. The 'read_urls' step will trigger the workflows for each URL.
+    start_workflow(None, campaign_to_run)
 
     print("\nScheduler is running. Press Ctrl+C to exit.")
     try:

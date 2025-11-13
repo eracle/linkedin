@@ -1,4 +1,3 @@
-
 # GEMINI.md
 
 ## Project Overview
@@ -57,3 +56,40 @@ The project uses `pytest` for testing, as indicated by the `pytest.ini` file. Ho
 ### Code Style
 
 The code seems to follow the PEP 8 style guide, but there is no linter configured to enforce it.
+
+## Project Structure
+
+<details>
+<summary><code>docs</code></summary>
+
+```
+docs
+├── architecture.md
+└── testing_strategy.md
+```
+
+</details>
+
+<details>
+<summary><code>linkedin</code></summary>
+
+```
+linkedin
+├── __init__.py
+├── actions
+│       ├── __init__.py
+│        ├── login.py
+│        └── search.py
+├── campaign_parser.py
+├── conf.py
+├── models.py
+├── my_linkedin_api.py
+├── templates
+│        ├── notes
+│        │       └── connect_note.j2
+│        └── prompts
+│            └── followup_prompt.j2
+└── workflows.py
+```
+
+</details>

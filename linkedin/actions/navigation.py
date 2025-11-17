@@ -71,15 +71,29 @@ def _initiate_search(resources: PlaywrightResources, full_name: str):
     search_bar_selector = "//input[contains(@placeholder, 'Search')]"
     search_bar = page.locator(search_bar_selector)
     search_bar.click()
-    for char in full_name:
-        search_bar.press(char)
-        time.sleep(random.uniform(0.05, 0.2))
+    search_bar.type(full_name)
 
     navigate_and_verify(
         resources,
         action=lambda: search_bar.press("Enter"),
         expected_url_pattern="/search/results/",
         error_message="Failed to reach search results page"
+    )
+
+    # After pressing Enter, modify the URL to switch to people results and add page=1
+    current_url = page.url
+    parsed_url = urlparse(current_url)
+    path = parsed_url.path.replace('/all/', '/people/') if '/all/' in parsed_url.path else '/search/results/people/'
+    query_params = parse_qs(parsed_url.query)
+    query_params['page'] = ['1']
+    new_query = urlencode(query_params, doseq=True)
+    new_url = parsed_url._replace(path=path, query=new_query).geturl()
+
+    navigate_and_verify(
+        resources,
+        action=lambda: page.goto(new_url),
+        expected_url_pattern="/search/results/people/",
+        error_message="Failed to reach people search results page"
     )
 
 
@@ -266,7 +280,6 @@ if __name__ == "__main__":
     finally:
         if resources:
             logger.info("Cleaning up Playwright resources.")
-            time.sleep(5)  # Keep browser open for a bit to see the result
             resources.context.close()
             resources.browser.close()
             resources.playwright.stop()

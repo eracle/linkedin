@@ -2,11 +2,9 @@
 
 import logging
 import os
-import random
-import time
 from collections import namedtuple
 
-from playwright.sync_api import Error, TimeoutError, sync_playwright
+from playwright.sync_api import TimeoutError, sync_playwright
 from playwright_stealth import Stealth  # Updated for version 2.0.0 API
 
 from ..conf import LINKEDIN_EMAIL, LINKEDIN_PASSWORD
@@ -38,18 +36,12 @@ def playwright_login(resources):
     logger.debug("Typing email")
     username_field = get_by_xpath(resources, '//*[@id="username"]')
     username_field.click()
-    for char in LINKEDIN_EMAIL:
-        username_field.press(char)
-        time.sleep(random.uniform(0.05, 0.2))
+    username_field.type(LINKEDIN_EMAIL)
 
     logger.debug("Typing password")
     password_field = get_by_xpath(resources, '//*[@id="password"]')
     password_field.click()
-    for char in LINKEDIN_PASSWORD:
-        password_field.press(char)
-        time.sleep(random.uniform(0.05, 0.2))
-
-    time.sleep(random.uniform(0.5, 1.5))
+    password_field.type(LINKEDIN_PASSWORD)
 
     logger.debug("Clicking submit")
     with resources.page.expect_navigation():
@@ -116,7 +108,7 @@ def build_playwright(storage_state=None):
     :param storage_state: Optional path to storage state file or dict.
     """
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=False)  # Set to False for testing visibility
+    browser = playwright.chromium.launch(headless=False, slow_mo=250)  # Set to False for testing visibility
     context = browser.new_context(storage_state=storage_state)
     stealth = Stealth()
     stealth.apply_stealth_sync(context)  # Apply stealth to the context for sync API
@@ -125,7 +117,7 @@ def build_playwright(storage_state=None):
     return resources
 
 
-def  get_resources_with_state_management(use_state=True, force_login=False):
+def get_resources_with_state_management(use_state=True, force_login=False):
     """
     Gets Playwright resources with state management: loads from local file if present and valid, otherwise logs in and saves state.
     If state is loaded and valid (logged in), skips login. Always navigates to feed page and waits for load.

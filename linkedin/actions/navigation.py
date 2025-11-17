@@ -178,7 +178,7 @@ def simulate_human_search(
     logger.info(f"Starting search for '{full_name}' (ID: {linkedin_id})")
     _initiate_search(resources, full_name)
 
-    max_pages = 3
+    max_pages = 2
     for page_num in range(1, max_pages + 1):
         logger.info(f"Scanning search results on page {page_num}")
 

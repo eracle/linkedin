@@ -1,6 +1,4 @@
 import logging
-import random
-from time import sleep
 from typing import Optional, Dict
 from urllib.parse import urlparse
 

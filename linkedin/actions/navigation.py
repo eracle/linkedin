@@ -6,7 +6,6 @@ import time
 from typing import Dict, Any, Callable
 from urllib.parse import urlparse, parse_qs, urlencode
 
-from linkedin.actions.connect import send_connection_request
 from linkedin.actions.login import PlaywrightResources, get_resources_with_state_management
 from linkedin.api.client import PlaywrightLinkedinAPI, AuthenticationError
 from linkedin.database import db_manager, save_profile, get_profile as get_profile_from_db
@@ -222,7 +221,6 @@ def simulate_human_search(
 def go_to_profile(
         resources: PlaywrightResources,
         profile_data: Dict[str, Any],
-        direct: bool = False
 ):
     """
     Orchestrates navigating to the profile, using simulated search with fallback to direct URL.
@@ -231,25 +229,16 @@ def go_to_profile(
     linkedin_url = profile_data.get("linkedin_url")
     linkedin_id = profile_data.get("public_id")
 
-    if direct:
-        logger.info(f"Navigating directly to profile: {linkedin_url}")
+    try:
+        simulate_human_search(resources, profile_data)
+    except Exception as e:
+        logger.warning(f"Simulated search failed: {e}. Falling back to direct navigation.")
         navigate_and_verify(
             resources,
             action=lambda: resources.page.goto(linkedin_url),
             expected_url_pattern=linkedin_id,
             error_message="Failed to navigate directly to the target profile"
         )
-    else:
-        try:
-            simulate_human_search(resources, profile_data)
-        except Exception as e:
-            logger.warning(f"Simulated search failed: {e}. Falling back to direct navigation.")
-            navigate_and_verify(
-                resources,
-                action=lambda: resources.page.goto(linkedin_url),
-                expected_url_pattern=linkedin_id,
-                error_message="Failed to navigate directly to the target profile"
-            )
 
 
 if __name__ == "__main__":
@@ -281,10 +270,7 @@ if __name__ == "__main__":
         resources.page.wait_for_load_state('load')
 
         # Test the end-to-end function
-        go_to_profile(resources, target_profile, direct=True)
-
-        # After reaching the profile, click the "More" button
-        send_connection_request(resources, target_profile)
+        go_to_profile(resources, target_profile)
 
         logger.info("go_to_profile function executed successfully.")
         logger.info(f"Final URL: {resources.page.url}")

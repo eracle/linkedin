@@ -1,12 +1,11 @@
 # linkedin/actions/connect.py
 import logging
-import random
-import time
 from enum import Enum
 from typing import Dict, Any
 
 from linkedin.actions.login import PlaywrightResources, get_resources_with_state_management
 from linkedin.actions.navigation import navigate_and_verify
+from linkedin.actions.utils import wait
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +22,6 @@ def connect(linkedin_url: str, params: Dict[str, Any]):
     print(f"ACTION: connect for {linkedin_url} with params: {params}")
     pass
 
-
-def wait(
-        resources: PlaywrightResources,
-        min_sleep: float = 1,
-        max_sleep: float = 3,
-):
-    """Introduces a random sleep to simulate human-like behavior and avoid detection, after waiting for page load."""
-    time.sleep(random.uniform(min_sleep, max_sleep))
-    resources.page.wait_for_load_state("load")
 
 def get_connection_status(
         resources: PlaywrightResources,

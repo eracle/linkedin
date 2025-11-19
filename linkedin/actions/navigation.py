@@ -7,6 +7,7 @@ from typing import Dict, Any, Callable
 from urllib.parse import urlparse, parse_qs, urlencode
 
 from linkedin.actions.login import PlaywrightResources, get_resources_with_state_management
+from linkedin.actions.utils import wait
 from linkedin.api.client import PlaywrightLinkedinAPI, AuthenticationError
 from linkedin.database import db_manager, save_profile, get_profile as get_profile_from_db
 
@@ -28,8 +29,6 @@ def navigate_and_verify(
         action: Callable[[], None],
         expected_url_pattern: str,
         timeout: int = 30000,
-        post_wait_delay_min: float = 1.0,
-        post_wait_delay_max: float = 3.0,
         error_message: str = "Navigation verification failed"
 ):
     """
@@ -48,8 +47,7 @@ def navigate_and_verify(
     try:
         action()
         page.wait_for_url(lambda url: expected_url_pattern in url, timeout=timeout)
-        page.wait_for_load_state("load")
-        time.sleep(random.uniform(post_wait_delay_min, post_wait_delay_max))
+        wait(resources)
         if expected_url_pattern not in page.url:
             raise RuntimeError(f"{error_message}: Expected '{expected_url_pattern}' in URL, got '{page.url}'")
         logger.info(f"Navigation successful: Verified URL contains '{expected_url_pattern}'")
@@ -267,7 +265,7 @@ if __name__ == "__main__":
         resources = get_resources_with_state_management(use_state=True, force_login=False)
 
         # Wait a bit after setup to observe
-        resources.page.wait_for_load_state('load')
+        wait(resources)
 
         # Test the end-to-end function
         go_to_profile(resources, target_profile)

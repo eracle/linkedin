@@ -1,15 +1,13 @@
+# linkedin/api/client.py
 import logging
 from typing import Optional, Dict, Tuple
 from urllib.parse import urlparse
 
 from jsonpath_ng import parse
 
+from linkedin.navigation.errors import AuthenticationError
+
 logger = logging.getLogger(__name__)
-
-
-class AuthenticationError(Exception):
-    """Custom exception for 401 Unauthorized errors."""
-    pass
 
 
 class PlaywrightLinkedinAPI:
@@ -109,7 +107,7 @@ class PlaywrightLinkedinAPI:
             return {}, {}
 
         data = res.json()
-        #self.logger.info(f"Request returned with status {res.status}: {res.body()}")
+        # self.logger.info(f"Request returned with status {res.status}: {res.body()}")
 
         # Now, extract using JSONPath with robust descendant searches
 

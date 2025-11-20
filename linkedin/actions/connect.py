@@ -1,21 +1,16 @@
 # linkedin/actions/connect.py
 import logging
-from enum import Enum
 from typing import Dict, Any
 
-from linkedin.actions.login import PlaywrightResources, get_resources_with_state_management
-from linkedin.actions.navigation import go_to_profile
-from linkedin.actions.utils import wait
+from linkedin.actions.connection_status import get_connection_status
+from linkedin.actions.search import search_to_profile
+
+from linkedin.navigation.enums import ConnectionStatus
+from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
+from linkedin.navigation.utils import wait
 from ..template_renderer import render_template
 
 logger = logging.getLogger(__name__)
-
-
-class ConnectionStatus(Enum):
-    CONNECTED = "connected"
-    PENDING = "pending"
-    NOT_CONNECTED = "not_connected"
-    UNKNOWN = "unknown"
 
 
 def connect(context: Dict[str, Any], profile: Dict[str, Any]):
@@ -24,7 +19,7 @@ def connect(context: Dict[str, Any], profile: Dict[str, Any]):
     resources = context['resources']
 
     # Navigate to the profile
-    go_to_profile(resources, profile)
+    search_to_profile(resources, profile)
 
     # Render the message if a template is provided
     message = render_template(context['params'].get('note_template'),
@@ -35,31 +30,6 @@ def connect(context: Dict[str, Any], profile: Dict[str, Any]):
     # Send the connection request
     status = send_connection_request(resources, profile, message)
     logger.info(f"Connection request for {profile['linkedin_url']} completed with status: {status.value}")
-
-
-def get_connection_status(
-        resources: PlaywrightResources,
-        profile: Dict[str, Any],
-) -> ConnectionStatus:
-    """Checks the connection status of a LinkedIn profile."""
-    # 1. Pending – very reliable, text is almost always in English ("Pending") even on localized UIs
-    if resources.page.locator('button[aria-label*="Pending"]:visible').count() > 0:
-        return ConnectionStatus.PENDING
-
-    # 2. Already connected – distance badge is present and starts with "1"
-    #     Works for English ("1st"), Italian/Spanish/Portuguese ("1°"), French ("1er"), etc.
-    dist_locator = resources.page.locator('span[class^="distance-badge"]:visible')
-    if dist_locator.count() > 0:
-        badge_text = dist_locator.first.inner_text().strip()
-        if badge_text.startswith("1"):
-            return ConnectionStatus.CONNECTED
-
-    # 3. Can send a request – direct "Invite … to connect" button exists
-    if resources.page.locator('button[aria-label*="Invite"]:visible').count() > 0:
-        return ConnectionStatus.NOT_CONNECTED
-
-    # 4. Fallback
-    return ConnectionStatus.UNKNOWN
 
 
 def _perform_send_invitation(

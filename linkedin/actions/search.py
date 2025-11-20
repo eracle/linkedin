@@ -1,54 +1,39 @@
-# linkedin/actions/navigation.py
+# linkedin/actions/search.py
 
 import logging
 import random
 import time
-from typing import Dict, Any, Callable
+from typing import Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode
 
-from linkedin.actions.login import PlaywrightResources, get_resources_with_state_management
-from linkedin.actions.utils import wait
-from linkedin.api.client import PlaywrightLinkedinAPI, AuthenticationError
+from linkedin.api.client import PlaywrightLinkedinAPI
 from linkedin.api.logging import log_profile
 from linkedin.database import db_manager, save_profile, get_profile as get_profile_from_db
+from linkedin.navigation.errors import ProfileNotFoundInSearchError, AuthenticationError
+from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
+from linkedin.navigation.utils import wait, navigate_and_verify
 
 logger = logging.getLogger(__name__)
 
 
-class ProfileNotFoundInSearchError(Exception):
-    """Custom exception raised when a profile cannot be found via search."""
-    pass
-
-
-def navigate_and_verify(
-        resources: PlaywrightResources,
-        action: Callable[[], None],
-        expected_url_pattern: str,
-        timeout: int = 30000,
-        error_message: str = "Navigation verification failed"
-):
+def search_to_profile(resources: PlaywrightResources, profile: Dict[str, Any]):
     """
-    Performs a navigation action, waits for the URL to match the expected pattern,
-    and verifies after a human-like pause. Raises RuntimeError on failure.
-
-    :param resources: PlaywrightResources containing the page.
-    :param action: A callable that performs the navigation (e.g., page.goto or element.click).
-    :param expected_url_pattern: Substring or pattern expected in the final URL.
-    :param timeout: Timeout in ms for wait_for_url.
-    :param post_wait_delay_min: Min seconds for random post-navigation pause.
-    :param post_wait_delay_max: Max seconds for random post-navigation pause.
-    :param error_message: Custom error message prefix for failure.
+    Orchestrates navigating to the profile, using simulated search with fallback to direct URL.
+    If direct is True, navigates directly to the profile URL without attempting search.
     """
-    page = resources.page
+    linkedin_url = profile.get("linkedin_url")
+    linkedin_id = profile.get("public_id")
+
     try:
-        action()
-        page.wait_for_url(lambda url: expected_url_pattern in url, timeout=timeout)
-        wait(resources)
-        if expected_url_pattern not in page.url:
-            raise RuntimeError(f"{error_message}: Expected '{expected_url_pattern}' in URL, got '{page.url}'")
-        logger.info(f"Navigation successful: Verified URL contains '{expected_url_pattern}'")
+        _simulate_human_search(resources, profile)
     except Exception as e:
-        raise RuntimeError(f"{error_message}: {str(e)}") from e
+        logger.warning(f"Simulated search failed: {e}. Falling back to direct navigation.")
+        navigate_and_verify(
+            resources,
+            action=lambda: resources.page.goto(linkedin_url),
+            expected_url_pattern=linkedin_id,
+            error_message="Failed to navigate directly to the target profile"
+        )
 
 
 def _initiate_search(resources: PlaywrightResources, full_name: str):
@@ -171,7 +156,7 @@ def _paginate_to_next_page(resources: PlaywrightResources, page_num: int):
     )
 
 
-def simulate_human_search(
+def _simulate_human_search(
         resources: PlaywrightResources,
         profile: Dict[str, Any]
 ):
@@ -212,29 +197,6 @@ def simulate_human_search(
     raise ProfileNotFoundInSearchError(f"Could not find profile for ID '{linkedin_id}' after {max_pages} pages.")
 
 
-def go_to_profile(
-        resources: PlaywrightResources,
-        profile: Dict[str, Any],
-):
-    """
-    Orchestrates navigating to the profile, using simulated search with fallback to direct URL.
-    If direct is True, navigates directly to the profile URL without attempting search.
-    """
-    linkedin_url = profile.get("linkedin_url")
-    linkedin_id = profile.get("public_id")
-
-    try:
-        simulate_human_search(resources, profile)
-    except Exception as e:
-        logger.warning(f"Simulated search failed: {e}. Falling back to direct navigation.")
-        navigate_and_verify(
-            resources,
-            action=lambda: resources.page.goto(linkedin_url),
-            expected_url_pattern=linkedin_id,
-            error_message="Failed to navigate directly to the target profile"
-        )
-
-
 if __name__ == "__main__":
     # Forcefully reset and configure logging to ensure reliability
     root_logger = logging.getLogger()
@@ -264,7 +226,7 @@ if __name__ == "__main__":
         wait(resources)
 
         # Test the end-to-end function
-        go_to_profile(resources, target_profile)
+        search_to_profile(resources, target_profile)
 
         logger.info("go_to_profile function executed successfully.")
         logger.info(f"Final URL: {resources.page.url}")

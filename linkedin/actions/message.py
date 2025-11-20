@@ -1,21 +1,15 @@
 # linkedin/actions/message.py
 import logging
-from enum import Enum
 from typing import Dict, Any
 
-from linkedin.actions.connect import get_connection_status, ConnectionStatus
-from linkedin.actions.login import PlaywrightResources, get_resources_with_state_management
-from linkedin.actions.navigation import go_to_profile
-from linkedin.actions.utils import wait
+from linkedin.actions.connection_status import get_connection_status
+from linkedin.actions.search import search_to_profile
+from linkedin.navigation.enums import ConnectionStatus, MessageStatus
+from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
+from linkedin.navigation.utils import wait
 from ..template_renderer import render_template
 
 logger = logging.getLogger(__name__)
-
-
-class MessageStatus(Enum):
-    SENT = "sent"
-    SKIPPED = "skipped"
-    UNKNOWN = "unknown"
 
 
 def send_message(context: Dict[str, Any], profile: Dict[str, Any]):
@@ -24,7 +18,7 @@ def send_message(context: Dict[str, Any], profile: Dict[str, Any]):
     resources = context['resources']
 
     # Navigate to the profile
-    go_to_profile(resources, profile)
+    search_to_profile(resources, profile)
 
     # Render the message
     message = render_template(context['params']['template_type'], context['params']['template_file'], profile)

@@ -1,6 +1,10 @@
-from typing import Dict, Any
+# linkedin/api/logging.py
+import logging
+from typing import Dict, Any, List
+
+logger = logging.getLogger(__name__)
 
 
-def log_profile(profile: Dict[str, Any], get_profile_json: Dict[str, Any]):
-    """Logs the scraping of a profile. Skeleton function."""
-    pass
+def log_profiles(get_profile_json: List[Dict[str, Any]]):
+    logger.debug(f"Logging {len(get_profile_json)} profiles.")
+    return True

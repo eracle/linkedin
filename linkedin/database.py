@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, scoped_session
 
+from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
 from linkedin.db_models import Base, Profile as DbProfile
 
@@ -13,28 +14,49 @@ logger = logging.getLogger(__name__)
 
 class Database:
     """
-    One instance = one account's database.
-    Fully isolated. No global state. Thread-safe.
+    One account → one database.
+    Profiles are saved instantly.
+    Sync to cloud happens ONLY when close() is called.
     """
 
     def __init__(self, db_path: str):
         db_url = f"sqlite:///{db_path}"
         logger.info(f"Initializing database at {db_path}")
         self.engine = create_engine(db_url, connect_args={"check_same_thread": False})
-        Base.metadata.create_all(bind=self.engine)  # create tables if missing
+        Base.metadata.create_all(bind=self.engine)
         logger.debug("Database tables ensured (create_all ran)")
 
         session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(session_factory)
 
     def get_session(self):
-        """Returns a thread-local session (safe for async/multiprocessing too)"""
         return self.Session()
 
     def close(self):
-        """Optional: clean up"""
-        logger.debug("Closing databaseEngine session (scoped_session.remove())")
+        """This is the ONLY place we sync to your backend."""
+        logger.info("Database.close() triggered → syncing all unsynced profiles to cloud...")
+        self._sync_all_unsynced_profiles()
         self.Session.remove()
+        logger.info("Database closed and fully synced.")
+
+    def _sync_all_unsynced_profiles(self):
+        with self.get_session() as session:
+            unsynced = session.query(DbProfile).filter_by(cloud_synced=False).all()
+            if not unsynced:
+                logger.info("No unsynced profiles found.")
+                return
+
+            payload = [p.data for p in unsynced if p.data]
+
+            success = log_profiles(payload)
+
+            if success:
+                for p in unsynced:
+                    p.cloud_synced = True
+                session.commit()
+                logger.info(f"SUCCESS: Synced {len(payload)} profiles to cloud")
+            else:
+                logger.error("Sync failed — profiles remain unsynced. Will retry next close().")
 
     @classmethod
     def from_handle(cls, handle: str) -> "Database":
@@ -62,21 +84,14 @@ def save_profile(session, profile_data: Dict[str, Any], raw_json: Dict[str, Any]
         existing.updated_at = func.now()
     else:
         logger.info(f"Saving new profile: {linkedin_url}")
-        db_profile = DbProfile(
+        session.add(DbProfile(
             linkedin_url=linkedin_url,
             data=profile_data,
             raw_json=raw_json,
             cloud_synced=False,
-        )
-        session.add(db_profile)
+        ))
 
-    try:
-        session.commit()
-        logger.debug(f"Successfully committed profile: {linkedin_url}")
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Failed to save profile {linkedin_url}: {e}")
-        raise
+    session.commit()
 
 
 def get_profile(session, linkedin_url: str) -> Optional[Dict[str, Any]]:
@@ -84,9 +99,4 @@ def get_profile(session, linkedin_url: str) -> Optional[Dict[str, Any]]:
     Returns parsed profile data if exists in DB, else None.
     """
     result = session.query(DbProfile).filter_by(linkedin_url=linkedin_url).first()
-    if result:
-        logger.debug(f"Cache hit for profile: {linkedin_url}")
-        return result.data
-    else:
-        logger.debug(f"Cache miss for profile: {linkedin_url}")
-        return None
+    return result.data if result else None

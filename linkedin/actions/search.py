@@ -203,22 +203,27 @@ if __name__ == "__main__":
         sys.exit(1)
     handle = sys.argv[1]
 
-    # ← NEW: One line, fully isolated DB for this account
-    db = Database.from_handle(handle)  # creates tables automatically
-    session = db.get_session()
+    db = None
+    resources = None
+    try:
+        # ← NEW: One line, fully isolated DB for this account
+        db = Database.from_handle(handle)  # creates tables automatically
+        session = db.get_session()
 
-    resources = get_resources_with_state_management(handle, use_state=True, force_login=False)
-    wait(resources)
+        resources = get_resources_with_state_management(handle, use_state=True, force_login=False)
+        wait(resources)
 
-    # Pass session down
-    search_to_profile(resources, target_profile, session)
+        # Pass session down
+        search_to_profile(resources, target_profile, session)
 
-    logger.info("go_to_profile function executed successfully.")
-    logger.info(f"Final URL: {resources.page.url}")
-
-    if resources:
-        logger.info("Cleaning up Playwright resources.")
-        resources.context.close()
-        resources.browser.close()
-        resources.playwright.stop()
-    db.close()  # clean up thread-local session
+        logger.info("go_to_profile function executed successfully.")
+        logger.info(f"Final URL: {resources.page.url}")
+    except Exception as e:
+        raise e
+    finally:
+        if resources:
+            logger.info("Cleaning up Playwright resources.")
+            resources.context.close()
+            resources.browser.close()
+            resources.playwright.stop()
+        db.close()  # clean up thread-local session

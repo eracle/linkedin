@@ -1,74 +1,84 @@
-# ----------------------------------------------------------------------
-# LinkedIn Automation Campaign
-# Name: Connect + Wait + Follow-up Message
-# This is the most common outreach sequence in 2025
-# ----------------------------------------------------------------------
 campaign_name: linked_in_connect_follow_up
 
-# ----------------------------------------------------------------------
-# Steps are executed in order, top to bottom
-# Each step has:
-#   - step_type: scrape | action | condition
-#   - handler: dotted path to the actual Python function
-#   - type-specific parameters (strictly validated)
-# ----------------------------------------------------------------------
 steps:
 
-  # ------------------------------------------------------------------
-  # 1. SCRAPE: Read LinkedIn URLs and enrich with full profile data
-  # ------------------------------------------------------------------
-  - step_type: scrape
-    handler: linkedin.actions.profile.get_profiles               # Function that reads URLs → returns enriched profiles
-    scrape:
-      input_csv: ./assets/inputs/urls.csv                         # Your list of raw LinkedIn profile URLs (one per row)
-      output_csv: ./assets/output/enriched_profiles_{timestamp}.csv   # Optional: saves enriched data for debugging/restarts
+  # ==================================================================
+  # STEP 1: Enrich profile (scrape job title, company, icebreakers, etc.)
+  # ==================================================================
+  - type: scrape
+    name: enrich_profile                    # Human-readable name (optional but recommended)
+    handler: linkedin.actions.profile.enrich_profile
+    config:
+      # Final enriched CSV – written ONCE at the very end of the whole campaign
+      output_csv: ./assets/output/enriched_{campaign_name}+{csv_hash}.csv
+      # Tip: {csv_hash} is auto-injected from your input file → instant resume!
 
-  # ------------------------------------------------------------------
-  # 2. ACTION: Send personalized connection request
-  # ------------------------------------------------------------------
-  - step_type: action
-    handler: linkedin.actions.connect.connect                     # The actual connect function
-    action:
-      template_file: ./assets/templates/connect_notes/leader.j2   # Jinja2 template for the connection note
-      template_type: jinja                                        # Options: static | jinja | ai_prompt
+  # ==================================================================
+  # STEP 2: Send personalized connection request
+  # ==================================================================
+  - type: action
+    name: send_connection_request
+    handler: linkedin.actions.connect.connect
+    config:
+      template_file: ./assets/templates/connect_notes/leader.j2   # Jinja2 template
+      template_type: jinja                                         # or "static" / "ai_prompt"
 
-  # ------------------------------------------------------------------
-  # 3. CONDITION: Wait until the person accepts the connection
-  #     Will poll every `check_interval` until `timeout` is reached
-  #     If timeout → skip to next profile (or fail, depending on engine)
-  # ------------------------------------------------------------------
-  - step_type: condition
-    handler: linkedin.actions.connections.is_connection_accepted # Function must return True/False
-    condition:
-      timeout: 14d                                                  # Max wait time (14 days is LinkedIn's sweet spot)
-      check_interval: 6h                                            # How often to check (6 hours = safe & respectful)
+      # Pro tip for open-source users:
+      # Use {{ first_name }}, {{ company }}, {{ icebreaker }} in your .j2 files
+      # They are auto-filled from the enrich step above
 
-  # ------------------------------------------------------------------
-  # 4. ACTION: Send the follow-up message (only if accepted)
-  # ------------------------------------------------------------------
-  - step_type: action
-    handler: linkedin.actions.message.send_message                # Your message sender
-    action:
-      template_file: ./assets/templates/prompts/followup_prompt.j2 # Can be a prompt sent to LLM first
-      template_type: ai_prompt                                      # static | jinja | ai_prompt (LLM-generated message)
+  # ==================================================================
+  # STEP 3: Wait until they accept (polite & safe)
+  # ==================================================================
+  - type: condition
+    name: wait_for_acceptance
+    handler: linkedin.actions.connections.is_connection_accepted
+    config:
+      timeout: 14d           # 14 days = LinkedIn's natural acceptance window
+      check_interval: 6h     # Checks every 6 hours → stays under radar
 
-# ----------------------------------------------------------------------
-# GLOBAL SETTINGS (applied to the entire campaign run)
-# ----------------------------------------------------------------------
+      # If timeout → profile is skipped (no ban risk)
+
+  # ==================================================================
+  # STEP 4: Send follow-up message (only runs if accepted)
+  # ==================================================================
+  - type: action
+    name: send_follow_up_message
+    handler: linkedin.actions.message.send_message
+    config:
+      template_file: ./assets/templates/prompts/followup_prompt.j2
+      template_type: ai_prompt   # ← This sends the profile to an LLM → hyper-personalized
+
+      # Example prompt in followup_prompt.j2:
+      # "Write a natural, non-salesy follow-up message to {{ first_name }} who works at {{ company }} as {{ title }}. We connected because {{ icebreaker }}..."
+
+# ======================================================================
+# GLOBAL CAMPAIGN SETTINGS (safe defaults for 2025)
+# ======================================================================
 settings:
   limits:
-    # Stay under LinkedIn's aggressive detection thresholds (2025 values)
-    daily_connections: 50       # Max new invites per day per account
-    daily_messages: 20          # Max follow-up messages per day
+    # Never cross these on a warmed-up account (LinkedIn will flag you)
+    daily_connections: 50
+    daily_messages: 20
+
+    # New/warm accounts? Drop to 25–35 connections/day first week
 
   delays:
-    # Random human-like delays between actions (in seconds)
-    delay_min: 5
-    delay_max: 15
+    # Random delays between every action (mimics human behavior)
+    delay_min: 8
+    delay_max: 25       # Slightly higher in 2025 → extra safety margin
 
-# ----------------------------------------------------------------------
-# Tips for safe scaling:
-# - Start with 30–40 connections/day if account is new/warm
-# - Never exceed 80 connections + 30 messages on aged accounts
-# - Always use high-quality residential proxies + browser fingerprint spoofing
-# ----------------------------------------------------------------------
+  # ------------------------------------------------------------------
+  # Recommended for open-source users:
+  # - Always use residential proxies (Bright Data, IPRoyal, etc.)
+  # - Run with --headless=new + fingerprint spoofing
+  # - Never run >1 campaign at the same time on the same account
+  # ------------------------------------------------------------------
+
+# ======================================================================
+# How to run (copy-paste for your README.md)
+# ======================================================================
+# poetry run linkedin start \
+#   --campaign campaigns/linked_in_connect_follow_up.yaml \
+#   --input-csv ./leads/my_leads_2025.csv \
+#   --resume

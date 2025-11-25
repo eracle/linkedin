@@ -7,7 +7,7 @@ from linkedin.actions.search import search_to_profile
 from linkedin.navigation.enums import ConnectionStatus, MessageStatus
 from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
 from linkedin.navigation.utils import wait
-from ..template_renderer import render_template
+from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
 

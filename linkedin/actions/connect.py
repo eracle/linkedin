@@ -7,7 +7,7 @@ from linkedin.actions.search import search_to_profile
 from linkedin.navigation.enums import ConnectionStatus
 from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
 from linkedin.navigation.utils import wait
-from ..template_renderer import render_template
+from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +125,7 @@ if __name__ == "__main__":
     )
 
     import sys
+
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.actions.connect <handle>")
         sys.exit(1)

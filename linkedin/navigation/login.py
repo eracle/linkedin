@@ -1,13 +1,12 @@
 # linkedin/navigation/login.py # noqa
 
 import logging
-import os
 from collections import namedtuple
 
 from playwright.sync_api import TimeoutError, sync_playwright
-from playwright_stealth import Stealth  # Updated for version 2.0.0 API
+from playwright_stealth import Stealth
 
-from ..conf import get_account_config   # ← only new import
+from linkedin.conf import get_account_config
 
 logger = logging.getLogger(__name__)
 """
@@ -30,7 +29,7 @@ def playwright_login(resources):
     :param resources: The PlaywrightResources namedtuple.
     :return: Nothing
     """
-    config = get_account_config(resources.handle)   # ← now works
+    config = get_account_config(resources.handle)  # ← now works
     username = config["username"]
     password = config["password"]
 
@@ -172,6 +171,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     import sys
+
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.navigation.login <handle>")
         sys.exit(1)

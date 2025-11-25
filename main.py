@@ -1,4 +1,12 @@
-from linkedin import workflows
+from linkedin.workflow import start_or_resume_campaign
 
-if __name__ == "__main__":
-    workflows.main("sqlite:///linkedin.db")
+scheduler = start_or_resume_campaign(
+    handle="eracle",
+    campaign_name="linked_in_connect_follow_up",
+    input_csv="./assets/inputs/urls.csv"
+)
+
+try:
+    scheduler.wait()  # or pause()
+except KeyboardInterrupt:
+    scheduler.shutdown()

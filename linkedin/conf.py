@@ -1,11 +1,12 @@
 # linkedin/conf.py
 import os
-import yaml
 from pathlib import Path
 from typing import Dict, Any
 
+import yaml
 from dotenv import load_dotenv
-load_dotenv()  # Optional .env support (kept for OPENAI_API_KEY)
+
+load_dotenv()
 
 # ----------------------------------------------------------------------
 # Global OpenAI config (unchanged from your original)

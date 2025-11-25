@@ -5,7 +5,7 @@ from typing import Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode
 
 from linkedin.api.client import PlaywrightLinkedinAPI
-from linkedin.database import Database, save_profile, get_profile  # ← new imports
+from linkedin.db.engine import Database, save_profile, get_profile
 from linkedin.navigation.errors import ProfileNotFoundInSearchError, AuthenticationError
 from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
 from linkedin.navigation.utils import wait, navigate_and_verify, human_delay
@@ -114,7 +114,6 @@ def _process_search_results_page(resources: PlaywrightResources, target_linkedin
                 logger.info(f"Already in DB, skipping: {clean_url}")
     except AuthenticationError:
         logger.warning("Authentication error. Stopping scraping for this page.")
-
 
     return target_link_locator
 

@@ -1,4 +1,4 @@
-# linkedin/actions/campaign.py
+# linkedin/campaigns/start.py
 import csv
 import hashlib
 import logging

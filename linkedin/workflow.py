@@ -19,23 +19,19 @@ logger = logging.getLogger(__name__)
 
 
 def compute_csv_hash(csv_path: Path) -> str:
+    """
+    Compute a fast, deterministic hash of the entire CSV file content.
+    Equivalent to: sha256sum file.csv | cut -c1-12
+    """
     if not csv_path.exists():
         raise FileNotFoundError(csv_path)
-    urls = []
-    with open(csv_path, newline="", encoding="utf-8") as f:
-        import csv
-        reader = csv.DictReader(f)
-        if "url" not in reader.fieldnames:
-            raise ValueError("CSV missing 'url' column")
-        for row in reader:
-            url = row["url"].strip().rstrip("/")
-            if url:
-                if not url.endswith("/"):
-                    url += "/"
-                urls.append(url.lower())
-    urls = sorted(set(urls))
-    content = "\n".join(urls).encode()
-    return hashlib.sha256(content).hexdigest()[:12]
+
+    hasher = hashlib.sha256()
+    with open(csv_path, "rb") as f:
+        # Read in reasonably sized chunks to avoid memory issues with huge files
+        for chunk in iter(lambda: f.read(8192), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()[:12]
 
 
 def get_campaign_db_path(handle: str, campaign_name: str, csv_path: Path) -> tuple[Any, str]:
@@ -116,11 +112,7 @@ class LinkedInCampaignEngine:
     def _init_browser(self) -> None:
         if self.resources is None:
             logger.info(f"Logging in once for account: {self.handle}")
-            self.resources = get_resources_with_state_management(
-                handle=self.handle,
-                use_state=True,
-                force_login=True,
-            )
+            self.resources = get_resources_with_state_management(handle=self.handle)
 
     # ------------------------------------------------------------------
     # Core per-profile job – runs sequentially
@@ -215,11 +207,26 @@ class LinkedInCampaignEngine:
             raise ValueError(
                 f"Campaign '{self.campaign_name}' not found. Available: {list(campaigns._registry.keys())}")
 
-        # Optional: also set as attribute for muscle memory
-        setattr(campaigns, "current", self.campaign)  # now you can do campaigns.current
+        # campaigns.current now points to the active one
+        setattr(campaigns, "current", self.campaign)
 
         self._init_browser()
 
+        # ------------------------------------------------------------------
+        # 1. Determine if we're resuming or starting fresh
+        # ------------------------------------------------------------------
+        resuming = self.db_path.exists()
+        profiles = None
+        if resuming:
+            logger.info("DB found → Resuming existing campaign")
+        else:
+            logger.info("No DB found → Starting fresh campaign")
+            profiles = load_profiles_from_csv(self.input_csv)
+            self.stats["total_profiles"] = len(profiles)
+
+        # ------------------------------------------------------------------
+        # 2. Start the persistent scheduler (loads jobs automatically if DB exists)
+        # ------------------------------------------------------------------
         self.scheduler = BackgroundScheduler(
             jobstores={"default": SQLAlchemyJobStore(url=f"sqlite:///{self.db_path}")},
             executors={"default": ThreadPoolExecutor(max_workers=1)},
@@ -230,14 +237,21 @@ class LinkedInCampaignEngine:
             },
         )
         self.scheduler.start()
-        logger.info("Scheduler started (single-threaded)")
+        logger.info("Scheduler started (single-threaded, persistent)")
 
-        if self.db_path.exists():
-            logger.info("DB found → Campaign resumed")
-        else:
-            profiles = load_profiles_from_csv(self.input_csv)
-            self.stats["total_profiles"] = len(profiles)
+        # ------------------------------------------------------------------
+        # 3. If fresh run → schedule all initial jobs
+        #    If resuming   → jobs are already in DB, just count them
+        # ------------------------------------------------------------------
+        if not resuming:
             self._schedule_initial_jobs(profiles)
+            logger.info(f"Scheduled {len(profiles)} new profile jobs")
+        else:
+            # Count persisted jobs to have accurate stats on resume
+            restored_jobs = self.scheduler.get_jobs()
+            self.stats["total_profiles"] = len(restored_jobs)
+            pending = len([j for j in restored_jobs if j.next_run_time])
+            logger.info(f"Restored {len(restored_jobs)} jobs ({pending} still pending)")
 
         return self
 

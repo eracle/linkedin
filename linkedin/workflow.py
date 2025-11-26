@@ -220,9 +220,9 @@ class LinkedInCampaignEngine:
         if resuming:
             logger.info("DB found → Resuming existing campaign")
         else:
-            logger.info("No DB found → Starting fresh campaign")
             profiles = load_profiles_from_csv(self.input_csv)
             self.stats["total_profiles"] = len(profiles)
+            logger.info(f"No DB found → Starting fresh campaign. Num profiles loaded: {len(profiles)}")
 
         # ------------------------------------------------------------------
         # 2. Start the persistent scheduler (loads jobs automatically if DB exists)

@@ -13,10 +13,13 @@ from linkedin.navigation.utils import wait, navigate_and_verify, human_delay
 logger = logging.getLogger(__name__)
 
 
-def search_to_profile(resources: PlaywrightResources, profile: Dict[str, Any], session):
+def search_to_profile(context: Dict[str, Any], profile: Dict[str, Any]):
     """
     Orchestrates navigating to the profile, using simulated search with fallback to direct URL.
     """
+    resources = context.get('resources')
+    session = context.get('session')
+
     linkedin_url = profile.get("linkedin_url")
     linkedin_id = profile.get("public_id")
 
@@ -206,14 +209,15 @@ if __name__ == "__main__":
     resources = None
     try:
         # ← NEW: One line, fully isolated DB for this account
-        db = Database.from_handle(handle)  # creates tables automatically
-        session = db.get_session()
-
+        db = Database.from_handle(handle)
         resources = get_resources_with_state_management(handle, use_state=True, force_login=False)
+
+        # Construct context
+        context = dict(resources=resources, session=db.get_session())
         wait(resources)
 
         # Pass session down
-        search_to_profile(resources, target_profile, session)
+        search_to_profile(context, target_profile)
 
         logger.info("go_to_profile function executed successfully.")
         logger.info(f"Final URL: {resources.page.url}")

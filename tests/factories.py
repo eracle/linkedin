@@ -1,9 +1,10 @@
 import factory
-from factory.fuzzy import FuzzyText, FuzzyInteger
-from linkedin.models import Profile, Company
 from faker import Faker
 
+from linkedin.db.models import Profile, Company
+
 fake = Faker()
+
 
 class ProfileFactory(factory.Factory):
     class Meta:
@@ -25,6 +26,7 @@ class ProfileFactory(factory.Factory):
         {"degree": "B.Sc. Computer Science", "field_of_study": "Computer Science", "school": "University of Example"}
     ])
     skills = factory.LazyFunction(lambda: ["Python", "SQL", "Cloud"])
+
 
 class CompanyFactory(factory.Factory):
     class Meta:

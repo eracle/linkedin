@@ -18,7 +18,7 @@ def send_message(context: Dict[str, Any], profile: Dict[str, Any]):
     resources = context['resources']
 
     # Navigate to the profile
-    search_to_profile(resources, profile)
+    search_to_profile(context, profile)
 
     # Render the message
     message = render_template(context['params']['template_type'], context['params']['template_file'], profile)
@@ -123,9 +123,8 @@ if __name__ == "__main__":
 
     # Example params from YAML (adjust as needed for testing)
     params = {
-        "template_file": "./assets/templates/prompts/followup_prompt.j2",  # Replace with actual path
+        "template_file": "./assets/templates/prompts/followup_prompt.j2",
         "template_type": "ai_prompt",
-
     }
 
     # Construct context

@@ -4,6 +4,7 @@ from typing import Dict, Any
 
 from linkedin.actions.connections import get_connection_status
 from linkedin.actions.search import search_to_profile
+from linkedin.db.engine import Database
 from linkedin.navigation.enums import ConnectionStatus
 from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
 from linkedin.navigation.utils import wait
@@ -16,18 +17,19 @@ def connect(context: Dict[str, Any], profile: Dict[str, Any]):
     """Sends a connection request to a profile."""
 
     resources = context['resources']
+    params = context['params']
+
+    template_file = params.get('template_file')
+    template_type = params.get('template_type', 'jinja')
 
     # Navigate to the profile
-    search_to_profile(resources, profile)
+    search_to_profile(context, profile)
 
     # Render the message if a template is provided
-    message = render_template(context['params'].get('template_file'),
-                              context['params'].get('template_type', 'jinja'),
-                              profile
-                              )
+    message = render_template(template_file, template_type, profile)
 
     # Send the connection request
-    status = send_connection_request(resources, profile, message)
+    status = _send_connection_request(resources, profile, message)
     logger.info(f"Connection request for {profile['linkedin_url']} completed with status: {status.value}")
 
 
@@ -87,7 +89,7 @@ def _perform_send_invitation(
     wait(resources)  # Random sleep after send
 
 
-def send_connection_request(
+def _send_connection_request(
         resources: PlaywrightResources,
         profile: Dict[str, Any],
         message=None,
@@ -140,14 +142,14 @@ if __name__ == "__main__":
 
     # Example params from YAML (adjust as needed for testing)
     params = {
-        "note_template": "./assets/templates/connect_notes/leader.j2",  # Replace with actual path
+        "template_file": "./assets/templates/connect_notes/leader.j2",
         "template_type": "jinja",  # Test with 'static', 'jinja', or 'ai_prompt'
     }
 
+    db = Database.from_handle(handle)
+    resources = get_resources_with_state_management(handle, use_state=True, force_login=False)
+
     # Construct context
-    context = {
-        'resources': get_resources_with_state_management(handle, use_state=True, force_login=False),
-        'params': params
-    }
+    context = dict(resources=resources, session=db.get_session(), params=params)
 
     connect(context, target_profile)

@@ -11,7 +11,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from linkedin.campaigns.load import campaigns
+from linkedin.campaigns import campaigns
 from linkedin.conf import DATA_DIR
 from linkedin.navigation.login import get_resources_with_state_management
 

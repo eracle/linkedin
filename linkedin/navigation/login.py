@@ -1,195 +1,141 @@
-# linkedin/navigation/login.py # noqa
+# linkedin/navigation/login.py
 
 import logging
-from collections import namedtuple
+from pathlib import Path
 
-from playwright.sync_api import TimeoutError, sync_playwright
+from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
 
 from linkedin.conf import get_account_config
+from linkedin.navigation.utils import (
+    PlaywrightResources,
+    wait,
+    navigate_and_verify,
+)
 
 logger = logging.getLogger(__name__)
-"""
-Number of seconds used to wait the web page's loading.
-"""
-WAIT_TIMEOUT = 15
 
 LINKEDIN_LOGIN_URL = "https://www.linkedin.com/login"
 LINKEDIN_FEED_URL = "https://www.linkedin.com/feed/"
-GLOBAL_NAV_XPATH = '//div[starts-with(@id, "global-nav")]'
-STATE_FILE = "linkedin_state.json"
 
-# FIXED: added 'handle' field so we can access it inside playwright_login()
-PlaywrightResources = namedtuple('PlaywrightResources', ['page', 'context', 'browser', 'playwright', 'handle'])
+SELECTORS = {
+    "email": 'input#username',
+    "password": 'input#password',
+    "submit": 'button[type="submit"]',
+    "global_nav": 'nav[global-nav="global-nav"]',
+    "security_check": 'text=Let’s do a quick security check,Help us keep your account safe',
+}
 
 
 def playwright_login(resources):
-    """
-    Logs in to LinkedIn with human-like behavior.
-    :param resources: The PlaywrightResources namedtuple.
-    :return: Nothing
-    """
-    config = get_account_config(resources.handle)  # ← now works
-    username = config["username"]
-    password = config["password"]
+    page = resources.page
+    config = get_account_config(resources.handle)
+    logger.info("Starting LinkedIn login for handle: %s", resources.handle)
 
-    resources.page.goto(LINKEDIN_LOGIN_URL)
-    resources.page.wait_for_load_state('load')
+    # → Go to login page
+    logger.debug("Navigating to LinkedIn login page")
+    navigate_and_verify(
+        resources=resources,
+        action=lambda: page.goto(LINKEDIN_LOGIN_URL),
+        expected_url_pattern="/login",
+        error_message="Failed to load LinkedIn login page",
+    )
 
-    logger.debug("Typing email")
-    username_field = get_by_xpath(resources, '//*[@id="username"]')
-    username_field.click()
-    username_field.type(username, delay=150)
+    # → Enter email
+    logger.debug("Filling email field")
+    page.locator(SELECTORS["email"]).type(config["username"], delay=50)
+    wait(resources)
 
-    logger.debug("Typing password")
-    password_field = get_by_xpath(resources, '//*[@id="password"]')
-    password_field.click()
-    password_field.type(password, delay=150)
+    # → Enter password
+    logger.debug("Filling password field")
+    page.locator(SELECTORS["password"]).type(config["password"], delay=50)
+    wait(resources)
 
-    logger.debug("Clicking submit")
-    with resources.page.expect_navigation():
-        get_by_xpath(resources, '//*[@type="submit"]').click()
-
-    # After login attempt, check for security check
-    if is_security_check(resources):
-        logger.warning("Security check detected. Manual intervention may be required.")
-        # Pause for manual resolution if needed (e.g., CAPTCHA)
-        input("Press Enter after resolving security check...")
-
-
-def get_by_xpath(resources, xpath, wait_timeout=None):
-    """
-    Get a web element locator through the xpath passed by performing a wait on it.
-    :param resources: PlaywrightResources namedtuple to use.
-    :param xpath: xpath to use.
-    :param wait_timeout: optional amount of seconds before TimeoutError is raised, default WAIT_TIMEOUT is used otherwise.
-    :return: The locator for the web element.
-    """
-    if wait_timeout is None:
-        wait_timeout = WAIT_TIMEOUT
-    selector = f'xpath={xpath}'
-    resources.page.wait_for_selector(selector, timeout=wait_timeout * 1000)  # timeout in ms
-    return resources.page.locator(selector)
-
-
-def is_security_check(resources, wait_timeout=3):
-    """
-    Checks for security check page.
-    :param resources: The PlaywrightResources namedtuple.
-    :param wait_timeout: Optional timeout in seconds for the check.
-    :return: True if security check element found, False otherwise.
-    """
-    try:
-        get_by_xpath(resources, '//h1[contains(text(), "security check")]', wait_timeout)
-        return True
-    except TimeoutError:
-        return False
-
-
-def is_logged_in(resources, wait_timeout=10):
-    """
-    Checks if the user is logged in to LinkedIn by looking for the global navigation element.
-    :param resources: The PlaywrightResources namedtuple.
-    :param wait_timeout: Optional timeout in seconds for the check.
-    :return: True if logged in (element found), False otherwise.
-    """
-    try:
-        get_by_xpath(resources, GLOBAL_NAV_XPATH, wait_timeout=wait_timeout)
-        return True
-    except TimeoutError:
-        return False
+    # → Submit form
+    logger.debug("Clicking login submit button")
+    navigate_and_verify(
+        resources=resources,
+        action=lambda: page.locator(SELECTORS["submit"]).click(),
+        expected_url_pattern="/feed",
+        timeout=40_000,
+        error_message="Login failed – did not redirect to /feed",
+    )
 
 
 def build_playwright(storage_state=None):
-    """
-    Builds and returns a stealth-enabled Playwright resources bundled in a PlaywrightResources namedtuple.
-    Optionally loads a provided storage state.
-    Note: This uses a local headless Chromium instance. For remote setups (e.g., equivalent to Selenium Grid),
-    you can replace launch() with connect_over_cdp() or connect() if you have a WebSocket endpoint available.
-    After use, remember to call resources.context.close() and resources.browser.close() to clean up resources.
-    Updated for playwright-stealth 2.0.0 API changes.
-    :param storage_state: Optional path to storage state file or dict.
-    """
+    logger.debug("Launching Playwright with stealth")
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=False, slow_mo=250)  # Set to False for testing visibility
+    browser = playwright.chromium.launch(headless=False, slow_mo=250)
     context = browser.new_context(storage_state=storage_state)
-    stealth = Stealth()
-    stealth.apply_stealth_sync(context)  # Apply stealth to the context for sync API
+    Stealth().apply_stealth_sync(context)
     page = context.new_page()
-    resources = PlaywrightResources(page=page, context=context, browser=browser, playwright=playwright, handle=None)
-    return resources
+    logger.debug("Browser and page created")
+
+    return PlaywrightResources(
+        page=page,
+        context=context,
+        browser=browser,
+        playwright=playwright,
+        handle=None,
+    )
 
 
-def get_resources_with_state_management(handle: str, use_state=True, force_login=False):
-    """
-    Gets Playwright resources with state management: loads from local file if present and valid, otherwise logs in and saves state.
-    If state is loaded and valid (logged in), skips login. Always navigates to feed page and waits for load.
-    :param use_state: Whether to attempt loading/saving state (default: True).
-    :param force_login: Force login even if state exists (default: False).
-    :return: The PlaywrightResources.
-    """
+def get_resources_with_state_management(handle: str):
+    logger.info("Initializing session for handle: %s", handle)
     config = get_account_config(handle)
-    state_file = config["cookie_file"]
+    state_file = Path(config["cookie_file"])
 
-    if use_state and state_file.exists() and not force_login:
-        logger.info(f"Loading state from {state_file}.")
-        resources = build_playwright(storage_state=str(state_file))
+    storage = None
+    if state_file.exists():
+        logger.info("Loading saved session from: %s", state_file)
+        storage = str(state_file)
     else:
-        resources = build_playwright()
+        logger.info("No valid session found or force_login=True → starting fresh")
 
-    # Attach the handle so playwright_login can read credentials
+    resources = build_playwright(storage_state=storage)
     resources = resources._replace(handle=handle)
 
-    # Navigate to feed to check login status
-    resources.page.goto(LINKEDIN_FEED_URL)
-    resources.page.wait_for_load_state('load')
-
-    did_login = False
-    if not is_logged_in(resources):
-        logger.info("Not logged in. Performing login.")
+    # Need to log in
+    logger.info("Not logged in → performing fresh login")
+    if not storage:
         playwright_login(resources)
-        # After login, navigate back to feed
-        resources.page.goto(LINKEDIN_FEED_URL)
-        resources.page.wait_for_load_state('load')
-        did_login = True
-    else:
-        logger.info("Already logged in via loaded state.")
 
-    if not is_logged_in(resources):
-        logger.error("Login failed even after attempt.")
-        # You may want to raise an exception or handle failure here
-    elif use_state and did_login:
+    # Save session if we just logged in
+    if not storage:
         state_file.parent.mkdir(parents=True, exist_ok=True)
         resources.context.storage_state(path=str(state_file))
-        logger.info(f"State saved to {state_file}.")
+        logger.info("Login successful – session saved to: %s", state_file)
 
+    logger.info("Login flow completed successfully!")
     return resources
 
 
 if __name__ == "__main__":
-    # Set up basic logging for testing
-    logging.basicConfig(level=logging.DEBUG)
+    # Clean, beautiful console logging
+    logging.getLogger().handlers.clear()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s │ %(levelname)-8s │ %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
     import sys
 
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.navigation.login <handle>")
         sys.exit(1)
+
     handle = sys.argv[1]
+    try:
+        resources = get_resources_with_state_management(handle)
+        logger.info("Setup complete – you are fully logged in!")
+        logger.info("Browser will remain open. Close it manually when done.")
+        resources.page.pause()
 
-    # Get the resources with state management
-    resources = get_resources_with_state_management(handle, use_state=True, force_login=False)
-
-    # Wait a bit after setup to observe
-    resources.page.wait_for_load_state('load')
-
-    # Optional: Check if login succeeded
-    if is_logged_in(resources):
-        logger.info("Setup successful (global nav found).")
-    else:
-        logger.warning("Setup may have failed (global nav not found).")
-
-    # Clean up
-    resources.context.close()
-    resources.browser.close()
-    resources.playwright.stop()
+    finally:
+        # Always clean up
+        if 'resources' in locals():
+            logger.debug("Closing browser and Playwright")
+            resources.context.close()
+            resources.browser.close()
+            resources.playwright.stop()

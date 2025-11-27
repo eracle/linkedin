@@ -1,15 +1,15 @@
+# linkedin/navigation/utils.py
 import logging
 import random
 import time
+from collections import namedtuple
 from typing import Callable
-
-from linkedin.navigation.login import PlaywrightResources
 
 logger = logging.getLogger(__name__)
 
 # Central delay configuration
-HUMAN_DELAY_MIN = 1
-HUMAN_DELAY_MAX = 3
+HUMAN_DELAY_MIN = 0.5
+HUMAN_DELAY_MAX = 1.5
 
 
 def human_delay(min_sec: float = HUMAN_DELAY_MIN, max_sec: float = HUMAN_DELAY_MAX) -> None:
@@ -17,6 +17,11 @@ def human_delay(min_sec: float = HUMAN_DELAY_MIN, max_sec: float = HUMAN_DELAY_M
     delay = random.uniform(min_sec, max_sec)
     logger.info(f"Pausing for {delay:.2f} seconds.")
     time.sleep(delay)
+
+
+PlaywrightResources = namedtuple(
+    'PlaywrightResources', ['page', 'context', 'browser', 'playwright', 'handle']
+)
 
 
 def wait(resources: PlaywrightResources) -> None:

@@ -277,33 +277,68 @@ class LinkedInCampaignEngine:
             "total": self.stats["total_profiles"],
         }
 
+def start_or_resume_campaign(handle: str, campaign_name: str, input_csv: str | Path):
+    """
+    Convenience wrapper used in main.py / CLI tools
+    """
+    engine = LinkedInCampaignEngine(
+        handle=handle,
+        campaign_name=campaign_name,
+        input_csv=input_csv,
+    ).start()
+
+    return engine  # now main.py can do engine.status(), engine.stop(), etc.
 
 # ----------------------------------------------------------------------
 # CLI
 # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# CLI entrypoint – run with: python -m linkedin.workflow
+# ----------------------------------------------------------------------
 if __name__ == "__main__":
     import time
+    import logging
 
-    # Forcefully reset and configure logging to ensure reliability
-    root_logger = logging.getLogger()
-    root_logger.handlers = []  # Clear any existing handlers to avoid conflicts
+    # Clean logging setup – no duplicate handlers
+    logging.getLogger().handlers.clear()
     logging.basicConfig(
-        level=logging.DEBUG,  # Set to DEBUG for more logs; change to INFO if too verbose
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        level=logging.INFO,           # Change to DEBUG if you want everything
+        format="%(asctime)s │ %(levelname)-8s │ %(message)s",
+        datefmt="%H:%M:%S",
     )
+    logger = logging.getLogger(__name__)
 
-    engine = LinkedInCampaignEngine(
-        handle="eracle",
-        campaign_name="linked_in_connect_follow_up",
-        input_csv="./assets/inputs/urls.csv",
-    ).start()
-
-    logger.info("Campaign running. Press Ctrl+C to stop.")
     try:
+        engine = start_or_resume_campaign(
+            handle="diego",
+            campaign_name="linked_in_connect_follow_up",
+            input_csv="./assets/inputs/urls.csv",
+        )
+
+        print("\nLinkedIn Campaign Engine Started")
+        print("   Account :", engine.handle)
+        print("   Campaign:", engine.campaign_name)
+        print("   DB file :", engine.db_path.name)
+        print("   Press Ctrl+C to stop gracefully\n")
+
+        # Live status dashboard
         while True:
             time.sleep(60)
-            print(f"Status → {engine.status()}")
+            s = engine.status()
+
+            print(
+                f"Pending: {s['pending_jobs']:<4} │ "
+                f"Done: {s['completed']:<4} │ "
+                f"Failed: {s['failed']:<4} │ "
+                f"Total: {s['total']:<4} │ "
+                f"Progress: {s['completed'] + s['failed']}/{s['total']} "
+            )
+
     except KeyboardInterrupt:
-        logger.info("Shutting down...")
+        print("\n\nStopping campaign... (this may take a few seconds)")
         engine.stop()
-        logger.info("Bye.")
+        print("Shutdown complete. Have a great day!")
+
+    except Exception as e:
+        logger.exception(f"Fatal error: {e}")
+        raise

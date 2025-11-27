@@ -5,8 +5,8 @@ from typing import Dict, Any
 from linkedin.actions.connections import get_connection_status
 from linkedin.actions.search import search_to_profile
 from linkedin.navigation.enums import ConnectionStatus, MessageStatus
-from linkedin.navigation.login import PlaywrightResources, get_resources_with_state_management
-from linkedin.navigation.utils import wait
+from linkedin.navigation.login import get_resources_with_state_management
+from linkedin.navigation.utils import wait, PlaywrightResources
 from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
@@ -109,6 +109,7 @@ if __name__ == "__main__":
     )
 
     import sys
+
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.actions.message <handle>")
         sys.exit(1)
@@ -129,7 +130,7 @@ if __name__ == "__main__":
 
     # Construct context
     context = {
-        'resources': get_resources_with_state_management(handle, use_state=True, force_login=False),
+        'resources': get_resources_with_state_management(handle),
         'params': params
     }
 

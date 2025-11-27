@@ -1,7 +1,7 @@
 from typing import Dict, Any
 
 from linkedin.navigation.enums import ConnectionStatus
-from linkedin.navigation.login import PlaywrightResources
+from linkedin.navigation.utils import PlaywrightResources
 
 
 def is_connection_accepted(context: Dict[str, Any], linkedin_url: str):

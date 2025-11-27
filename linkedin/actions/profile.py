@@ -52,7 +52,7 @@ if __name__ == "__main__":
         print("Usage: python -m linkedin.actions.profile <handle>")
         sys.exit(1)
     handle = sys.argv[1]
-    resources = get_resources_with_state_management(handle, use_state=True, force_login=False)
+    resources = get_resources_with_state_management(handle)
     context = dict(resources=resources)
 
     test_url = "https://www.linkedin.com/in/williamhgates/"

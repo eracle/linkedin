@@ -42,7 +42,7 @@ def navigate_and_verify(
     try:
         action()
         page.wait_for_url(
-            lambda url: expected_url_pattern in (url or ""),
+            lambda url: expected_url_pattern in url,
             timeout=timeout,
         )
         wait(resources)  # uses the global delay range

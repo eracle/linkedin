@@ -3,82 +3,67 @@ campaign_name: linked_in_connect_follow_up
 steps:
 
   # ==================================================================
-  # STEP 1: Enrich profile (scrape job title, company, icebreakers, etc.)
+  # STEP 1 → Scrape & enrich the LinkedIn profile
   # ==================================================================
   - type: scrape
-    name: enrich_profile                    # Human-readable name (optional but recommended)
-    handler: linkedin.actions.profile.enrich_profile
-    config:
-      # Final enriched CSV – written ONCE at the very end of the whole campaign
-      output_csv: ./assets/output/enriched_{campaign_name}+{csv_hash}.csv
-      # Tip: {csv_hash} is auto-injected from your input file → instant resume!
+    name: enrich_profile
+    handler: enrich_profile
+    config: {}
+    # → Returns full_name, title, company, location, about, icebreaker, etc.
+    #   All fields are available in subsequent steps
 
   # ==================================================================
-  # STEP 2: Send personalized connection request
+  # STEP 2 → Send personalized connection request
   # ==================================================================
   - type: action
     name: send_connection_request
-    handler: linkedin.actions.connect.connect
+    handler: send_connection_request
     config:
-      template_file: ./assets/templates/connect_notes/leader.j2   # Jinja2 template
-      template_type: jinja                                         # or "static" / "ai_prompt"
+      template_file: ./assets/templates/connect_notes/leader.j2
+      template_type: jinja        # jinja | static | ai_prompt
 
-      # Pro tip for open-source users:
-      # Use {{ first_name }}, {{ company }}, {{ icebreaker }} in your .j2 files
-      # They are auto-filled from the enrich step above
+      # Available template variables (after enrich step):
+      #   {{ full_name }}, {{ first_name }}, {{ title }}, {{ company }},
+      #   {{ location }}, {{ icebreaker }}, {{ about }}, {{ headline }}
 
   # ==================================================================
-  # STEP 3: Wait until they accept (polite & safe)
+  # STEP 3 → Wait until they accept (polite & undetectable)
   # ==================================================================
   - type: condition
     name: wait_for_acceptance
-    handler: linkedin.actions.connections.is_connection_accepted
+    handler: is_connection_accepted
     config:
-      timeout: 14d           # 14 days = LinkedIn's natural acceptance window
-      check_interval: 6h     # Checks every 6 hours → stays under radar
-
-      # If timeout → profile is skipped (no ban risk)
+      check_interval: 6h         # How often we check. 6–8h is perfect for stealth
+      # No more 'timeout' field — if they never accept, profile is simply skipped
+      # (no risk, no ban)
 
   # ==================================================================
-  # STEP 4: Send follow-up message (only runs if accepted)
+  # STEP 4 → Send hyper-personalized follow-up message
   # ==================================================================
   - type: action
     name: send_follow_up_message
-    handler: linkedin.actions.message.send_message
+    handler: send_follow_up_message
     config:
       template_file: ./assets/templates/prompts/followup_prompt.j2
-      template_type: ai_prompt   # ← This sends the profile to an LLM → hyper-personalized
+      template_type: ai_prompt    # Uses OpenAI → ultra-natural messages
 
       # Example prompt in followup_prompt.j2:
-      # "Write a natural, non-salesy follow-up message to {{ first_name }} who works at {{ company }} as {{ title }}. We connected because {{ icebreaker }}..."
+      # "Write a short, warm, non-salesy follow-up to {{ first_name }} at {{ company }}.
+      #  We connected because {{ icebreaker }}. Keep it friendly and under 100 words."
 
 # ======================================================================
-# GLOBAL CAMPAIGN SETTINGS (safe defaults for 2025)
+# GLOBAL CAMPAIGN SETTINGS
 # ======================================================================
 settings:
-  limits:
-    # Never cross these on a warmed-up account (LinkedIn will flag you)
-    daily_connections: 50
-    daily_messages: 20
+  # Output file — written incrementally as soon as a profile completes
+  output_csv: ./assets/output/enriched_{campaign_name}+{csv_hash}.csv
 
-    # New/warm accounts? Drop to 25–35 connections/day first week
+  # Optional: override account limits just for this campaign
+  # limits:
+  #   daily_connections: 45
+  #   daily_messages: 20
 
-  delays:
-    # Random delays between every action (mimics human behavior)
-    delay_min: 8
-    delay_max: 25       # Slightly higher in 2025 → extra safety margin
-
-  # ------------------------------------------------------------------
-  # Recommended for open-source users:
-  # - Always use residential proxies (Bright Data, IPRoyal, etc.)
-  # - Run with --headless=new + fingerprint spoofing
-  # - Never run >1 campaign at the same time on the same account
-  # ------------------------------------------------------------------
-
-# ======================================================================
-# How to run (copy-paste for your README.md)
-# ======================================================================
-# poetry run linkedin start \
-#   --campaign campaigns/linked_in_connect_follow_up.yaml \
-#   --input-csv ./leads/my_leads_2025.csv \
-#   --resume
+  # Optional: custom human-like delays between actions
+  # delays:
+  #   delay_min: 10
+  #   delay_max: 30

@@ -1,9 +1,19 @@
 # linkedin/campaigns.py
+"""
+Campaign loader for the new 2025 singleton-based engine.
+
+Key changes from old version:
+  • handler is now a string → method name on LinkedInAutomation class
+  • No function importing or pickling
+  • parse_duration kept only for condition steps
+  • Cleaner, smaller, safer
+"""
+
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Dict, Optional, Callable, Literal
+from typing import Dict, Optional, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict
@@ -12,40 +22,38 @@ logger = logging.getLogger(__name__)
 
 
 # ==============================================================
-# Simple models
+# Config models (only validation – no runtime logic)
 # ==============================================================
 
 class StepConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     type: Literal["scrape", "action", "condition"]
     name: Optional[str] = None
-    handler: str
+    handler: str                                 # ← Just the method name, e.g. "send_connection_request"
     config: dict = {}
 
 
 class CampaignConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
     campaign_name: str
     steps: list[StepConfig]
     settings: Optional[dict] = None
 
 
 # ==============================================================
-# Executable Step
+# Runtime Step & Campaign (lightweight – no callable!)
 # ==============================================================
 
-def import_callable(path: str) -> Callable:
-    from importlib import import_module
-    mod_name, func_name = path.rsplit(".", 1)
-    return getattr(import_module(mod_name), func_name)
-
-
 def parse_duration(s: str) -> timedelta:
+    """Convert '14d', '6h', '30m' → timedelta"""
     s = s.strip().lower()
     num = int("".join(filter(str.isdigit, s or "0")) or "0")
     if s.endswith("d"): return timedelta(days=num)
     if s.endswith("h"): return timedelta(hours=num)
     if s.endswith("m"): return timedelta(minutes=num)
+    if s.endswith("s"): return timedelta(seconds=num)
     raise ValueError(f"Invalid duration: {s}")
 
 
@@ -54,17 +62,10 @@ class Step:
     num: int
     type: str
     name: str
-    handler: Callable
+    handler: str                    # ← method name as string
     config: dict
     timeout: Optional[timedelta] = None
     check_interval: Optional[timedelta] = None
-
-    def execute(self, context: dict, profile: Optional[dict] = None):
-        context["params"] = self.config
-        logger.info(f"[{context.get('campaign_name')}] Step {self.num} [{self.type.upper()}] {self.name}")
-        if self.type == "scrape":
-            return self.handler(context)
-        return self.handler(context, profile)
 
 
 @dataclass
@@ -79,23 +80,17 @@ class Campaign:
 
 
 # ==============================================================
-# Django-style Campaign Registry (the magic)
+# Registry – Django-style, unchanged
 # ==============================================================
 
 class CampaignRegistry:
-    """
-    Just like django.apps.apps – one global object with campaigns as attributes.
-    """
-
-    def __init__(self):
-        self._registry: Dict[str, Campaign] = {}
+    _registry: Dict[str, Campaign] = {}
 
     def register(self, campaign: Campaign):
         key = campaign.name
         if key in self._registry:
             logger.warning(f"Campaign '{key}' already registered – overwriting")
         self._registry[key] = campaign
-        # Make it accessible as attribute: campaigns.my_campaign_name
         sanitized = key.replace("-", "_").replace(" ", "_")
         setattr(self, sanitized, campaign)
 
@@ -118,16 +113,16 @@ class CampaignRegistry:
         return len(self._registry)
 
 
-# Global registry – this is your "django.apps.apps"
+# Global registry
 campaigns = CampaignRegistry()
 
 
 # ==============================================================
-# Auto-loader – runs once at import time (like Django's AppConfig.ready)
+# Auto-loader – runs at import time
 # ==============================================================
 
 def _load_all_campaigns():
-    if campaigns.all():  # Already loaded
+    if campaigns.all():
         return
 
     campaigns_dir = Path.cwd() / "assets" / "campaigns"
@@ -151,7 +146,7 @@ def _load_all_campaigns():
                     num=i,
                     type=s.type,
                     name=s.name or f"{s.type}_{i}",
-                    handler=import_callable(s.handler),
+                    handler=s.handler,           # ← string only – resolved at runtime in workflow.py
                     config=s.config.copy(),
                     timeout=timeout,
                     check_interval=check_interval,
@@ -165,22 +160,25 @@ def _load_all_campaigns():
                 path=yaml_file,
             )
             campaigns.register(campaign)
-            logger.info(f"Registered campaign: {config.campaign_name}")
+            logger.info(f"Loaded campaign: {config.campaign_name}")
 
         except Exception as e:
-            logger.error(f"Failed to load {yaml_file.name}: {e}")
+            logger.error(f"Failed to load {yaml_file.name}: {e}", exc_info=True)
 
 
-# Auto-load on import (just like Django!)
+# Load everything on import
 _load_all_campaigns()
 
+
 # ==============================================================
-# Debug
+# Debug entrypoint
 # ==============================================================
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    print("All registered campaigns:")
+    print("Registered campaigns:")
     for c in campaigns:
-        print(f"  → {c}")
-        print(f"     access: campaigns.{c.name.replace('-', '_')}")
+        print(f"  → {c.name}")
+        print(f"     path: {c.path.relative_to(Path.cwd())}")
+        for step in c.steps:
+            print(f"       [{step.type:8}] {step.name} → {step.handler}")

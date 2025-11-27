@@ -1,83 +1,67 @@
 # linkedin/actions/message.py
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from linkedin.actions.connections import get_connection_status
-from linkedin.actions.search import search_to_profile
+from linkedin.actions.search import search_profile
 from linkedin.navigation.enums import ConnectionStatus, MessageStatus
-from linkedin.navigation.login import get_resources_with_state_management
 from linkedin.navigation.utils import wait, PlaywrightResources
 from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
 
 
-def send_message(context: Dict[str, Any], profile: Dict[str, Any]):
-    """Sends a message to a profile."""
-
-    resources = context['resources']
-
-    # Navigate to the profile
-    search_to_profile(context, profile)
-
-    # Render the message
-    message = render_template(context['params']['template_type'], context['params']['template_file'], profile)
-
-    # Send the message
-    status = send_message_to_profile(resources, profile, message)
-    logger.info(f"Message for {profile['linkedin_url']} completed with status: {status.value}")
-
-
-def get_messaging_availability(
-        resources: PlaywrightResources,
+def send_follow_up_message(
+        automation: "LinkedInAutomation",
         profile: Dict[str, Any],
-) -> bool:
-    """Checks if messaging is available (i.e., connected)."""
-    connection_status = get_connection_status(resources, profile)
-    return connection_status == ConnectionStatus.CONNECTED
-
-
-def _perform_send_message(
-        resources: PlaywrightResources,
-        message: str,
+        *,
+        template_file: Optional[str] = None,
+        template_type: str = "jinja",
+        message: Optional[str] = None,
 ):
-    """Performs the actual steps to send the message after availability check."""
+    """Sends a follow-up message to a connected profile."""
+    resources = automation.browser
 
-    # Wait for the page to stabilize
+    # Navigate to profile
+    search_profile(automation, profile)
+
+    # Render message if not provided directly
+    if message is None and template_file:
+        message = render_template(template_file, template_type, profile)
+    elif message is None:
+        message = ""
+
+    # Send
+    status = send_message_to_profile(resources, profile, message)
+    logger.info(f"Message to {profile['linkedin_url']} → {status.value}")
+
+
+def get_messaging_availability(resources: PlaywrightResources, profile: Dict[str, Any]) -> bool:
+    return get_connection_status(resources, profile) == ConnectionStatus.CONNECTED
+
+
+def _perform_send_message(resources: PlaywrightResources, message: str):
     wait(resources)
 
-    # Try direct message button first
-    direct_message_locator = 'button[aria-label*="Message"]:visible'
-    direct_message = resources.page.locator(direct_message_locator)
-    if direct_message.count() > 0:
-        direct_message.first.click()
+    direct = resources.page.locator('button[aria-label*="Message"]:visible')
+    if direct.count() > 0:
+        direct.first.click()
     else:
-        # Click the 'More' button if direct not found
-        more_button = resources.page.locator('button[id$="profile-overflow-action"]:visible').first
-        more_button.click()
-
-        # Wait for the dropdown to load
+        more = resources.page.locator('button[id$="profile-overflow-action"]:visible').first
+        more.click()
         wait(resources)
+        msg_option = resources.page.locator('div[aria-label$="to message"]:visible').first
+        msg_option.click()
 
-        # Locate and click the message div
-        message_div_locator = 'div[aria-label$="to message"]:visible'  # Adjusted based on typical LinkedIn labels
-        message_div = resources.page.locator(message_div_locator).first
-        message_div.click()
-
-    # After initiating message, wait for messaging interface
     wait(resources)
 
-    # Locate the contenteditable div for message input (LinkedIn uses contenteditable for messaging)
-    message_input_locator = 'div[class*="msg-form__contenteditable"]:visible'
-    resources.page.locator(message_input_locator).first.type(message, delay=150)
-
-    # Wait for stability
+    input_area = resources.page.locator('div[class*="msg-form__contenteditable"]:visible').first
+    input_area.type(message, delay=150)
     wait(resources)
 
-    # Locate and click the send button (targeting type="submit" for form submission)
-    send_button_locator = 'button[type="submit"][class*="msg-form"]:visible'
-    resources.page.locator(send_button_locator).first.click()
-    wait(resources)  # Random sleep after send
+    send_btn = resources.page.locator('button[type="submit"][class*="msg-form"]:visible').first
+    send_btn.click()
+    wait(resources)
 
 
 def send_message_to_profile(
@@ -85,12 +69,10 @@ def send_message_to_profile(
         profile: Dict[str, Any],
         message: str,
 ) -> MessageStatus:
-    """Checks availability and sends a message if possible."""
     if not get_messaging_availability(resources, profile):
-        logger.info("Not connected or unable to message. Skipping send.")
+        logger.info("Not connected → skipping message")
         return MessageStatus.SKIPPED
 
-    # If available, proceed to send
     try:
         _perform_send_message(resources, message)
         return MessageStatus.SENT
@@ -100,38 +82,44 @@ def send_message_to_profile(
 
 
 if __name__ == "__main__":
-    # Forcefully reset and configure logging to ensure reliability
+    import sys
+    from pathlib import Path
+    from linkedin.automation import AutomationRegistry
+
     root_logger = logging.getLogger()
-    root_logger.handlers = []  # Clear any existing handlers to avoid conflicts
+    root_logger.handlers = []
     logging.basicConfig(
-        level=logging.DEBUG,  # Set to DEBUG for more logs; change to INFO if too verbose
+        level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-
-    import sys
 
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.actions.message <handle>")
         sys.exit(1)
+
     handle = sys.argv[1]
 
-    # Example profile data for testing
+    automation = AutomationRegistry.get_or_create(
+        handle=handle,
+        campaign_name="test_message",
+        csv_hash="debug",
+        input_csv=Path("dummy.csv"),
+        output_csv_template="output/debug_{csv_hash}.csv",
+    )
+
     target_profile = {
         "full_name": "Bill Gates",
         "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
         "public_id": "williamhgates",
     }
 
-    # Example params from YAML (adjust as needed for testing)
-    params = {
-        "template_file": "./assets/templates/prompts/followup_prompt.j2",
-        "template_type": "ai_prompt",
-    }
-
-    # Construct context
-    context = {
-        'resources': get_resources_with_state_management(handle),
-        'params': params
-    }
-
-    send_message(context, target_profile)
+    try:
+        send_follow_up_message(
+            automation=automation,
+            profile=target_profile,
+            template_file="./assets/templates/prompts/followup.j2",
+            template_type="static",
+        )
+    except Exception as e:
+        logger.exception("Message test failed")
+        raise

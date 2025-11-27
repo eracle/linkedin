@@ -5,23 +5,18 @@ from typing import Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode
 
 from linkedin.api.client import PlaywrightLinkedinAPI
-from linkedin.db.engine import Database, save_profile, get_profile
+from linkedin.db.engine import save_profile, get_profile
 from linkedin.navigation.errors import ProfileNotFoundInSearchError, AuthenticationError
-from linkedin.navigation.login import get_resources_with_state_management
 from linkedin.navigation.utils import wait, navigate_and_verify, human_delay, PlaywrightResources
 
 logger = logging.getLogger(__name__)
 
 
-def search_to_profile(context: Dict[str, Any], profile: Dict[str, Any]):
-    """
-    Orchestrates navigating to the profile, using simulated search with fallback to direct URL.
-    """
-    resources = context.get('resources')
-    session = context.get('session')
+def search_profile(automation: "LinkedInAutomation", profile: Dict[str, Any]):
+    resources = automation.browser
+    session = automation.db.get_session()
 
     linkedin_url = profile.get("linkedin_url")
-    linkedin_id = profile.get("public_id")
 
     try:
         _simulate_human_search(resources, profile, session)
@@ -30,7 +25,7 @@ def search_to_profile(context: Dict[str, Any], profile: Dict[str, Any]):
         navigate_and_verify(
             resources,
             action=lambda: resources.page.goto(linkedin_url),
-            expected_url_pattern=linkedin_id,
+            expected_url_pattern=linkedin_url,
             error_message="Failed to navigate directly to the target profile"
         )
 
@@ -183,50 +178,45 @@ def _simulate_human_search(
 
 
 if __name__ == "__main__":
-    # Forcefully reset and configure logging to ensure reliability
+    import sys
+    from pathlib import Path
+    from linkedin.automation import AutomationRegistry
+
+    # Forcefully reset and configure logging (unchanged)
     root_logger = logging.getLogger()
-    root_logger.handlers = []  # Clear any existing handlers to avoid conflicts
+    root_logger.handlers = []
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-
-    # Example profile data for testing
-    target_profile = {
-        "full_name": "Bill Gates",
-        "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
-        "public_id": "williamhgates",
-    }
-
-    import sys
 
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.actions.search <handle>")
         sys.exit(1)
     handle = sys.argv[1]
 
-    db = None
-    resources = None
+    # ← ONLY THIS BLOCK CHANGED – use the registry instead of manual resources/db
+    automation = AutomationRegistry.get_or_create(
+        handle=handle,
+        campaign_name="test_search",
+        csv_hash="debug",
+        input_csv=Path("dummy.csv"),
+        output_csv_template="output/debug_{csv_hash}.csv",
+    )
+
+    # Same test profile as before
+    target_profile = {
+        "full_name": "Bill Gates",
+        "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
+        "public_id": "williamhgates",
+    }
+
     try:
-        # ← NEW: One line, fully isolated DB for this account
-        db = Database.from_handle(handle)
-        resources = get_resources_with_state_management(handle)
+        wait(automation.browser)  # ← use automation.browser
+        search_profile(automation, target_profile)  # ← pass automation
 
-        # Construct context
-        context = dict(resources=resources, session=db.get_session())
-        wait(resources)
-
-        # Pass session down
-        search_to_profile(context, target_profile)
-
-        logger.info("go_to_profile function executed successfully.")
-        logger.info(f"Final URL: {resources.page.url}")
+        logger.info("search_to_profile function executed successfully.")
+        logger.info(f"Final URL: {automation.browser.page.url}")
     except Exception as e:
-        raise e
-    finally:
-        if resources:
-            logger.info("Cleaning up Playwright resources.")
-            resources.context.close()
-            resources.browser.close()
-            resources.playwright.stop()
-        db.close()  # clean up thread-local session
+        logger.exception(e)
+        raise

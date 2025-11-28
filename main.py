@@ -1,19 +1,14 @@
 # main.py
-import time
+import asyncio
+import logging
 
-from linkedin.workflow import start_or_resume_campaign
+from linkedin.campaign_launcher import launch_campaign
 
-engine = start_or_resume_campaign(
-    handle="eracle",
-    campaign_name="linked_in_connect_follow_up",
-    input_csv="./assets/inputs/urls.csv"
+logging.getLogger().handlers.clear()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s │ %(levelname)-8s │ %(message)s",
+    datefmt="%H:%M:%S",
 )
 
-print("Campaign running. Ctrl+C to stop.")
-try:
-    while True:
-        time.sleep(60)
-        print("Status →", engine.status())
-except KeyboardInterrupt:
-    print("\nStopping...")
-    engine.stop()
+asyncio.run(launch_campaign())

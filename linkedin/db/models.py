@@ -2,7 +2,7 @@
 
 import hashlib
 
-from sqlalchemy import Column, String, JSON, DateTime, Boolean
+from sqlalchemy import Column, String, JSON, DateTime, Boolean, Integer
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 
@@ -27,6 +27,15 @@ class CampaignRun(Base):
 
     # Human-readable short ID (great for Temporal workflow_id and logs)
     short_id = Column(String(12), nullable=False, unique=True, index=True)
+
+    # STATISTICS
+    total_profiles = Column(Integer, default=0, nullable=False)
+    enriched = Column(Integer, default=0, nullable=False)
+    connect_sent = Column(Integer, default=0, nullable=False)
+    accepted = Column(Integer, default=0, nullable=False)
+    followup_sent = Column(Integer, default=0, nullable=False)
+    completed = Column(Integer, default=0, nullable=False)
+    last_updated = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     def __init__(self, name: str, handle: str, input_hash: str, short_id: str | None = None, **kwargs):
         super().__init__(**kwargs)

@@ -52,7 +52,6 @@ class LinkedInConnectFollowUpWorkflow:
             args=[self.session],
             **ACTIVITY_OPTS,
         )
-        # enriched now contains at least: {"profile": "...", "full_name": "...", ...}
 
         # ==================================================================
         # STEP 2 → send_connection_request

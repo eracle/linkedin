@@ -169,3 +169,70 @@ def mark_campaign_run(
     session.commit()
     logger.info(f"Campaign run recorded → {name} | {handle} | {short_id}")
     return short_id
+
+
+def get_campaign_short_id(session, name: str, handle: str, input_hash: str) -> str | None:
+    """One-liner you asked for – safe, returns None if not found"""
+    return session.query(CampaignRun.short_id).filter_by(
+        name=name, handle=handle, input_hash=input_hash
+    ).scalar()
+
+
+def update_campaign_stats(
+        session,
+        name: str,
+        handle: str,
+        input_hash: str,
+        *,
+        total_profiles: int | None = None,
+        increment_enriched: int = 0,
+        increment_connect_sent: int = 0,
+        increment_accepted: int = 0,
+        increment_followup_sent: int = 0,
+        increment_completed: int = 0,
+):
+    """
+    Call this from your activities – super fast, one query only.
+    Example: update_campaign_stats(s, NAME, HANDLE, hash, increment_connect_sent=1)
+    """
+    run = session.query(CampaignRun).filter_by(
+        name=name, handle=handle, input_hash=input_hash
+    ).first()
+
+    if not run:
+        logger.warning(f"CampaignRun not found for stats update: {name}|{handle}")
+        return
+
+    if total_profiles is not None:
+        run.total_profiles = total_profiles
+
+    run.enriched += increment_enriched
+    run.connect_sent += increment_connect_sent
+    run.accepted += increment_accepted
+    run.followup_sent += increment_followup_sent
+    run.completed += increment_completed
+
+    session.commit()
+    logger.debug(f"Campaign stats updated → {run.short_id} | "
+                 f"Enriched:{run.enriched} Connect:{run.connect_sent} "
+                 f"Accepted:{run.accepted} Followup:{run.followup_sent} Done:{run.completed}")
+
+
+def get_campaign_stats(session, name: str, handle: str, input_hash: str) -> dict | None:
+    """Returns pretty dict for printing or API"""
+    run = session.query(CampaignRun).filter_by(
+        name=name, handle=handle, input_hash=input_hash
+    ).first()
+    if not run:
+        return None
+    return {
+        "campaign_id": run.short_id,
+        "total_profiles": run.total_profiles,
+        "enriched": run.enriched,
+        "connect_sent": run.connect_sent,
+        "accepted": run.accepted,
+        "followup_sent": run.followup_sent,
+        "completed": run.completed,
+        "last_updated": run.last_updated.isoformat(),
+    }
+

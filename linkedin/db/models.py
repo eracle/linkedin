@@ -1,10 +1,44 @@
 # linkedin/db_models.py
 
+import hashlib
+
 from sqlalchemy import Column, String, JSON, DateTime, Boolean
+from sqlalchemy import Index
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 
 Base = declarative_base()
+
+
+def _make_short_run_id(name: str, handle: str, input_hash: str) -> str:
+    """12-char deterministic ID – perfect for logs + Temporal workflow IDs"""
+    return hashlib.sha256(f"{name}|{handle}|{input_hash}".encode()).hexdigest()[:12]
+
+
+class CampaignRun(Base):
+    __tablename__ = "campaign_runs"
+
+    # Unique triple that identifies an exact campaign run
+    name = Column(String, primary_key=True)  # user-chosen campaign name
+    handle = Column(String, primary_key=True)  # LinkedIn account handle
+    input_hash = Column(String(64), primary_key=True)  # sha256 hex of filters/query
+
+    # When we queued this campaign
+    run_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    # Human-readable short ID (great for Temporal workflow_id and logs)
+    short_id = Column(String(12), nullable=False, unique=True, index=True)
+
+    __table_args__ = (
+        Index("ix_campaign_runs_short_id", "short_id"),
+    )
+
+    def __init__(self, name: str, handle: str, input_hash: str, short_id: str | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.name = name
+        self.handle = handle
+        self.input_hash = input_hash
+        self.short_id = short_id or _make_short_run_id(name, handle, input_hash)
 
 
 class Profile(Base):

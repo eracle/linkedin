@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 
 from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
-from linkedin.db.models import Base, Profile as DbProfile
+from linkedin.db.models import Base, Profile as DbProfile, CampaignRun, _make_short_run_id
 
 logger = logging.getLogger(__name__)
 
@@ -100,3 +100,45 @@ def get_profile(session, linkedin_url: str) -> Optional[Dict[str, Any]]:
     """
     result = session.query(DbProfile).filter_by(linkedin_url=linkedin_url).first()
     return result.data if result else None
+
+
+def has_campaign_run(session, name: str, handle: str, input_hash: str) -> bool:
+    """Fast check if this exact campaign has already been queued."""
+    return session.query(CampaignRun).filter_by(
+        name=name,
+        handle=handle,
+        input_hash=input_hash
+    ).first() is not None
+
+
+def mark_campaign_run(
+        session,
+        name: str,
+        handle: str,
+        input_hash: str,
+        short_id: str | None = None,
+) -> str:
+    """
+    Record that this campaign was started.
+    Idempotent – safe to call multiple times.
+    Returns the short_id (useful for Temporal workflow_id).
+    """
+    if has_campaign_run(session, name, handle, input_hash):
+        # Already exists → fetch and return its short_id
+        existing = session.query(CampaignRun.short_id).filter_by(
+            name=name, handle=handle, input_hash=input_hash
+        ).scalar()
+        return existing
+
+    if short_id is None:
+        short_id = _make_short_run_id(name, handle, input_hash)
+
+    session.add(CampaignRun(
+        name=name,
+        handle=handle,
+        input_hash=input_hash,
+        short_id=short_id,
+    ))
+    session.commit()
+    logger.info(f"Campaign run recorded → {name} | {handle} | {short_id}")
+    return short_id

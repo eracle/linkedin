@@ -8,18 +8,20 @@ from linkedin.api.client import PlaywrightLinkedinAPI
 from linkedin.db.engine import save_profile, get_profile
 from linkedin.navigation.errors import ProfileNotFoundInSearchError, AuthenticationError
 from linkedin.navigation.utils import wait, navigate_and_verify, human_delay, PlaywrightResources
+from linkedin.sessions import AccountSessionRegistry, AccountSession  # ← only this added
 
 logger = logging.getLogger(__name__)
 
 
-def search_profile(automation: "LinkedInAutomation", profile: Dict[str, Any]):
-    resources = automation.browser
-    session = automation.db.get_session()
+def search_profile(session: AccountSession, profile: Dict[str, Any]):
+    """Now takes real AccountSession — same as everywhere else."""
+    resources = session.resources
+    db_session = session.db.get_session()
 
     linkedin_url = profile.get("linkedin_url")
 
     try:
-        _simulate_human_search(resources, profile, session)
+        _simulate_human_search(resources, profile, db_session)
     except Exception as e:
         logger.warning(f"Simulated search failed: {e}. Falling back to direct navigation.")
         navigate_and_verify(
@@ -53,7 +55,6 @@ def _initiate_search(resources: PlaywrightResources, full_name: str):
         error_message="Failed to reach search results page"
     )
 
-    # After pressing Enter, modify the URL to switch to people results and add page=1
     current_url = page.url
     parsed_url = urlparse(current_url)
     path = parsed_url.path.replace('/all/', '/people/') if '/all/' in parsed_url.path else '/search/results/people/'
@@ -71,7 +72,6 @@ def _initiate_search(resources: PlaywrightResources, full_name: str):
 
 
 def _process_search_results_page(resources: PlaywrightResources, target_linkedin_id: str, session):
-    """Processes a page of search results, scraping each profile only once."""
     page = resources.page
     link_locators = page.locator('a[href*="/in/"]').all()
     logger.info(f"Found {len(link_locators)} potential profile links.")
@@ -165,7 +165,7 @@ def _simulate_human_search(
                 expected_url_pattern=linkedin_id,
                 error_message="Failed to navigate to the target profile"
             )
-            return  # Success
+            return
 
         if resources.page.get_by_text("No results found").count() > 0:
             logger.info("No more results found. Ending search.")
@@ -180,9 +180,7 @@ def _simulate_human_search(
 if __name__ == "__main__":
     import sys
     from pathlib import Path
-    from linkedin.account_session import AccountSessionRegistry
 
-    # Forcefully reset and configure logging (unchanged)
     root_logger = logging.getLogger()
     root_logger.handlers = []
     logging.basicConfig(
@@ -195,15 +193,13 @@ if __name__ == "__main__":
         sys.exit(1)
     handle = sys.argv[1]
 
-    # ← ONLY THIS BLOCK CHANGED – use the registry instead of manual resources/db
-    automation = AccountSessionRegistry.get_or_create(
+
+    session = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name="test_search",
-        csv_hash="debug",
-        input_csv=Path("dummy.csv"),
+        csv_path=Path("dummy.csv"),
     )
 
-    # Same test profile as before
     target_profile = {
         "full_name": "Bill Gates",
         "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
@@ -211,11 +207,11 @@ if __name__ == "__main__":
     }
 
     try:
-        wait(automation.browser)  # ← use automation.browser
-        search_profile(automation, target_profile)  # ← pass automation
+        wait(session.resources)
+        search_profile(session, target_profile)  # ← now passes real session
 
-        logger.info("search_to_profile function executed successfully.")
-        logger.info(f"Final URL: {automation.browser.page.url}")
+        logger.info("search_profile executed successfully.")
+        logger.info(f"Final URL: {session.resources.page.url}")
     except Exception as e:
         logger.exception(e)
         raise

@@ -6,13 +6,14 @@ from linkedin.activities.connections import get_connection_status
 from linkedin.activities.search import search_profile
 from linkedin.navigation.enums import ConnectionStatus, MessageStatus
 from linkedin.navigation.utils import wait, PlaywrightResources
+from linkedin.sessions import AccountSessionRegistry, SessionKey   # ← updated import
 from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
 
 
 def send_follow_up_message(
-        automation: "LinkedInAutomation",
+        key: SessionKey,                                          # ← changed
         profile: Dict[str, Any],
         *,
         template_file: Optional[str] = None,
@@ -20,10 +21,17 @@ def send_follow_up_message(
         message: Optional[str] = None,
 ):
     """Sends a follow-up message to a connected profile."""
-    resources = automation.browser
+    # ← only this block added/changed
+    session = AccountSessionRegistry.get_or_create(
+        handle=key.handle,
+        campaign_name=key.campaign_name,
+        csv_hash=key.csv_hash,
+    )
+    resources = session.resources
+    # ─────────────────────────────────────────────
 
     # Navigate to profile
-    search_profile(automation, profile)
+    search_profile(session, profile)          # session instead of automation
 
     # Render message if not provided directly
     if message is None and template_file:
@@ -84,7 +92,7 @@ def send_message_to_profile(
 if __name__ == "__main__":
     import sys
     from pathlib import Path
-    from linkedin.account_session import AccountSessionRegistry
+    from linkedin.sessions import SessionKey   # ← added
 
     root_logger = logging.getLogger()
     root_logger.handlers = []
@@ -99,27 +107,20 @@ if __name__ == "__main__":
 
     handle = sys.argv[1]
 
-    automation = AccountSessionRegistry.get_or_create(
+    # ← only this part changed
+    key = SessionKey.make(
         handle=handle,
         campaign_name="test_message",
-        csv_hash="debug",
-        input_csv=Path("dummy.csv"),
-
+        csv_path=Path("dummy.csv"),
     )
 
-    target_profile = {
-        "full_name": "Bill Gates",
-        "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
-        "public_id": "williamhgates",
-    }
-
-    try:
-        send_follow_up_message(
-            automation=automation,
-            profile=target_profile,
-            template_file="./assets/templates/prompts/followup.j2",
-            template_type="static",
-        )
-    except Exception as e:
-        logger.exception("Message test failed")
-        raise
+    send_follow_up_message(
+        key=key,                                           # ← now pass key
+        profile={
+            "full_name": "Bill Gates",
+            "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
+            "public_id": "williamhgates",
+        },
+        template_file="./assets/templates/prompts/followup.j2",
+        template_type="static",
+    )

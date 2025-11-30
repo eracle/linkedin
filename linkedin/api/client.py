@@ -25,7 +25,7 @@ class PlaywrightLinkedinAPI:
         # This is safe even if PlaywrightResources changes order or adds fields
         self.page = resources.page
         self.context = resources.context
-        self.browser = resources.browser
+        self.browser = resources.resources
         self.playwright = resources.playwright
         logger.info("Using provided Playwright resources for requests.")
 

@@ -4,23 +4,32 @@ from pathlib import Path
 from typing import Dict, Any
 
 from ..api.client import PlaywrightLinkedinAPI
+from linkedin.sessions import AccountSessionRegistry, SessionKey   # ← added SessionKey
 
 logger = logging.getLogger(__name__)
 
 
-def enrich_profile(automation: "LinkedInAutomation", profile: Dict[str, Any]) -> Dict[str, Any]:
+def enrich_profile(key: SessionKey, profile: Dict[str, Any]) -> Dict[str, Any]:
     """
     SCRAPE STEP handler
 
     Args:
-        automation: LinkedInAutomation singleton
+        key: SessionKey identifying the persistent browser session
         profile: Must contain "linkedin_url"
 
     Returns:
         Same profile dict, enriched with full LinkedIn data
     """
     linkedin_url = profile["linkedin_url"]
-    resources = automation.browser
+
+    # ← only this block changed
+    session = AccountSessionRegistry.get_or_create(
+        handle=key.handle,
+        campaign_name=key.campaign_name,
+        csv_hash=key.csv_hash,
+    )
+    resources = session.resources
+    # ──────────────────────────────
 
     api = PlaywrightLinkedinAPI(resources=resources)
 
@@ -40,7 +49,6 @@ def enrich_profile(automation: "LinkedInAutomation", profile: Dict[str, Any]) ->
 
 if __name__ == "__main__":
     import sys
-    from linkedin.account_session import AccountSessionRegistry
 
     root_logger = logging.getLogger()
     root_logger.handlers = []
@@ -55,17 +63,15 @@ if __name__ == "__main__":
 
     handle = sys.argv[1]
 
-    # ← ONLY THIS BLOCK CHANGED – use registry
-    automation = AccountSessionRegistry.get_or_create(
+    # ← only this part changed
+    key = SessionKey.make(
         handle=handle,
         campaign_name="test_profile",
-        csv_hash="debug",
-        input_csv=Path("dummy.csv"),
+        csv_path=Path("dummy.csv"),
     )
 
     test_profile = {"linkedin_url": "https://www.linkedin.com/in/williamhgates/"}
 
-    enriched = enrich_profile(automation, test_profile)
+    enriched = enrich_profile(key, test_profile)
 
-    print(f"Enriched profile for {enriched}")
-
+    print(f"Enriched profile for {enriched.get('full_name', 'Unknown')}")

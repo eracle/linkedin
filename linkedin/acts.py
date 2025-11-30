@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
-from linkedin.account_session import AccountSessionRegistry
+from linkedin.sessions import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
 

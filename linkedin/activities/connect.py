@@ -2,7 +2,7 @@
 import logging
 from typing import Optional, Dict, Any
 
-
+from linkedin.sessions import AccountSessionRegistry, SessionKey  # ← updated import
 from linkedin.navigation.enums import ConnectionStatus
 from linkedin.navigation.utils import wait
 from linkedin.templates.renderer import render_template
@@ -11,23 +11,29 @@ logger = logging.getLogger(__name__)
 
 
 def send_connection_request(
-        automation,
-        profile: Dict[str, Any],
-        template_file: Optional[str] = None,
-        template_type: str = "jinja",
+    key: SessionKey,
+    profile: Dict[str, Any],
+    template_file: Optional[str] = None,
+    template_type: str = "jinja",
 ) -> ConnectionStatus:
     """
-    High-level action: sends a connection request using the current automation context.
+    High-level action: sends a connection request.
 
-    This is the function you call from your workflow:
-        automation.send_connection_request(profile, template_file="...")
+    New simplified usage:
+        from linkedin.actions.connect import send_connection_request
+        from linkedin.sessions import SessionKey
+
+        send_connection_request(
+            key=SessionKey.make("john_doe_2025", "outreach_2025", "data/leads.csv"),
+            profile={...},
+            template_file="leader.j2"
+        )
 
     Args:
-        automation: LinkedInAutomation instance (provides browser + state)
+        key: The SessionKey (fully determines which browser/DB session to use)
         profile: Profile dict with at least 'linkedin_url'
         template_file: Path to .j2 / .txt template
         template_type: 'jinja' | 'static' | 'ai_prompt'
-        message: Pre-rendered message (overrides template)
 
     Returns:
         Final ConnectionStatus after attempt
@@ -35,17 +41,20 @@ def send_connection_request(
     from linkedin.activities.search import search_profile
     from linkedin.activities.connections import get_connection_status
 
-    resources = automation.browser
-    page = resources.page
+    # One-liner session retrieval – clean and guaranteed correct
+    session = AccountSessionRegistry.get_or_create(
+        handle=key.handle,
+        campaign_name=key.campaign_name,
+        csv_hash=key.csv_hash,
+    )
+
+    resources = session.resources
 
     # 1. Navigate to profile
-    search_profile(automation, profile)
+    search_profile(session, profile)
 
     # 2. Render message if needed
-    if template_file:
-        message = render_template(template_file, template_type, profile)
-    else:
-        message = ""
+    message = render_template(template_file, template_type, profile) if template_file else ""
 
     # 3. Check current status
     status = get_connection_status(resources, profile)
@@ -57,21 +66,23 @@ def send_connection_request(
     }
 
     if status in skip_reasons:
-        logger.info(f"Skipping {profile.get('full_name', profile['linkedin_url'])} → {skip_reasons[status]}")
+        name = profile.get('full_name', profile['linkedin_url'])
+        logger.info("Skipping %s → %s", name, skip_reasons[status])
         return status
 
     # 4. Send the invitation
     try:
         _perform_send_invitation(resources, message.strip())
-        logger.info(f"Connection request sent → {profile.get('full_name') or profile['linkedin_url']}")
+        name = profile.get('full_name') or profile['linkedin_url']
+        logger.info("Connection request sent → %s", name)
         return ConnectionStatus.PENDING
     except Exception as e:
-        logger.error(f"Failed to send invite to {profile['linkedin_url']}: {e}")
+        logger.error("Failed to send invite to %s: %s", profile['linkedin_url'], e)
         return ConnectionStatus.UNKNOWN
 
 
 def _perform_send_invitation(resources, message: str):
-    """Low-level click logic – isolated for easier maintenance."""
+    """Low-level click logic – unchanged."""
     wait(resources)
 
     # Primary: Direct "Connect" button
@@ -108,58 +119,45 @@ def _perform_send_invitation(resources, message: str):
         send_btn = resources.page.locator('button:has-text("Send"), button[aria-label*="Send invitation"]')
 
     send_btn.first.click(force=True)
-    wait(resources, min_wait=1.5)  # Slightly longer after send
+    wait(resources)
     logger.debug("Invite modal submitted")
 
 
 # ===================================================================
-# Minimal __main__ – only requires <handle>
+# Minimal __main__ – now super clean
 # ===================================================================
 if __name__ == "__main__":
     import sys
     from pathlib import Path
-    from linkedin.account_session import AccountSessionRegistry
+    from linkedin.sessions import SessionKey
 
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.actions.connect <handle>")
-        print("Example: python -m linkedin.actions.connect john_doe_2025")
         sys.exit(1)
 
     handle = sys.argv[1]
-
-    # Fixed values – same as your original test
     campaign_name = "test_connect"
-    csv_hash = "debug"
-    input_csv = Path("debug_input.csv")  # dummy – not actually read
-    template_file = "./assets/templates/connect_notes/leader.j2"
+    csv_path = Path("debug_input.csv")
 
-    # Create singleton (will auto-recover browser session)
-    automation = AccountSessionRegistry.get_or_create(
-        handle=handle,
-        campaign_name=campaign_name,
-        csv_hash=csv_hash,
-        input_csv=input_csv,
-    )
+    # Build the key once – this is all you need
+    key = SessionKey.make(handle, campaign_name, csv_path)
 
-    # Basic logging
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
 
-    # Hardcoded test profile (Bill Gates – safe, public, never changes)
     test_profile = {
         "full_name": "Bill Gates",
         "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
         "public_id": "williamhgates",
     }
 
-    print(f"Testing connection request as @{handle} → {test_profile['full_name']}")
+    print(f"Testing connection request as @{handle} (session: {key})")
     status = send_connection_request(
-        automation=automation,
+        key=key,
         profile=test_profile,
-        template_file=template_file,
-        template_type="jinja",
+        template_file="./assets/templates/connect_notes/leader.j2",
     )
 
     print(f"Finished → Status: {status.value}")

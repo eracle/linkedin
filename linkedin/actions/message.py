@@ -2,11 +2,11 @@
 import logging
 from typing import Dict, Any, Optional
 
-from linkedin.activities.connections import get_connection_status
-from linkedin.activities.search import search_profile
+from linkedin.actions.connections import get_connection_status
+from linkedin.actions.search import search_profile
 from linkedin.navigation.enums import ConnectionStatus, MessageStatus
 from linkedin.navigation.utils import wait, PlaywrightResources
-from linkedin.sessions import AccountSessionRegistry, SessionKey   # ← updated import
+from linkedin.sessions import AccountSessionRegistry, SessionKey, AccountSession  # ← updated import
 from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def send_follow_up_message(
         campaign_name=key.campaign_name,
         csv_hash=key.csv_hash,
     )
-    resources = session.resources
+
     # ─────────────────────────────────────────────
 
     # Navigate to profile
@@ -40,12 +40,12 @@ def send_follow_up_message(
         message = ""
 
     # Send
-    status = send_message_to_profile(resources, profile, message)
+    status = send_message_to_profile(session, profile, message)
     logger.info(f"Message to {profile['linkedin_url']} → {status.value}")
 
 
-def get_messaging_availability(resources: PlaywrightResources, profile: Dict[str, Any]) -> bool:
-    return get_connection_status(resources, profile) == ConnectionStatus.CONNECTED
+def get_messaging_availability(session: AccountSession, profile: Dict[str, Any]) -> bool:
+    return get_connection_status(session, profile) == ConnectionStatus.CONNECTED
 
 
 def _perform_send_message(resources: PlaywrightResources, message: str):
@@ -73,11 +73,12 @@ def _perform_send_message(resources: PlaywrightResources, message: str):
 
 
 def send_message_to_profile(
-        resources: PlaywrightResources,
+        session: AccountSession,
         profile: Dict[str, Any],
         message: str,
 ) -> MessageStatus:
-    if not get_messaging_availability(resources, profile):
+    resources = session.resources
+    if not get_messaging_availability(session, profile):
         logger.info("Not connected → skipping message")
         return MessageStatus.SKIPPED
 

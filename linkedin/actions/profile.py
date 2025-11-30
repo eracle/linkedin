@@ -3,8 +3,9 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
+from linkedin.navigation.utils import wait
+from linkedin.sessions import AccountSessionRegistry, SessionKey  # ← added SessionKey
 from ..api.client import PlaywrightLinkedinAPI
-from linkedin.sessions import AccountSessionRegistry, SessionKey   # ← added SessionKey
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,9 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]) -> Dict[str, Any]:
         csv_hash=key.csv_hash,
     )
     resources = session.resources
-    # ──────────────────────────────
 
+    # ──────────────────────────────
+    wait(resources)
     api = PlaywrightLinkedinAPI(resources=resources)
 
     profile_data, raw_json = api.get_profile(profile_url=linkedin_url)

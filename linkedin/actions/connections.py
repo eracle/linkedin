@@ -2,11 +2,11 @@
 from typing import Dict, Any
 
 from linkedin.navigation.enums import ConnectionStatus
-from linkedin.sessions import AccountSessionRegistry, SessionKey
+from linkedin.sessions import AccountSessionRegistry, AccountSession
 
 
 def get_connection_status(
-        key: SessionKey,
+        session: AccountSession,
         profile: Dict[str, Any],
 ) -> ConnectionStatus:
     """
@@ -21,12 +21,6 @@ def get_connection_status(
             profile=profile_dict
         )
     """
-    # Resolve session from key — clean, safe, and always correct
-    session = AccountSessionRegistry.get_or_create(
-        handle=key.handle,
-        campaign_name=key.campaign_name,
-        csv_hash=key.csv_hash,
-    )
 
     resources = session.resources
 
@@ -54,7 +48,7 @@ if __name__ == "__main__":
     import logging
     from pathlib import Path
     from linkedin.sessions import SessionKey
-    from linkedin.activities.search import search_profile
+    from linkedin.actions.search import search_profile
 
     logging.basicConfig(
         level=logging.INFO,
@@ -90,5 +84,5 @@ if __name__ == "__main__":
     search_profile(session, profile)
 
     # Then check status
-    status = get_connection_status(key, profile)
+    status = get_connection_status(session, profile)
     print(f"Connection status → {status.value}")

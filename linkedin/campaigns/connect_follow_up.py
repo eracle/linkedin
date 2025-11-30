@@ -8,9 +8,7 @@ from typing import Dict, Any
 logger = logging.getLogger(__name__)
 
 # ———————————————————————————————— USER CONFIGURATION ————————————————————————————————
-# ←←← Edit these two values at the top of the file whenever you start a new campaign ←←←
-
-CAMPAIGN_NAME = "connect_follow_up"  # Change for each campaign
+CAMPAIGN_NAME = "connect_follow_up"
 INPUT_CSV_PATH = Path("./assets/inputs/urls.csv")
 
 # ———————————————————————————————— Template Config ————————————————————————————————
@@ -25,58 +23,53 @@ FOLLOWUP_TEMPLATE_TYPE = "ai_prompt"
 def process_profile_row(
         profile_url: str,
         handle: str,
-        campaign_name: str,
-        csv_hash: str,
+        campaign_name: str = CAMPAIGN_NAME,
+        csv_hash: str = None,  # will be computed from INPUT_CSV_PATH
 ) -> Dict[str, Any]:
-    from linkedin.acts import (
-        enrich_profile,
-        send_connection_request,
-        is_connection_accepted,
-        send_follow_up_message,
-    )
-    logger.info(f"Processing → {handle} | {profile_url}")
+    from linkedin.sessions import SessionKey
+    from linkedin.actions.connect import send_connection_request
+    from linkedin.actions.message import send_follow_up_message
+    from linkedin.actions.profile import enrich_profile
+    from linkedin.navigation.enums import ConnectionStatus
 
-    enriched = enrich_profile(profile_url, handle, campaign_name, csv_hash)
-
-    send_connection_request(
-        {
-            "template_file": CONNECT_TEMPLATE_FILE,
-            "template_type": CONNECT_TEMPLATE_TYPE,
-            "context": enriched,
-        },
-        handle,
-        campaign_name,
-        csv_hash,
+    # Build the SessionKey once – this is the new canonical way
+    key = SessionKey.make(
+        handle=handle,
+        campaign_name=campaign_name,
+        csv_path=INPUT_CSV_PATH,  # hash is computed automatically inside make()
     )
 
-    # Instant check – no waiting loop
-    already_connected = is_connection_accepted(
-        enriched["profile"], handle, campaign_name, csv_hash
+    profile = {"linkedin_url": profile_url}
+
+    logger.info(f"Processing → @{handle} | {profile_url} | SessionKey: {key}")
+
+    # 1. Enrich
+    enriched = enrich_profile(key=key, profile=profile)
+
+    # 2. Send connection request (if needed)
+    status = send_connection_request(
+        key=key,
+        profile=enriched,
+        template_file=CONNECT_TEMPLATE_FILE,
+        template_type=CONNECT_TEMPLATE_TYPE,
     )
 
-    if not already_connected:
-        logger.info(f"Connection request sent, waiting for acceptance later → {handle}")
-        return {
-            "handle": handle,
-            "status": "waiting_for_acceptance",
-            "action": "connection_request_sent",
-        }
-
-    # Already connected → send follow-up immediately
-    logger.info(f"Already connected → sending follow-up message to {handle}")
-    send_follow_up_message(
-        {
-            "template_file": FOLLOWUP_TEMPLATE_FILE,
-            "template_type": FOLLOWUP_TEMPLATE_TYPE,
-            "context": enriched,
-        },
-        handle,
-        campaign_name,
-        csv_hash,
-    )
+    # If already connected or pending → send follow-up immediately
+    if status == ConnectionStatus.CONNECTED:
+        logger.info("Already connected → sending follow-up")
+        send_follow_up_message(
+            key=key,
+            profile=enriched,
+            template_file=FOLLOWUP_TEMPLATE_FILE,
+            template_type=FOLLOWUP_TEMPLATE_TYPE,
+        )
+        final_action = "follow_up_sent"
+    else:
+        logger.info(f"Connection request {status.value.lower()} → will follow-up later")
+        final_action = "connection_request_sent"
 
     return {
         "handle": handle,
-        "status": "completed",
-        "action": "follow_up_sent",
+        "status": "completed" if final_action == "follow_up_sent" else "waiting_for_acceptance",
+        "action": final_action,
     }

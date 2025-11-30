@@ -38,8 +38,8 @@ def send_connection_request(
     Returns:
         Final ConnectionStatus after attempt
     """
-    from linkedin.activities.search import search_profile
-    from linkedin.activities.connections import get_connection_status
+    from linkedin.actions.search import search_profile
+    from linkedin.actions.connections import get_connection_status
 
     # One-liner session retrieval – clean and guaranteed correct
     session = AccountSessionRegistry.get_or_create(
@@ -57,7 +57,7 @@ def send_connection_request(
     message = render_template(template_file, template_type, profile) if template_file else ""
 
     # 3. Check current status
-    status = get_connection_status(resources, profile)
+    status = get_connection_status(session, profile)
 
     skip_reasons = {
         ConnectionStatus.CONNECTED: "Already connected",

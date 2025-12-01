@@ -55,18 +55,17 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]):
 
     logger.info(f"Profile enriched: {full_name} – {linkedin_url}")
 
-    # Optional: still log full debug info if needed
-    logger.debug("=== ENRICHED PROFILE DATA ===")
-    logger.debug(f"Enriched keys ({len(enriched)} total): {list(enriched.keys())}")
+    # Only log the first 100 characters of the pretty-printed JSON
     pretty_json = json.dumps(enriched, indent=2, ensure_ascii=False, default=str)
-    for line in pretty_json.splitlines():
-        logger.debug(line)
-    logger.debug("=== END OF ENRICHED PROFILE ===")
+    preview = '\n'.join(pretty_json.splitlines()[:10])  # first ~10 lines
+    logger.debug("=== ENRICHED PROFILE PREVIEW (first 100 chars) ===")
+    logger.debug(preview)
+    logger.debug("=== END OF PREVIEW ===")
 
     return enriched, raw_json
 
 
-def _save_profile_to_fixture(enriched_profile: Dict[str, Any], path: str = FIXTURE_PATH) -> None:
+def _save_profile_to_fixture(enriched_profile: Dict[str, Any], path) -> None:
     """Utility to save the enriched profile as a test fixture."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -106,7 +105,7 @@ if __name__ == "__main__":
 
     if raw_json:
         # Save to tests/fixtures/linkedin_profile.json
-        _save_profile_to_fixture(raw_json)
+        _save_profile_to_fixture(raw_json, FIXTURE_PATH)
         print(f"Saved fixture → {FIXTURE_PATH}")
     else:
         print("Failed to enrich profile.")

@@ -154,9 +154,9 @@
         ],
         "$type": "com.linkedin.restli.common.CollectionMetadata"
       },
-      "entityUrn": "urn:li:collectionResponse:3+nq+MRy/YveFO22VHvVfd+kUhqldCP6YKRkMdla1zU=",
+      "entityUrn": "urn:li:collectionResponse:nq/BxlPvQXKU7XdxQCBzaOTMz2tWywEb/lMdfNQNWOQ=",
       "$recipeTypes": [
-        "com.linkedin.deco.recipe.anonymous.Anon1936086081"
+        "com.linkedin.deco.recipe.anonymous.Anon105506655"
       ],
       "elements": [],
       "$type": "com.linkedin.restli.common.CollectionResponse"
@@ -221,23 +221,6 @@
     },
     {
       "paging": {
-        "start": 0,
-        "count": 10,
-        "links": [],
-        "$recipeTypes": [
-          "com.linkedin.voyager.dash.deco.common.FullPaging"
-        ],
-        "$type": "com.linkedin.restli.common.CollectionMetadata"
-      },
-      "entityUrn": "urn:li:collectionResponse:37AlkuCviyxtT768yXCfNyMeGB4bAe94PCHIsSOEGQU=",
-      "$recipeTypes": [
-        "com.linkedin.deco.recipe.anonymous.Anon105506655"
-      ],
-      "elements": [],
-      "$type": "com.linkedin.restli.common.CollectionResponse"
-    },
-    {
-      "paging": {
         "total": 0,
         "start": 0,
         "count": 10,
@@ -250,6 +233,23 @@
       "entityUrn": "urn:li:collectionResponse:QeO7BAUbZGefgnLsQ9n1B44gkwWPBh7yBfYl8n1GHKU=",
       "$recipeTypes": [
         "com.linkedin.voyager.dash.deco.identity.profile.FullProfileTreasuryMediaItemsInjection"
+      ],
+      "elements": [],
+      "$type": "com.linkedin.restli.common.CollectionResponse"
+    },
+    {
+      "paging": {
+        "start": 0,
+        "count": 10,
+        "links": [],
+        "$recipeTypes": [
+          "com.linkedin.voyager.dash.deco.common.FullPaging"
+        ],
+        "$type": "com.linkedin.restli.common.CollectionMetadata"
+      },
+      "entityUrn": "urn:li:collectionResponse:Rl10leOqNlTtnOAvXgtbiZCb/R1p09kZi3GcfH0SGNI=",
+      "$recipeTypes": [
+        "com.linkedin.deco.recipe.anonymous.Anon1936086081"
       ],
       "elements": [],
       "$type": "com.linkedin.restli.common.CollectionResponse"
@@ -508,7 +508,7 @@
     },
     {
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "1c199185-12e4-4544-b30f-9fadd0d67c60"
+        "$anti_abuse_uuid": "df258125-3803-47b3-8079-9ac46024d09f"
       },
       "dateRange": null,
       "description": null,
@@ -560,7 +560,7 @@
         "$type": "com.linkedin.common.DateRange"
       },
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "2811680c-7f6e-48b6-b3cc-4b2dd2f55aae"
+        "$anti_abuse_uuid": "656ed2a8-6f3b-413d-a79f-724e27053bb7"
       },
       "description": null,
       "*company": "urn:li:fsd_company:1646",
@@ -612,7 +612,7 @@
         "$type": "com.linkedin.common.DateRange"
       },
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "7bcd5064-8fb4-4936-b93b-4acd44508823"
+        "$anti_abuse_uuid": "c9802045-e560-40f0-8653-126332d05c77"
       },
       "companyName": "Gates Foundation",
       "*company": "urn:li:fsd_company:8736",
@@ -647,7 +647,7 @@
         "$type": "com.linkedin.common.DateRange"
       },
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "c2902f5a-6117-4768-bf3e-be3a586ea725"
+        "$anti_abuse_uuid": "bdc5d63d-d99b-4c8b-b6c1-c858a292f40e"
       },
       "companyName": "Breakthrough Energy ",
       "*company": "urn:li:fsd_company:19141006",
@@ -682,7 +682,7 @@
         "$type": "com.linkedin.common.DateRange"
       },
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "1c93cc18-cbc9-46eb-88de-1ca0aaf47a35"
+        "$anti_abuse_uuid": "08a5db6f-e8bc-4af7-8759-4f5d132c49fd"
       },
       "companyName": "Microsoft",
       "*company": "urn:li:fsd_company:1035",
@@ -713,7 +713,7 @@
         "$type": "com.linkedin.common.DateRange"
       },
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "4e77dbea-ca31-46c0-b62c-0fae7c03bd68"
+        "$anti_abuse_uuid": "dd48d848-15ee-452b-9097-1c2f76ec4d04"
       },
       "companyName": "Microsoft",
       "*company": "urn:li:fsd_company:1035",
@@ -743,7 +743,7 @@
         "$type": "com.linkedin.common.DateRange"
       },
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "6e87ac8a-352b-41f8-bd40-12dad55fd67f"
+        "$anti_abuse_uuid": "6d55ecba-9735-48d0-99cf-1cd6063dd3c3"
       },
       "companyName": "Breakthrough Energy ",
       "*company": "urn:li:fsd_company:19141006",
@@ -773,7 +773,7 @@
         "$type": "com.linkedin.common.DateRange"
       },
       "$anti_abuse_metadata": {
-        "$anti_abuse_uuid": "d4ef0f25-72ef-488b-941d-1530e682425f"
+        "$anti_abuse_uuid": "f40f3644-ab21-4177-b6c9-deb8b20d333a"
       },
       "companyName": "Gates Foundation",
       "*company": "urn:li:fsd_company:8736",
@@ -793,7 +793,7 @@
         "en_US": "Gates"
       },
       "*profilePositionGroups": "urn:li:collectionResponse:56KG01wSMo1J7ibdHlPb/ROf+sgwQ8pvqFEUPznLM0E=",
-      "*profileVideoPreview": "urn:li:collectionResponse:37AlkuCviyxtT768yXCfNyMeGB4bAe94PCHIsSOEGQU=",
+      "*profileVideoPreview": "urn:li:collectionResponse:nq/BxlPvQXKU7XdxQCBzaOTMz2tWywEb/lMdfNQNWOQ=",
       "*profileCertifications": "urn:li:collectionResponse:aQCDICbwhwdWuBXhrbVhHtU9jKMLTnwbBWV7GSk4EBw=",
       "pronounUnion": null,
       "multiLocaleFirstNamePronunciationHint": {},
@@ -808,7 +808,7 @@
       "*profileLanguages": "urn:li:collectionResponse:yHgSKL6QPpj0X8VR5xcAb4LIH98JMFS19hJYPQjE+0g=",
       "state": null,
       "publicIdentifier": "williamhgates",
-      "trackingId": "7iQz2nwfRfq6mU3dXT+/Sw==",
+      "trackingId": "phzeCXxXT/6tkBjMPM77Jw==",
       "phoneticFirstName": null,
       "multiLocaleSummary": {
         "en_US": "Chair of the Gates Foundation. Founder of Breakthrough Energy. Co-founder of Microsoft. Voracious reader. Avid traveler. Active blogger."
@@ -945,7 +945,7 @@
       "influencer": true,
       "*profileCourses": "urn:li:collectionResponse:N+IrDaqDR1JYtYcke0FMxVm2y/SLlCCTo+AQ7wGJu4o=",
       "entityUrn": "urn:li:fsd_profile:ACoAAA8BYqEBCGLg_vT_ca6mMEqkpp9nVffJ3hc",
-      "*profileRingStatusCollection": "urn:li:collectionResponse:3+nq+MRy/YveFO22VHvVfd+kUhqldCP6YKRkMdla1zU=",
+      "*profileRingStatusCollection": "urn:li:collectionResponse:Rl10leOqNlTtnOAvXgtbiZCb/R1p09kZi3GcfH0SGNI=",
       "*profileEducations": "urn:li:collectionResponse:mSW7PmtKTz7jZ4xeXrcQ355l+5aeogDhHEw5dKTEPLY=",
       "headline": "Chair, Gates Foundation and Founder, Breakthrough Energy",
       "fullNamePronunciationAudio": null,

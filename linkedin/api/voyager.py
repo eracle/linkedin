@@ -38,6 +38,7 @@ class Education:
 
 @dataclass
 class LinkedInProfile:
+    url: str
     urn: str
     full_name: str
     first_name: str
@@ -143,6 +144,8 @@ def parse_linkedin_voyager_response(json_response: dict) -> LinkedInProfile:
         "positions": [],
         "educations": []
     }
+
+    profile_data['url'] = f"https://www.linkedin.com/in/{profile_data['public_identifier']}"
     profile_data['full_name'] = profile_data['first_name'] + profile_data['last_name']
 
     # === POSITIONS (via PositionGroups) ===

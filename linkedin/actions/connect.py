@@ -28,7 +28,7 @@ def send_connection_request(
 
     resources = session.resources
 
-    logger.debug("1. Navigating to profile: %s", profile.get("linkedin_url"))
+    logger.debug("1. Navigating to profile: %s", profile.get("url"))
     search_profile(session, profile)
 
     message = render_template(template_file, template_type, profile) if template_file else ""
@@ -45,19 +45,16 @@ def send_connection_request(
     }
 
     if status in skip_reasons:
-        name = profile.get('full_name', profile['linkedin_url'])
+        name = profile.get('full_name', profile['url'])
         logger.info("Skipping send → %s (%s)", name, skip_reasons[status])
         return status
 
     # 4. Send the invitation
-    try:
-        _perform_send_invitation(resources, message.strip())
-        name = profile.get('full_name') or profile['linkedin_url']
-        logger.info("Connection request sent → %s", name)
-        return ConnectionStatus.PENDING
-    except Exception as e:
-        logger.warning("Failed to send invite to %s → %s", profile.get('linkedin_url'), e)
-        return ConnectionStatus.UNKNOWN
+    _perform_send_invitation(resources, message.strip())
+    name = profile.get('full_name') or profile['url']
+    logger.info("Connection request sent → %s", name)
+    return ConnectionStatus.PENDING
+
 
 
 def _perform_send_invitation(resources, message: str):
@@ -130,7 +127,7 @@ if __name__ == "__main__":
 
     test_profile = {
         "full_name": "Bill Gates",
-        "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
+        "url": "https://www.linkedin.com/in/williamhgates/",
         "public_identifier": "williamhgates",
     }
 

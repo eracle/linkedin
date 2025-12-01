@@ -48,7 +48,7 @@ class CampaignRun(Base):
 class Profile(Base):
     __tablename__ = 'profiles'
 
-    linkedin_url = Column(String, primary_key=True)
+    url = Column(String, primary_key=True)
 
     # Parsed / cleaned data (what you return from get_profile)
     data = Column(JSON, nullable=True)
@@ -66,7 +66,7 @@ class Profile(Base):
 class Company(Base):
     __tablename__ = 'companies'
 
-    linkedin_url = Column(String, primary_key=True)
+    url = Column(String, primary_key=True)
     data = Column(JSON)
     raw_json = Column(JSON, nullable=True)
     cloud_synced = Column(Boolean, default=False, server_default='false', nullable=False)

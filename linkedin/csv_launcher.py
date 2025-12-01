@@ -2,7 +2,7 @@
 import hashlib
 import logging
 from pathlib import Path
-from typing import Dict, Any, Callable
+from typing import Dict, Any
 from typing import List
 
 import pandas as pd
@@ -125,24 +125,14 @@ def launch_from_csv(
     for idx, profile_url in enumerate(profiles, start=1):
         logger.info(f"[{idx}/{len(profiles)}] Starting → {handle}")
 
-        try:
-            result = process_profile_row(
-                profile_url=profile_url,
-                handle=handle,
-                campaign_name=campaign_name,
-            )
-            results.append(result)
-            logger.info(f"[{idx}] Completed → {handle} | Status: {result.get('status')}")
-        except Exception as exc:
-            logger.error(f"[{idx}] Failed processing {handle} ({profile_url}): {exc}", exc_info=True)
-            results.append(
-                {
-                    "handle": handle,
-                    "profile_url": profile_url,
-                    "status": "error",
-                    "error": str(exc),
-                }
-            )
+        result = process_profile_row(
+            profile_url=profile_url,
+            handle=handle,
+            campaign_name=campaign_name,
+        )
+        results.append(result)
+        logger.info(f"[{idx}] Completed → {handle} | Status: {result.get('status')}")
+
 
     # Summary
     successful = sum(1 for r in results if r.get("status") == "completed")

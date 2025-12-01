@@ -35,7 +35,7 @@ def process_profile_row(
         csv_path=INPUT_CSV_PATH,
     )
 
-    profile = {"linkedin_url": profile_url}
+    profile = {"url": profile_url}
 
     logger.info(f"Processing → @{handle} | {profile_url} | SessionKey: {key}")
     logger.debug(f"SessionKey details → handle={key.handle} campaign={key.campaign_name} hash={key.csv_hash}")

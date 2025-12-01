@@ -73,22 +73,22 @@ class Database:
         return cls(db_path)
 
 
-def save_profile(session, profile_data: Dict[str, Any], raw_json: Dict[str, Any], linkedin_url: str):
+def save_profile(session, profile_data: Dict[str, Any], raw_json: Dict[str, Any], url: str):
     """
     Saves or updates a profile (both parsed data and raw JSON).
     Sets cloud_synced=False on insert.
     """
-    existing = session.query(DbProfile).filter_by(linkedin_url=linkedin_url).first()
+    existing = session.query(DbProfile).filter_by(url=url).first()
 
     if existing:
-        logger.debug(f"Updating existing profile: {linkedin_url}")
+        logger.debug(f"Updating existing profile: {url}")
         existing.data = profile_data
         existing.raw_json = raw_json
         existing.updated_at = func.now()
     else:
-        logger.info(f"Saving new profile: {linkedin_url}")
+        logger.info(f"Saving new profile: {url}")
         session.add(DbProfile(
-            linkedin_url=linkedin_url,
+            url=url,
             data=profile_data,
             raw_json=raw_json,
             cloud_synced=False,
@@ -97,11 +97,11 @@ def save_profile(session, profile_data: Dict[str, Any], raw_json: Dict[str, Any]
     session.commit()
 
 
-def get_profile(session, linkedin_url: str) -> Optional[Dict[str, Any]]:
+def get_profile(session, url: str) -> Optional[Dict[str, Any]]:
     """
     Returns parsed profile data if exists in DB, else None.
     """
-    result = session.query(DbProfile).filter_by(linkedin_url=linkedin_url).first()
+    result = session.query(DbProfile).filter_by(url=url).first()
     return result.data if result else None
 
 

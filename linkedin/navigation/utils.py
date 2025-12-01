@@ -8,8 +8,8 @@ from typing import Callable
 logger = logging.getLogger(__name__)
 
 # Central delay configuration
-HUMAN_DELAY_MIN = 0.5
-HUMAN_DELAY_MAX = 1.5
+HUMAN_DELAY_MIN = 1.5
+HUMAN_DELAY_MAX = 2.5
 
 
 def human_delay(min_sec: float = HUMAN_DELAY_MIN, max_sec: float = HUMAN_DELAY_MAX) -> None:
@@ -28,7 +28,7 @@ def wait(resources: PlaywrightResources, min_sec: float = HUMAN_DELAY_MIN, max_s
     """Legacy wrapper: human delay + wait for page load."""
     human_delay(min_sec, max_sec)
     resources.page.wait_for_load_state("load")
-    resources.page.wait_for_load_state("domcontentloaded")
+    # resources.page.wait_for_load_state("domcontentloaded")
 
 
 def navigate_and_verify(
@@ -40,19 +40,18 @@ def navigate_and_verify(
 ):
     """Navigate → wait for URL → human pause + load → verify."""
     page = resources.page
-    try:
-        action()
-        page.wait_for_url(
-            lambda url: expected_url_pattern in url,
-            timeout=timeout,
+
+    action()
+    page.wait_for_url(
+        lambda url: expected_url_pattern in url,
+        timeout=timeout,
+    )
+    wait(resources)  # uses the global delay range
+
+    if expected_url_pattern not in page.url:
+        raise RuntimeError(
+            f"{error_message}: Expected '{expected_url_pattern}' in URL, got '{page.url}'"
         )
-        wait(resources)  # uses the global delay range
+    logger.info("Navigation successful: %s", expected_url_pattern)
 
-        if expected_url_pattern not in page.url:
-            raise RuntimeError(
-                f"{error_message}: Expected '{expected_url_pattern}' in URL, got '{page.url}'"
-            )
-        logger.info("Navigation successful: %s", expected_url_pattern)
 
-    except Exception as e:
-        raise RuntimeError(f"{error_message}: {e}") from e

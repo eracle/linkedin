@@ -18,7 +18,7 @@ def search_profile(session: AccountSession, profile: Dict[str, Any]):
     resources = session.resources
     db_session = session.db.get_session()
 
-    linkedin_url = profile.get("linkedin_url")
+    url = profile.get("url")
 
     try:
         _simulate_human_search(resources, profile, db_session)
@@ -26,8 +26,8 @@ def search_profile(session: AccountSession, profile: Dict[str, Any]):
         logger.warning(f"Simulated search failed: {e}. Falling back to direct navigation.")
         navigate_and_verify(
             resources,
-            action=lambda: resources.page.goto(linkedin_url),
-            expected_url_pattern=linkedin_url,
+            action=lambda: resources.page.goto(url),
+            expected_url_pattern=url,
             error_message="Failed to navigate directly to the target profile"
         )
 
@@ -202,16 +202,14 @@ if __name__ == "__main__":
 
     target_profile = {
         "full_name": "Bill Gates",
-        "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
+        "url": "https://www.linkedin.com/in/williamhgates/",
         "public_identifier": "williamhgates",
     }
 
-    try:
-        wait(session.resources)
-        search_profile(session, target_profile)  # ← now passes real session
 
-        logger.info("search_profile executed successfully.")
-        logger.info(f"Final URL: {session.resources.page.url}")
-    except Exception as e:
-        logger.exception(e)
-        raise
+    wait(session.resources)
+    search_profile(session, target_profile)  # ← now passes real session
+
+    logger.info("search_profile executed successfully.")
+    logger.info(f"Final URL: {session.resources.page.url}")
+

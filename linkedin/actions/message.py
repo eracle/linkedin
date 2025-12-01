@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def send_follow_up_message(
-        key: SessionKey,                                          # ← changed
+        key: SessionKey,  # ← changed
         profile: Dict[str, Any],
         *,
         template_file: Optional[str] = None,
@@ -31,7 +31,7 @@ def send_follow_up_message(
     # ─────────────────────────────────────────────
 
     # Navigate to profile
-    search_profile(session, profile)          # session instead of automation
+    search_profile(session, profile)  # session instead of automation
 
     # Render message if not provided directly
     if message is None and template_file:
@@ -41,7 +41,7 @@ def send_follow_up_message(
 
     # Send
     status = send_message_to_profile(session, profile, message)
-    logger.info(f"Message to {profile['linkedin_url']} → {status.value}")
+    logger.info(f"Message to {profile['url']} → {status.value}")
 
 
 def get_messaging_availability(session: AccountSession, profile: Dict[str, Any]) -> bool:
@@ -82,18 +82,14 @@ def send_message_to_profile(
         logger.info("Not connected → skipping message")
         return MessageStatus.SKIPPED
 
-    try:
-        _perform_send_message(resources, message)
-        return MessageStatus.SENT
-    except Exception as e:
-        logger.warning(f"Failed to send message: {e}")
-        return MessageStatus.UNKNOWN
+    _perform_send_message(resources, message)
+    return MessageStatus.SENT
 
 
 if __name__ == "__main__":
     import sys
     from pathlib import Path
-    from linkedin.sessions import SessionKey   # ← added
+    from linkedin.sessions import SessionKey  # ← added
 
     root_logger = logging.getLogger()
     root_logger.handlers = []
@@ -116,10 +112,10 @@ if __name__ == "__main__":
     )
 
     send_follow_up_message(
-        key=key,                                           # ← now pass key
+        key=key,  # ← now pass key
         profile={
             "full_name": "Bill Gates",
-            "linkedin_url": "https://www.linkedin.com/in/williamhgates/",
+            "url": "https://www.linkedin.com/in/williamhgates/",
             "public_identifier": "williamhgates",
         },
         template_file="./assets/templates/prompts/followup.j2",

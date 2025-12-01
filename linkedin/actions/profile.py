@@ -19,12 +19,12 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]):
 
     Args:
         key: SessionKey identifying the persistent browser session
-        profile: Must contain "linkedin_url"
+        profile: Must contain "url"
 
     Returns:
         Same profile dict, enriched with full LinkedIn data
     """
-    linkedin_url = profile["linkedin_url"]
+    url = profile["url"]
 
     session = AccountSessionRegistry.get_or_create(
         handle=key.handle,
@@ -37,23 +37,17 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]):
     wait(resources)
     api = PlaywrightLinkedinAPI(resources=resources)
 
-    profile_data, raw_json = api.get_profile(profile_url=linkedin_url)
+    enriched, raw_json = api.get_profile(profile_url=url)
 
-    full_name = profile_data.get("full_name")
+    full_name = enriched.get("full_name")
 
     if not full_name:
         logger.warning(
-            f"SKIPPING profile – no valid name found → {linkedin_url} got: {full_name!r})"
+            f"SKIPPING profile – no valid name found → {url} got: {full_name!r})"
         )
         return None, None
 
-    # Merge everything
-    enriched = {
-        "linkedin_url": linkedin_url,
-        **profile_data,
-    }
-
-    logger.info(f"Profile enriched: {full_name} – {linkedin_url}")
+    logger.info(f"Profile enriched: {full_name} – {url}")
 
     # Only log the first 100 characters of the pretty-printed JSON
     pretty_json = json.dumps(enriched, indent=2, ensure_ascii=False, default=str)
@@ -99,7 +93,7 @@ if __name__ == "__main__":
         csv_path=INPUT_CSV_PATH,
     )
 
-    test_profile = {"linkedin_url": "https://www.linkedin.com/in/williamhgates/"}
+    test_profile = {"url": "https://www.linkedin.com/in/williamhgates/"}
 
     _, raw_json = enrich_profile(key, test_profile)
 

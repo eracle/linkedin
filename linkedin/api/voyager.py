@@ -145,8 +145,8 @@ def parse_linkedin_voyager_response(json_response: dict) -> LinkedInProfile:
         "educations": []
     }
 
-    profile_data['url'] = f"https://www.linkedin.com/in/{profile_data['public_identifier']}"
-    profile_data['full_name'] = profile_data['first_name'] + profile_data['last_name']
+    profile_data['url'] = f"https://www.linkedin.com/in/{profile_data['public_identifier']}/"
+    profile_data['full_name'] = f"{profile_data['first_name']} {profile_data['last_name']}"
 
     # === POSITIONS (via PositionGroups) ===
     pos_groups_urn = profile_entity.get("*profilePositionGroups")

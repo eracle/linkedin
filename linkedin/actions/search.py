@@ -6,30 +6,34 @@ from urllib.parse import urlparse, parse_qs, urlencode
 
 from linkedin.api.client import PlaywrightLinkedinAPI
 from linkedin.db.engine import save_profile, get_profile
-from linkedin.navigation.errors import ProfileNotFoundInSearchError, AuthenticationError
+from linkedin.navigation.errors import AuthenticationError
 from linkedin.navigation.utils import wait, navigate_and_verify, human_delay, PlaywrightResources
 from linkedin.sessions import AccountSessionRegistry, AccountSession  # ← only this added
 
 logger = logging.getLogger(__name__)
 
 
-def search_profile(session: AccountSession, profile: Dict[str, Any]):
+def _go_to_profile(resources: PlaywrightResources, url: Any | None):
+    navigate_and_verify(
+        resources,
+        action=lambda: resources.page.goto(url),
+        expected_url_pattern=url,
+        error_message="Failed to navigate directly to the target profile"
+    )
+
+
+def search_profile(session: AccountSession, profile: Dict[str, Any], direct=False):
     """Now takes real AccountSession — same as everywhere else."""
     resources = session.resources
     db_session = session.db.get_session()
 
     url = profile.get("url")
-
-    try:
-        _simulate_human_search(resources, profile, db_session)
-    except Exception as e:
-        logger.warning(f"Simulated search failed: {e}. Falling back to direct navigation.")
-        navigate_and_verify(
-            resources,
-            action=lambda: resources.page.goto(url),
-            expected_url_pattern=url,
-            error_message="Failed to navigate directly to the target profile"
-        )
+    if direct:
+        logger.warning(f"Directly going to {url}")
+        _go_to_profile(resources, url)
+    elif not _simulate_human_search(resources, profile, db_session):
+        logger.warning(f"Simulated search failed. Falling back to direct navigation.")
+        _go_to_profile(resources, url)
 
 
 def _initiate_search(resources: PlaywrightResources, full_name: str):
@@ -102,16 +106,15 @@ def _process_search_results_page(resources: PlaywrightResources, target_linkedin
     logger.info(f"After deduplication: {len(unique_clean_urls)} unique profiles to process.")
 
     # Step 2: Process only unique URLs
-    try:
-        for clean_url in unique_clean_urls:
-            if not get_profile(session, clean_url):
-                human_delay()
-                parsed_profile, raw_json = api.get_profile(profile_url=clean_url)
-                save_profile(session, parsed_profile, raw_json, clean_url)
-            else:
-                logger.info(f"Already in DB, skipping: {clean_url}")
-    except AuthenticationError:
-        logger.warning("Authentication error. Stopping scraping for this page.")
+    for clean_url in unique_clean_urls:
+        if not get_profile(session, clean_url):
+            logger.debug(f"Enriching profile: {clean_url}")
+            human_delay()
+            parsed_profile, raw_json = api.get_profile(profile_url=clean_url)
+            save_profile(session, parsed_profile, raw_json, clean_url)
+        else:
+            logger.info(f"Already in DB, skipping: {clean_url}")
+
 
     return target_link_locator
 
@@ -165,7 +168,7 @@ def _simulate_human_search(
                 expected_url_pattern=linkedin_id,
                 error_message="Failed to navigate to the target profile"
             )
-            return
+            return True
 
         if resources.page.get_by_text("No results found").count() > 0:
             logger.info("No more results found. Ending search.")
@@ -174,7 +177,8 @@ def _simulate_human_search(
         if page_num < max_pages:
             _paginate_to_next_page(resources, page_num + 1)
 
-    raise ProfileNotFoundInSearchError(f"Could not find profile for ID '{linkedin_id}' after {max_pages} pages.")
+    logger.info(f"Could not find profile for ID '{linkedin_id}' after {max_pages} pages.")
+    return False
 
 
 if __name__ == "__main__":
@@ -193,7 +197,6 @@ if __name__ == "__main__":
         sys.exit(1)
     handle = sys.argv[1]
 
-
     session = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name="test_search",
@@ -206,10 +209,8 @@ if __name__ == "__main__":
         "public_identifier": "williamhgates",
     }
 
-
     wait(session.resources)
     search_profile(session, target_profile)  # ← now passes real session
 
     logger.info("search_profile executed successfully.")
     logger.info(f"Final URL: {session.resources.page.url}")
-

@@ -35,25 +35,17 @@ def hash_file(path: Path | str, chunk_size: int = 8192, algorithm: str = "sha256
     return short_hex
 
 
-def load_profile_urls_from_csv(csv_path: Path | str) -> List[str]:
-    """
-    Loads LinkedIn profile URLs from a CSV file.
-    Assumes the file has at least one column containing URLs.
-    Supported column names (case-insensitive):
-        - url
-        - linkedin_url
-        - profile_url
-        - Url, URL, etc.
-
-    Returns a clean list of string URLs (deduped, stripped, no NaN).
-    """
+def load_profiles_urls_from_csv(csv_path: Path | str) -> List[str]:
     csv_path = Path(csv_path)
     if not csv_path.is_file():
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
 
     df = pd.read_csv(csv_path)
 
-    # Find the first column that looks like it contains URLs
+    # Simple preview of first 10 rows
+    logger.debug(f"First 10 rows of {csv_path.name}:\n{df.head(10).to_string(index=False)}")
+
+    # Find URL column
     possible_cols = ["url", "linkedin_url", "profile_url"]
     url_column = next(
         (col for col in df.columns if col.lower() in [c.lower() for c in possible_cols]),
@@ -61,22 +53,23 @@ def load_profile_urls_from_csv(csv_path: Path | str) -> List[str]:
     )
 
     if url_column is None:
-        raise ValueError(
-            f"Could not find a URL column in {csv_path}\n"
-            f"   Found columns: {list(df.columns)}\n"
-            f"   Expected one of: {possible_cols}"
-        )
+        raise ValueError(f"No URL column found. Available: {list(df.columns)}")
 
     urls = (
         df[url_column]
         .astype(str)
         .str.strip()
-        .replace({"nan": None, "<NA>": None})
         .dropna()
+        .replace({"nan": None})
         .tolist()
     )
 
-    return urls
+    # Simple dedupe
+    unique_urls = list(dict.fromkeys(urls))  # preserves order
+
+    logger.info(f"Loaded {len(unique_urls)} unique profile URLs from CSV")
+
+    return unique_urls
 
 
 def launch_from_csv(
@@ -109,7 +102,7 @@ def launch_from_csv(
     
     logger.info(f"Launching campaign '{campaign_name}' from CSV: {csv_path}")
 
-    profiles = load_profile_urls_from_csv(csv_path)
+    profiles = load_profiles_urls_from_csv(csv_path)
     logger.info(f"Loaded {len(profiles)} profiles from CSV")
 
     session = AccountSessionRegistry.get_or_create_from_path(

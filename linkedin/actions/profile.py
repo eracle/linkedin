@@ -93,7 +93,7 @@ if __name__ == "__main__":
         csv_path=INPUT_CSV_PATH,
     )
 
-    test_profile = {"url": "https://www.linkedin.com/in/williamhgates/"}
+    test_profile = {"url": "https://www.linkedin.com/in/lexfridman/"}
 
     _, raw_json = enrich_profile(key, test_profile)
 

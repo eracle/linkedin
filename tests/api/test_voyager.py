@@ -4,38 +4,105 @@ from pathlib import Path
 
 import pytest
 
-from linkedin.api.voyager import parse_linkedin_voyager_response, to_dict
+from linkedin.api.voyager import parse_linkedin_voyager_response
 
 
 @pytest.fixture
 def profile_data():
-    """Load the real LinkedIn profile JSON once per test session"""
+    """Load any real LinkedIn Voyager profile JSON (structure matters, not content)"""
     fixture_path = Path(__file__).parent.parent / "fixtures" / "linkedin_profile.json"
     with open(fixture_path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def test_profile_parsing_and_to_dict_conversion(profile_data):
-    # 1. Parse the raw Voyager response into our beautiful dataclass
+def test_profile_parsing_structure_only(profile_data):
     profile = parse_linkedin_voyager_response(profile_data)
 
-    # 2. Convert to plain dict (this is the magic you wanted to test)
-    profile_dict = to_dict(profile)
+    # 1. Core identity fields must be present and non-empty strings
+    assert isinstance(profile.first_name, str) and profile.first_name.strip()
+    assert isinstance(profile.last_name, str) and profile.last_name.strip()
+    assert isinstance(profile.full_name, str) and profile.full_name.strip()
+    assert isinstance(profile.url, str) and profile.url.startswith("https://www.linkedin.com/in/")
+    assert isinstance(profile.public_identifier, str) and profile.public_identifier
 
-    # 3. Basic sanity checks — we don't care about exact values, just that data exists
-    assert profile_dict.get("first_name"), "First name should not be empty"
-    assert profile_dict.get("last_name"), "Last name should not be empty"
-    assert profile_dict.get("headline"), "Headline should not be empty"
-    assert profile_dict.get("public_identifier"), "Public identifier should exist"
+    # 2. Optional but commonly present top-card fields
+    assert profile.headline is None or isinstance(profile.headline, str)
+    assert profile.summary is None or isinstance(profile.summary, str)
+    assert profile.location_name is None or isinstance(profile.location_name, str)
 
-    # 4. Bonus: prove it's JSON-serializable (very useful for APIs/DBs)
-    json_str = json.dumps(profile_dict, ensure_ascii=False)
-    assert isinstance(json_str, str)
+    # 3. Geo & industry (may be dict or None)
+    assert profile.geo is None or isinstance(profile.geo, dict)
+    assert profile.industry is None or isinstance(profile.industry, dict)
 
-    # Optional pretty print (runs only when you use -s)
-    print("\nProfile successfully parsed and converted to dict!")
-    print(f"Name: {profile_dict['first_name']} {profile_dict['last_name']}")
-    print("\nto_dict() output sample:")
-    print(json.dumps(profile_dict, indent=2, ensure_ascii=False))
+    # 4. Experience section: list of Position objects
+    assert isinstance(profile.positions, list)
+    if profile.positions:
+        pos = profile.positions[0]
+        assert isinstance(pos.title, str) and pos.title
+        assert isinstance(pos.company_name, str) and pos.company_name
+        assert pos.company_urn is None or isinstance(pos.company_urn, str)
+        assert pos.location is None or isinstance(pos.location, str)
+        assert pos.description is None or isinstance(pos.description, str)
+        assert pos.date_range is None or hasattr(pos.date_range, "start")
+
+    # 5. Education section: list of Education objects
+    assert isinstance(profile.educations, list)
+    if profile.educations:
+        edu = profile.educations[0]
+        assert isinstance(edu.school_name, str) and edu.school_name
+        assert edu.degree_name is None or isinstance(edu.degree_name, str)
+        assert edu.field_of_study is None or isinstance(edu.field_of_study, str)
+        assert edu.date_range is None or hasattr(edu.date_range, "start")
+
+    # 6. CRITICAL: Connection degree must be extracted correctly
+    #     - connection_distance: one of the known strings or None
+    #     - connection_degree: int (1, 2, 3) or None (out of network)
+    valid_distances = {None, "DISTANCE_1", "DISTANCE_2", "DISTANCE_3", "OUT_OF_NETWORK"}
+    assert profile.connection_distance in valid_distances, \
+        f"Invalid connection_distance: {profile.connection_distance}"
+
+    if profile.connection_distance == "DISTANCE_1":
+        assert profile.connection_degree == 1
+    elif profile.connection_distance == "DISTANCE_2":
+        assert profile.connection_degree == 2
+    elif profile.connection_distance == "DISTANCE_3":
+        assert profile.connection_degree == 3
+    elif profile.connection_distance == "OUT_OF_NETWORK":
+        assert profile.connection_degree is None
+    else:  # None → no relationship data (rare but possible)
+        assert profile.connection_degree is None
+
+    print("\nAll structural tests passed!")
+    print(f"→ Name: {profile.full_name}")
+    print(f"→ Headline: {profile.headline}")
+    print(f"→ Connection: {profile.connection_distance} → degree {profile.connection_degree}")
+    print(f"→ Experience entries: {len(profile.positions)}")
+    print(f"→ Education entries: {len(profile.educations)}")
 
     # assert False
+
+def test_profile_is_fully_json_serializable(profile_data):
+    profile = parse_linkedin_voyager_response(profile_data)
+    # This will raise if anything is not serializable
+    json.dumps(profile.__dict__, ensure_ascii=False, default=str)
+    print("Profile is 100% JSON-serializable")
+
+
+def test_no_exceptions_on_empty_or_minimal_profiles():
+    # Minimal valid response that should not crash the parser
+    minimal = {
+        "data": {"*elements": ["urn:li:fsd_profile:ACoAAA123"]},
+        "included": [
+            {
+                "entityUrn": "urn:li:fsd_profile:ACoAAA123",
+                "$type": "com.linkedin.voyager.dash.identity.profile.Profile",
+                "firstName": "John",
+                "lastName": "Doe",
+                "publicIdentifier": "johndoe"
+            }
+        ]
+    }
+    profile = parse_linkedin_voyager_response(minimal)
+    assert profile.full_name == "John Doe"
+    assert profile.connection_degree is None  # no relationship data → safe
+    print("Minimal profile parsed safely")

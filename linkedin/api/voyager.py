@@ -1,6 +1,15 @@
-from dataclasses import asdict, is_dataclass
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict
+from dataclasses import dataclass, field, asdict
+from typing import List, Optional, Dict, Literal, Any
+
+ConnectionDistance = Literal["DISTANCE_1", "DISTANCE_2", "DISTANCE_3", "OUT_OF_NETWORK", None]
+
+# Mapping: LinkedIn's internal string → human-readable degree number
+DISTANCE_TO_DEGREE: Dict[str, Optional[int]] = {
+    "DISTANCE_1": 1,
+    "DISTANCE_2": 2,
+    "DISTANCE_3": 3,
+    "OUT_OF_NETWORK": None,  # or use float('inf') or 999 if you prefer
+}
 
 
 @dataclass
@@ -23,7 +32,6 @@ class Position:
     location: Optional[str] = None
     date_range: Optional[DateRange] = None
     description: Optional[str] = None
-    employment_type: Optional[str] = None
     urn: Optional[str] = None
 
 
@@ -43,22 +51,32 @@ class LinkedInProfile:
     full_name: str
     first_name: str
     last_name: str
+
     headline: Optional[str] = None
     summary: Optional[str] = None
     public_identifier: Optional[str] = None
     location_name: Optional[str] = None
-    geo: Optional[dict] = None
-    industry: Optional[dict] = None
+    geo: Optional[Dict[str, Any]] = None
+    industry: Optional[Dict[str, Any]] = None
+
     positions: List[Position] = field(default_factory=list)
     educations: List[Education] = field(default_factory=list)
 
+    # Connection info
+    connection_distance: Optional[ConnectionDistance] = None  # e.g. "DISTANCE_2"
+    connection_degree: Optional[int] = None  # e.g. 2 (or None for out-of-network)
 
-def resolve_references(data: dict) -> Dict[str, dict]:
-    """Build urn → entity lookup from 'included' array"""
-    return {entity.get("entityUrn"): entity for entity in data.get("included", []) if entity.get("entityUrn")}
+
+def _resolve_references(data: dict) -> Dict[str, dict]:
+    """Build urn → entity lookup from 'included' array."""
+    return {
+        entity.get("entityUrn"): entity
+        for entity in data.get("included", [])
+        if entity.get("entityUrn")
+    }
 
 
-def resolve_star_field(entity: dict, urn_map: dict, field_name: str):
+def _resolve_star_field(entity: dict, urn_map: dict, field_name: str):
     """Resolve *company, *school, *elements, etc."""
     value = entity.get(field_name)
     if not value:
@@ -68,54 +86,81 @@ def resolve_star_field(entity: dict, urn_map: dict, field_name: str):
     return urn_map.get(value)
 
 
-def date_from_raw(raw: dict) -> Optional[Date]:
+def _date_from_raw(raw: Optional[dict]) -> Optional[Date]:
     if not raw:
         return None
     return Date(year=raw.get("year"), month=raw.get("month"))
 
 
-def date_range_from_raw(raw: dict) -> Optional[DateRange]:
+def _date_range_from_raw(raw: Optional[dict]) -> Optional[DateRange]:
     if not raw:
         return None
     return DateRange(
-        start=date_from_raw(raw.get("start")),
-        end=date_from_raw(raw.get("end"))
+        start=_date_from_raw(raw.get("start")),
+        end=_date_from_raw(raw.get("end")),
     )
 
 
-def enrich_position(pos: dict, urn_map: dict) -> Position:
-    company = resolve_star_field(pos, urn_map, "*company")
-    emp_type = resolve_star_field(pos, urn_map, "*employmentType")
+def _enrich_position(pos: dict, urn_map: dict) -> Position:
+    company = _resolve_star_field(pos, urn_map, "*company")
 
     return Position(
-        title=pos.get("title", "Unknown Title"),
+        title=pos.get("title") or "Unknown Title",
         company_name=company.get("name") if company else pos.get("companyName", "Unknown Company"),
         company_urn=company.get("entityUrn") if company else pos.get("companyUrn"),
         location=pos.get("locationName"),
-        date_range=date_range_from_raw(pos.get("dateRange")),
+        date_range=_date_range_from_raw(pos.get("dateRange")),
         description=pos.get("description"),
-        employment_type=emp_type.get("name") if emp_type else None,
-        urn=pos.get("entityUrn")
+        urn=pos.get("entityUrn"),
     )
 
 
-def enrich_education(edu: dict, urn_map: dict) -> Education:
-    school = resolve_star_field(edu, urn_map, "*school")
-    degree = resolve_star_field(edu, urn_map, "*degree")
+def _enrich_education(edu: dict, urn_map: dict) -> Education:
+    school = _resolve_star_field(edu, urn_map, "*school")
 
     return Education(
         school_name=school.get("name") if school else edu.get("schoolName", "Unknown School"),
         degree_name=edu.get("degreeName"),
         field_of_study=edu.get("fieldOfStudy"),
-        date_range=date_range_from_raw(edu.get("dateRange")),
-        urn=edu.get("entityUrn")
+        date_range=_date_range_from_raw(edu.get("dateRange")),
+        urn=edu.get("entityUrn"),
     )
 
 
-def parse_linkedin_voyager_response(json_response: dict):
-    urn_map = resolve_references(json_response)
+def _extract_connection_info(profile_entity: dict, urn_map: dict) -> tuple[Optional[str], Optional[int]]:
+    """Extract connection distance using the clean DISTANCE_TO_DEGREE map."""
+    member_rel_urn = profile_entity.get("*memberRelationship")
+    if not member_rel_urn:
+        return None, None
 
-    # Find main profile entity
+    rel = urn_map.get(member_rel_urn)
+    if not rel:
+        return None, None
+
+    union = rel.get("memberRelationshipUnion") or rel.get("memberRelationshipData")
+    if not union:
+        return None, None
+
+    # 1st degree connection
+    if "connected" in union:
+        return "DISTANCE_1", 1
+
+    # 2nd, 3rd, or out-of-network
+    if "noConnection" in union:
+        distance_str = union["noConnection"].get("memberDistance")
+        degree = DISTANCE_TO_DEGREE.get(distance_str)
+        return distance_str, degree
+
+    return None, None
+
+
+def parse_linkedin_voyager_response(json_response: dict) -> LinkedInProfile:
+    """
+    Main function: parses full Voyager profile JSON → LinkedInProfile dataclass.
+    """
+    urn_map = _resolve_references(json_response)
+
+    # Find the main Profile entity
     profile_entity = None
     for entity in json_response.get("included", []):
         if entity.get("$type") == "com.linkedin.voyager.dash.identity.profile.Profile":
@@ -123,32 +168,41 @@ def parse_linkedin_voyager_response(json_response: dict):
             break
 
     if not profile_entity:
-        # Fallback: use first element from data.*elements
+        # Fallback: first element in data.*elements
         main_urn = json_response.get("data", {}).get("*elements", [None])[0]
         profile_entity = urn_map.get(main_urn)
 
     if not profile_entity:
-        raise ValueError("Could not find profile in response")
+        raise ValueError("Could not find profile entity in the response")
 
-    # Build clean profile dict
+    # Basic fields
+    first_name = profile_entity.get("firstName", "")
+    last_name = profile_entity.get("lastName", "")
+
     profile_data = {
         "urn": profile_entity["entityUrn"],
-        "first_name": profile_entity.get("firstName", ""),
-        "last_name": profile_entity.get("lastName", ""),
+        "first_name": first_name,
+        "last_name": last_name,
+        "full_name": f"{first_name} {last_name}".strip(),
         "headline": profile_entity.get("headline"),
         "summary": profile_entity.get("summary"),
         "public_identifier": profile_entity.get("publicIdentifier"),
         "location_name": profile_entity.get("locationName"),
-        "geo": resolve_star_field(profile_entity, urn_map, "*geo"),
-        "industry": resolve_star_field(profile_entity, urn_map, "*industry"),
+        "geo": _resolve_star_field(profile_entity, urn_map, "*geo"),
+        "industry": _resolve_star_field(profile_entity, urn_map, "*industry"),
+        "url": f"https://www.linkedin.com/in/{profile_entity.get('publicIdentifier', '')}/",
         "positions": [],
-        "educations": []
+        "educations": [],
+        "connection_distance": None,
+        "connection_degree": None,
     }
 
-    profile_data['url'] = f"https://www.linkedin.com/in/{profile_data['public_identifier']}/"
-    profile_data['full_name'] = f"{profile_data['first_name']} {profile_data['last_name']}"
+    # Connection distance (via map)
+    profile_data["connection_distance"], profile_data["connection_degree"] = _extract_connection_info(
+        profile_entity, urn_map
+    )
 
-    # === POSITIONS (via PositionGroups) ===
+    # === EXPERIENCE (via Position Groups) ===
     pos_groups_urn = profile_entity.get("*profilePositionGroups")
     if pos_groups_urn:
         pos_groups_resp = urn_map.get(pos_groups_urn)
@@ -164,9 +218,9 @@ def parse_linkedin_voyager_response(json_response: dict):
                         for pos_urn in positions_coll["*elements"]:
                             pos = urn_map.get(pos_urn)
                             if pos:
-                                profile_data["positions"].append(enrich_position(pos, urn_map))
+                                profile_data["positions"].append(_enrich_position(pos, urn_map))
 
-    # === EDUCATIONS ===
+    # === EDUCATION ===
     educations_urn = profile_entity.get("*profileEducations")
     if educations_urn:
         edu_coll = urn_map.get(educations_urn)
@@ -174,17 +228,11 @@ def parse_linkedin_voyager_response(json_response: dict):
             for edu_urn in edu_coll["*elements"]:
                 edu = urn_map.get(edu_urn)
                 if edu:
-                    profile_data["educations"].append(enrich_education(edu, urn_map))
+                    profile_data["educations"].append(_enrich_education(edu, urn_map))
 
-    return LinkedInProfile(**profile_data), profile_data
+    return LinkedInProfile(**profile_data)
 
 
-def to_dict(obj):
-    if is_dataclass(obj):
-        return to_dict(asdict(obj))  # ← converts dataclass → dict
-    elif isinstance(obj, (list, tuple)):
-        return [to_dict(item) for item in obj]
-    elif isinstance(obj, dict):
-        return {key: to_dict(value) for key, value in obj.items()}
-    else:
-        return obj  # str, int, None, etc → already JSON-safe
+# Helper: pretty print as dict (useful for debugging)
+def profile_to_dict(profile: LinkedInProfile) -> dict:
+    return asdict(profile)

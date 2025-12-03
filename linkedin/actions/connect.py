@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     test_profile = {
         "full_name": "Bill Gates",
-        "url": "https://www.linkedin.com/in/williamhgates/",
+        "url": "https://www.linkedin.com/in/broganleex4/",
         "public_identifier": "williamhgates",
     }
 

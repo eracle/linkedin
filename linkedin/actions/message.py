@@ -45,8 +45,31 @@ def send_follow_up_message(
 
 
 def get_messaging_availability(session: AccountSession, profile: Dict[str, Any]) -> bool:
-    return get_connection_status(session, profile) == ConnectionStatus.CONNECTED
+    """
+    Returns True if we are allowed to send a message.
 
+    We allow messaging when:
+      - The person is definitely CONNECTED (1st degree)
+      - OR we don't know the status (UNKNOWN) → better to try than miss a real connection
+
+    We block only when we're sure it's impossible (not connected or pending).
+    """
+    status = get_connection_status(session, profile)
+
+    logger.debug("Checking messaging availability for %s → status: %s",
+                 profile.get("full_name", "unknown"), status.value)
+
+    # Allow messaging for connected people AND when status detection failed/unclear
+    if status == ConnectionStatus.CONNECTED or status == ConnectionStatus.UNKNOWN:
+        return True
+
+    # Explicitly block only when we know messaging won't work
+    if status == ConnectionStatus.NOT_CONNECTED:
+        logger.info("Messaging blocked → not connected (2nd/3rd degree or out of network)")
+    elif status == ConnectionStatus.PENDING:
+        logger.info("Messaging blocked → connection request still pending")
+
+    return False
 
 def _perform_send_message(resources: PlaywrightResources, message: str):
     wait(resources)

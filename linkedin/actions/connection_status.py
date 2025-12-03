@@ -13,12 +13,35 @@ def get_connection_status(
         profile: Dict[str, Any],
 ) -> ConnectionStatus:
     """
-    Checks the current connection status of a profile using the correct persistent session.
+    Checks the current connection status of a profile.
+    First tries the reliable connection_degree (int) from Voyager API using a map.
+    Falls back to UI inspection only when needed.
     """
-
     resources = session.resources
 
-    logger.debug("Checking connection status for %s", profile.get("full_name", "unknown"))  # ← added
+    logger.debug("Checking connection status for %s", profile.get("full_name", "unknown"))
+
+    # ── Fast path: use connection_degree from Voyager API if present ──
+    degree = profile.get("connection_degree")
+
+    # Mapping: connection_degree (int or None) → ConnectionStatus
+    degree_to_status = {
+        1: ConnectionStatus.CONNECTED,
+        2: ConnectionStatus.NOT_CONNECTED,
+        3: ConnectionStatus.NOT_CONNECTED,
+        None: None,  # explicitly continue to UI checks
+    }
+
+    if degree in degree_to_status:
+        status = degree_to_status[degree]
+        if status is not None:  # i.e. we got a definitive answer
+            logger.debug("Connection status from API (degree=%s) → %s", degree, status.value)
+            return status
+        # else: degree is None → fall through to UI checks
+    else:
+        logger.debug("No connection_degree in profile data → falling back to UI inspection")
+
+    # ── Fallback: classic UI-based detection (unchanged) ──
 
     # 1. Pending
     if resources.page.locator('button[aria-label*="Pending"]:visible').count() > 0:
@@ -41,7 +64,6 @@ def get_connection_status(
     # 4. Fallback
     logger.debug("No known indicators found → UNKNOWN")
     return ConnectionStatus.UNKNOWN
-
 
 if __name__ == "__main__":
     import sys

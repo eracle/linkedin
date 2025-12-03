@@ -6,34 +6,45 @@ from urllib.parse import urlparse, parse_qs, urlencode
 
 from linkedin.api.client import PlaywrightLinkedinAPI
 from linkedin.db.engine import save_profile, get_profile
-from linkedin.navigation.errors import AuthenticationError
 from linkedin.navigation.utils import wait, navigate_and_verify, human_delay, PlaywrightResources
 from linkedin.sessions import AccountSessionRegistry, AccountSession  # ← only this added
 
 logger = logging.getLogger(__name__)
 
 
-def _go_to_profile(resources: PlaywrightResources, url: Any | None):
+def _go_to_profile(resources: PlaywrightResources, url: str, public_identifier: str):
+    """
+    Go to profile URL only if we're not already on it.
+    Checks by public_identifier — the most reliable way on LinkedIn.
+    """
+    current_url = resources.page.url
+    if f"/in/{public_identifier}" in current_url:
+        logger.info(f"Already on profile {public_identifier} → skipping navigation")
+        return
+
+    logger.info(f"Navigating to profile: {public_identifier}")
     navigate_and_verify(
         resources,
         action=lambda: resources.page.goto(url),
-        expected_url_pattern=url,
-        error_message="Failed to navigate directly to the target profile"
+        expected_url_pattern=f"/in/{public_identifier}",
+        error_message="Failed to navigate to the target profile"
     )
 
 
 def search_profile(session: AccountSession, profile: Dict[str, Any], direct=False):
-    """Now takes real AccountSession — same as everywhere else."""
     resources = session.resources
-    db_session = session.db.get_session()
-
     url = profile.get("url")
+    public_id = profile.get("public_identifier")
+
+    if not url or not public_id:
+        raise ValueError("Profile must have 'url' and 'public_identifier'")
+
     if direct:
-        logger.warning(f"Directly going to {url}")
-        _go_to_profile(resources, url)
-    elif not _simulate_human_search(resources, profile, db_session):
-        logger.warning(f"Simulated search failed. Falling back to direct navigation.")
-        _go_to_profile(resources, url)
+        logger.info(f"Direct navigation to {public_id}")
+        _go_to_profile(resources, url, public_id)
+    elif not _simulate_human_search(resources, profile, session):
+        logger.warning("Search failed, falling back to direct")
+        _go_to_profile(resources, url, public_id)
 
 
 def _initiate_search(resources: PlaywrightResources, full_name: str):
@@ -114,7 +125,6 @@ def _process_search_results_page(resources: PlaywrightResources, target_linkedin
             save_profile(session, parsed_profile, raw_json, clean_url)
         else:
             logger.info(f"Already in DB, skipping: {clean_url}")
-
 
     return target_link_locator
 

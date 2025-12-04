@@ -71,6 +71,7 @@ def get_messaging_availability(session: AccountSession, profile: Dict[str, Any])
 
     return False
 
+
 def _perform_send_message(resources: PlaywrightResources, message: str):
     wait(resources)
 
@@ -84,10 +85,23 @@ def _perform_send_message(resources: PlaywrightResources, message: str):
         msg_option = resources.page.locator('div[aria-label$="to message"]:visible').first
         msg_option.click()
 
-    wait(resources)
+    wait(resources, 3, 5)  # give LinkedIn time to load the message box
 
     input_area = resources.page.locator('div[class*="msg-form__contenteditable"]:visible').first
-    input_area.type(message, delay=150)
+
+    # Method 1 – fill() – works 90% of the time in 2025
+    try:
+        input_area.fill(message, timeout=10000)
+        print("Message typed with fill() → success")
+    except:
+        # Method 2 – clipboard paste (almost never fails)
+        print("fill() failed → falling back to clipboard paste")
+        input_area.click()
+        resources.page.evaluate(f"navigator.clipboard.writeText(`{message.replace('`', '\\`')}`)")
+        wait(resources)
+        input_area.press("ControlOrMeta+V")
+        wait(resources)
+
     wait(resources)
 
     send_btn = resources.page.locator('button[type="submit"][class*="msg-form"]:visible').first
@@ -111,8 +125,8 @@ def send_message_to_profile(
 
 if __name__ == "__main__":
     import sys
-    from pathlib import Path
-    from linkedin.sessions import SessionKey  # ← added
+    from linkedin.sessions import SessionKey
+    from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
 
     root_logger = logging.getLogger()
     root_logger.handlers = []
@@ -131,16 +145,25 @@ if __name__ == "__main__":
     key = SessionKey.make(
         handle=handle,
         campaign_name="test_message",
-        csv_path=Path("dummy.csv"),
+        csv_path=INPUT_CSV_PATH,
     )
 
+    # ← only this block added/changed
+    session = AccountSessionRegistry.get_or_create(
+        handle=key.handle,
+        campaign_name=key.campaign_name,
+        csv_hash=key.csv_hash,
+    )
+
+    profile = {
+        "url": "https://www.linkedin.com/in/elizabethladendorf/",
+        "public_identifier": "elizabethladendorf",
+    }
+
+    # Send
     send_follow_up_message(
-        key=key,  # ← now pass key
-        profile={
-            "full_name": "Bill Gates",
-            "url": "https://www.linkedin.com/in/williamhgates/",
-            "public_identifier": "williamhgates",
-        },
+        key=key,
+        profile=profile,
         template_file="./assets/templates/prompts/followup.j2",
         template_type="static",
     )

@@ -1,7 +1,7 @@
 import factory
 from faker import Faker
 
-from linkedin.db.models import Profile, Company
+from linkedin.db.models import Profile
 
 fake = Faker()
 
@@ -26,17 +26,3 @@ class ProfileFactory(factory.Factory):
         {"degree": "B.Sc. Computer Science", "field_of_study": "Computer Science", "school": "University of Example"}
     ])
     skills = factory.LazyFunction(lambda: ["Python", "SQL", "Cloud"])
-
-
-class CompanyFactory(factory.Factory):
-    class Meta:
-        model = Company
-
-    linkedin_url = factory.LazyFunction(lambda: fake.url())
-    name = factory.LazyFunction(lambda: fake.company())
-    tagline = factory.LazyFunction(lambda: fake.bs())
-    about = factory.LazyFunction(lambda: fake.text())
-    website = factory.LazyFunction(lambda: fake.url())
-    industry = factory.LazyFunction(lambda: fake.word())
-    company_size = factory.LazyFunction(lambda: "1001-5000 employees")
-    headquarters = factory.LazyFunction(lambda: {"city": fake.city(), "country": fake.country()})

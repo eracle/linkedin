@@ -61,14 +61,3 @@ class Profile(Base):
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
-
-
-class Company(Base):
-    __tablename__ = 'companies'
-
-    url = Column(String, primary_key=True)
-    data = Column(JSON)
-    raw_json = Column(JSON, nullable=True)
-    cloud_synced = Column(Boolean, default=False, server_default='false', nullable=False)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

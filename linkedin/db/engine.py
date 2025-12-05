@@ -1,14 +1,16 @@
 # linkedin/database.py
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TypeAlias
 
 from sqlalchemy import create_engine, func
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker, scoped_session, Session as SASession
 
 from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
 from linkedin.db.models import Base, Profile as DbProfile, CampaignRun, _make_short_run_id
+
+DatabaseSession: TypeAlias = SASession
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +75,7 @@ class Database:
         return cls(db_path)
 
 
-def save_profile(session, profile_data: Dict[str, Any], raw_json: Dict[str, Any], url: str):
+def save_profile(session: DatabaseSession, profile_data: Dict[str, Any], raw_json: Dict[str, Any], url: str):
     """
     Saves or updates a profile (both parsed data and raw JSON).
     Sets cloud_synced=False on insert.
@@ -97,7 +99,7 @@ def save_profile(session, profile_data: Dict[str, Any], raw_json: Dict[str, Any]
     session.commit()
 
 
-def get_profile(session, url: str) -> Optional[Dict[str, Any]]:
+def get_profile(session: DatabaseSession, url: str) -> Optional[Dict[str, Any]]:
     """
     Returns parsed profile data if exists in DB, else None.
     """
@@ -105,7 +107,7 @@ def get_profile(session, url: str) -> Optional[Dict[str, Any]]:
     return result.data if result else None
 
 
-def has_campaign_run(session, name: str, handle: str, input_hash: str) -> bool:
+def has_campaign_run(session: DatabaseSession, name: str, handle: str, input_hash: str) -> bool:
     """Fast check if this exact campaign has already been queued."""
     return session.query(CampaignRun).filter_by(
         name=name,
@@ -115,7 +117,7 @@ def has_campaign_run(session, name: str, handle: str, input_hash: str) -> bool:
 
 
 def mark_campaign_run(
-        session,
+        session: DatabaseSession,
         name: str,
         handle: str,
         input_hash: str,
@@ -147,7 +149,7 @@ def mark_campaign_run(
     return short_id
 
 
-def get_campaign_short_id(session, name: str, handle: str, input_hash: str) -> str | None:
+def get_campaign_short_id(session: DatabaseSession, name: str, handle: str, input_hash: str) -> str | None:
     """One-liner you asked for – safe, returns None if not found"""
     return session.query(CampaignRun.short_id).filter_by(
         name=name, handle=handle, input_hash=input_hash
@@ -155,7 +157,7 @@ def get_campaign_short_id(session, name: str, handle: str, input_hash: str) -> s
 
 
 def update_campaign_stats(
-        session,
+        session: DatabaseSession,
         name: str,
         handle: str,
         input_hash: str,
@@ -194,7 +196,7 @@ def update_campaign_stats(
                  f"Accepted:{run.accepted} Followup:{run.followup_sent} Done:{run.completed}")
 
 
-def get_campaign_stats(session, name: str, handle: str, input_hash: str) -> dict | None:
+def get_campaign_stats(session: DatabaseSession, name: str, handle: str, input_hash: str) -> dict | None:
     """Returns pretty dict for printing or API"""
     run = session.query(CampaignRun).filter_by(
         name=name, handle=handle, input_hash=input_hash

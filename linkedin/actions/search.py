@@ -31,8 +31,8 @@ def _go_to_profile(resources: PlaywrightResources, url: str, public_identifier: 
     )
 
 
-def search_profile(session: AccountSession, profile: Dict[str, Any], direct=False):
-    resources = session.resources
+def search_profile(account_session: AccountSession, profile: Dict[str, Any], direct=False):
+    resources = account_session.resources
     url = profile.get("url")
     public_id = profile.get("public_identifier")
 
@@ -42,7 +42,7 @@ def search_profile(session: AccountSession, profile: Dict[str, Any], direct=Fals
     if direct:
         logger.info(f"Direct navigation to {public_id}")
         _go_to_profile(resources, url, public_id)
-    elif not _simulate_human_search(resources, profile, session):
+    elif not _simulate_human_search(account_session, profile):
         logger.warning("Search failed, falling back to direct")
         _go_to_profile(resources, url, public_id)
 
@@ -86,7 +86,8 @@ def _initiate_search(resources: PlaywrightResources, full_name: str):
     )
 
 
-def _process_search_results_page(resources: PlaywrightResources, target_linkedin_id: str, session):
+def _process_search_results_page(account_session: AccountSession, target_linkedin_id: str, ):
+    resources = account_session.resources
     page = resources.page
     link_locators = page.locator('a[href*="/in/"]').all()
     logger.info(f"Found {len(link_locators)} potential profile links.")
@@ -118,11 +119,11 @@ def _process_search_results_page(resources: PlaywrightResources, target_linkedin
 
     # Step 2: Process only unique URLs
     for clean_url in unique_clean_urls:
-        if not get_profile(session, clean_url):
+        if not get_profile(account_session.db.get_session(), clean_url):
             logger.debug(f"Enriching profile: {clean_url}")
             human_delay()
             parsed_profile, raw_json = api.get_profile(profile_url=clean_url)
-            save_profile(session, parsed_profile, raw_json, clean_url)
+            save_profile(account_session.db.get_session(), parsed_profile, raw_json, clean_url)
         else:
             logger.info(f"Already in DB, skipping: {clean_url}")
 
@@ -149,13 +150,13 @@ def _paginate_to_next_page(resources: PlaywrightResources, page_num: int):
 
 
 def _simulate_human_search(
-        resources: PlaywrightResources,
+        account_session: AccountSession,
         profile: Dict[str, Any],
-        session
 ):
     """
     Simulates a search, scrapes all profiles from results, and navigates to the target.
     """
+    resources = account_session.resources
     full_name = profile.get("full_name")
     linkedin_id = profile.get("public_identifier")
     if not full_name or not linkedin_id:
@@ -168,7 +169,7 @@ def _simulate_human_search(
     for page_num in range(1, max_pages + 1):
         logger.info(f"Scanning search results on page {page_num}")
 
-        target_link = _process_search_results_page(resources, linkedin_id, session)
+        target_link = _process_search_results_page(account_session, linkedin_id)
 
         if target_link:
             logger.info(f"Found target profile: {target_link.get_attribute('href')}")
@@ -207,7 +208,7 @@ if __name__ == "__main__":
         sys.exit(1)
     handle = sys.argv[1]
 
-    session = AccountSessionRegistry.get_or_create_from_path(
+    account_session = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name="test_search",
         csv_path=Path("dummy.csv"),
@@ -219,8 +220,8 @@ if __name__ == "__main__":
         "public_identifier": "williamhgates",
     }
 
-    wait(session.resources)
-    search_profile(session, target_profile)  # ← now passes real session
+    wait(account_session.resources)
+    search_profile(account_session, target_profile)  # ← now passes real session
 
     logger.info("search_profile executed successfully.")
-    logger.info(f"Final URL: {session.resources.page.url}")
+    logger.info(f"Final URL: {account_session.resources.page.url}")

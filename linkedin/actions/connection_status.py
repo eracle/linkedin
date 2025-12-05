@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_connection_status(
-        session: AccountSession,
+        account_session: AccountSession,
         profile: Dict[str, Any],
 ) -> ConnectionStatus:
     """
@@ -17,7 +17,7 @@ def get_connection_status(
     First tries the reliable connection_degree (int) from Voyager API using a map.
     Falls back to UI inspection only when needed.
     """
-    resources = session.resources
+    resources = account_session.resources
 
     logger.debug("Checking connection status for %s", profile.get("full_name", "unknown"))
 
@@ -99,13 +99,13 @@ if __name__ == "__main__":
     print(f"Session key: {key}")
 
     # Navigate first
-    session = AccountSessionRegistry.get_or_create_from_path(
+    account_session = AccountSessionRegistry.get_or_create_from_path(
         handle=key.handle,
         campaign_name=key.campaign_name,
         csv_path=INPUT_CSV_PATH,
     )
-    search_profile(session, profile)
+    search_profile(account_session, profile)
 
     # Then check status
-    status = get_connection_status(session, profile)
+    status = get_connection_status(account_session, profile)
     print(f"Connection status → {status.value}")

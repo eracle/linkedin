@@ -18,7 +18,7 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]):
     SCRAPE STEP handler
 
     Args:
-        key: SessionKey identifying the persistent browser session
+        key: SessionKey identifying the persistent browser account_session
         profile: Must contain "url"
 
     Returns:
@@ -26,12 +26,12 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]):
     """
     url = profile["url"]
 
-    session = AccountSessionRegistry.get_or_create(
+    account_session = AccountSessionRegistry.get_or_create(
         handle=key.handle,
         campaign_name=key.campaign_name,
         csv_hash=key.csv_hash,
     )
-    resources = session.resources
+    resources = account_session.resources
 
     # ──────────────────────────────
     wait(resources)

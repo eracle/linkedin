@@ -22,16 +22,16 @@ def send_connection_request(
     from linkedin.actions.search import search_profile
     from linkedin.actions.connection_status import get_connection_status
 
-    session = AccountSessionRegistry.get_or_create(
+    account_session = AccountSessionRegistry.get_or_create(
         handle=key.handle,
         campaign_name=key.campaign_name,
         csv_hash=key.csv_hash,
     )
 
-    resources = session.resources
+    resources = account_session.resources
 
     logger.debug("1. Navigating to profile: %s", profile.get("url"))
-    search_profile(session, profile)
+    search_profile(account_session, profile)
 
     # ← Note rendering is preserved but currently ignored (kept for future reactivation)
     if template_file:
@@ -42,7 +42,7 @@ def send_connection_request(
         message = ""
 
     logger.debug("3. Checking current connection status...")
-    status = get_connection_status(session, profile)
+    status = get_connection_status(account_session, profile)
     logger.info("Current status → %s", status.value)
 
     skip_reasons = {

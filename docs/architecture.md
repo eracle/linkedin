@@ -9,44 +9,52 @@ The system is designed to automate interactions on LinkedIn based on configurabl
 follows:
 
 1. **Input**: LinkedIn profile or company URLs are provided via CSV files.
-2. **Data Caching**: The system scrapes detailed information for each URL and stores it in a local SQLite database (
-   `linkedin.db`). This database acts as a cache to avoid redundant scraping.
-3. **Campaign Execution**: A workflow engine reads campaign definitions from YAML files and executes a sequence of
-   steps (e.g., send connection request, send message) for each entity.
-4. **Scheduling & State**: An `APScheduler` instance manages the timing of actions and tracks the state of long-running
-   workflows (e.g., waiting for a connection request to be accepted), using the same `linkedin.db` database.
+2. **Data Caching**: The system scrapes detailed information for each URL and stores it in a local SQLite database per
+   account(`data/<handle>.db`). This database acts as a cache to avoid redundant scraping.
+3. **Campaign Execution**: Campaigns are defined as Python modules that orchestrate a sequence of actions (e.g., send
+   connection request, send message) for each entity.
+4. **State Management**: The state of the campaign (e.g., which profiles have been processed) is tracked in the same
+   per-account SQLite database.
 
 ## Core Entities
 
-The system revolves around two primary data models: `Profile` and `Company`. These entities are represented as JSON objects throughout the application, from the database to the business logic.
-
+The system revolves around a single primary data model: `Profile`. This entity is represented as a JSON
+object throughout the application, from the database to the business logic.
 
 ## Database
 
-The application uses a single SQLite database file, `linkedin.db`, for all its persistence needs. This includes:
-
-- **Data Cache**: Tables for `profiles` and `companies`.
-- **Job Scheduling**: Tables used by `APScheduler` to manage jobs.
+The application uses a separate SQLite database for each account, located at `assets/data/<handle>.db`. This database
+handles all persistence needs, including data caching and campaign state tracking.
 
 ### Database Schema
 
-The cache tables are defined as follows:
+The database contains two main tables: `profiles` and `campaign_runs`.
 
 **`profiles` table**
 | Column | Type | Description |
 | :--- | :--- | :--- |
-| `linkedin_url` | TEXT | PRIMARY KEY. The full LinkedIn profile URL. |
-| `data` | JSON | A JSON object containing the scraped profile data. |
+| `url` | TEXT | PRIMARY KEY. The full LinkedIn profile URL. |
+| `data` | JSON | A JSON object containing the parsed, structured profile data. |
+| `raw_json` | JSON | The complete, unmodified JSON response from the Voyager API. |
+| `cloud_synced` | BOOLEAN | A flag indicating if the profile has been synced to an external CRM. |
 | `created_at` | DATETIME | Timestamp of when the record was created. |
 | `updated_at` | DATETIME | Timestamp of when the record was last updated. |
 
-**`companies` table**
+**`campaign_runs` table**
 | Column | Type | Description |
 | :--- | :--- | :--- |
-| `linkedin_url` | TEXT | PRIMARY KEY. The full LinkedIn company URL. |
-| `data` | JSON | A JSON object containing the scraped company data. |
-| `created_at` | DATETIME | Timestamp of when the record was created. |
-| `updated_at` | DATETIME | Timestamp of when the record was last updated. |
+| `name` | TEXT | PRIMARY KEY. The user-defined name of the campaign. |
+| `handle` | TEXT | PRIMARY KEY. The handle of the account running the campaign. |
+| `input_hash` | TEXT | PRIMARY KEY. A hash of the input (e.g., CSV file) to uniquely identify the run. |
+| `run_at` | DATETIME | Timestamp of when the campaign was started. |
+| `short_id` | TEXT | A short, unique, human-readable ID for the campaign run. |
+| `total_profiles` | INTEGER | The total number of profiles in the campaign. |
+| `enriched` | INTEGER | A counter for the number of profiles successfully enriched. |
+| `connect_sent` | INTEGER | A counter for the number of connection requests sent. |
+| `accepted` | INTEGER | A counter for the number of connections accepted. |
+| `followup_sent` | INTEGER | A counter for the number of follow-up messages sent. |
+| `completed` | INTEGER | A counter for the number of profiles that completed the campaign. |
+| `last_updated` | DATETIME | Timestamp of when the campaign statistics were last updated. |
 
 ## Diagrams
 
@@ -54,125 +62,103 @@ The cache tables are defined as follows:
 
 This diagram shows the relationship between the core entities and the database tables.
 
-```mermaid
-erDiagram
-    PROFILES {
-        string linkedin_url PK
-        json data
-        datetime created_at
-        datetime updated_at
-    }
 
-    COMPANIES {
-        string linkedin_url PK
-        json data
-        datetime created_at
-        datetime updated_at
-    }
-```
+## API Client
 
-### Data Flow Diagram
+The `linkedin/api` module is responsible for all direct communication with LinkedIn's internal "Voyager" API. This
+provides a more reliable and structured way to fetch data compared to scraping HTML.
 
-This diagram illustrates the flow of data through the system, from input to action.
+- **`client.py`**: Defines the `PlaywrightLinkedinAPI` class, which uses the browser's active `Playwright` context to
+  make authenticated GET requests. It automatically extracts the necessary `csrf-token` and headers to mimic a
+  legitimate browser request, making it resilient to basic anti-bot measures.
 
-```mermaid
-graph TD
-    subgraph Input
-        A[CSV with URLs]
-    end
+- **`voyager.py`**: Contains the data parsing logic. The Voyager API returns a complex JSON response with entities and
+  references. This module traverses the JSON graph, resolves the references, and maps the raw data to clean, structured
+  `LinkedInProfile` dataclasses. This isolates the messy data parsing from the rest of the application.
 
-    subgraph "Step 1: Scrape & Cache"
-        B(read_urls) --> C{URL in DB?};
-        C -- No --> D[Scrape Profile/Company];
-        D --> E[Save to SQLite DB];
-        C -- Yes --> F[Use Cached Data];
-    end
+- **`logging.py`**: A simple utility for logging API responses, primarily for debugging purposes.
 
-    subgraph "Step 2: Campaign Execution"
-        E --> G[Workflow Engine];
-        F --> G;
-        G -- Reads --> H[Campaign YAML];
-        G -- Executes --> I{Step Type};
-    end
+## Navigation
 
-    subgraph "Step 3: Actions"
-        I -- connect --> J[Send Connection Request];
-        I -- send_message --> K[Send Message];
-        I -- wait --> L[Scheduler Job];
-    end
+The `linkedin/navigation` module handles all browser automation tasks using Playwright. Its primary goal is to reliably
+manage the browser state and simulate human-like interactions to avoid detection.
 
-    J --> M[LinkedIn];
-    K --> M;
-    L -.-> G;
-```
+- **`login.py`**: Automates the entire login process. It navigates to the login page, enters credentials, and handles
+  multi-factor authentication if prompted. Crucially, it manages session state by saving and loading cookies, allowing
+  the bot to stay logged in across multiple runs.
+
+- **`utils.py`**: Provides a set of helper functions for robust browser control. This includes `human_delay` for
+  realistic pauses and `navigate_and_verify` for safely performing actions (like clicks or URL visits) and confirming
+  the outcome.
+
+- **`errors.py`**: Defines custom exceptions for common automation failures, such as `ProfileNotFoundInSearchError` or
+  `AuthenticationError`.
+
+- **`enums.py`**: Contains simple enumerations (`ConnectionStatus`, `MessageStatus`) used to standardize state tracking
+  throughout the application.
+
+## Campaigns
+
+Campaigns are high-level workflows defined in the `linkedin/campaigns` directory. Unlike the previous YAML-based
+approach, campaigns are now implemented as Python modules (e.g., `connect_follow_up.py`).
+
+Each module orchestrates a sequence of calls to the `linkedin/actions` module to execute a specific outreach strategy.
+For example, the `connect_follow_up` campaign:
+
+1. Enriches a profile with the latest data.
+2. Sends a connection request.
+3. If already connected, immediately sends a follow-up message.
+
+This Python-native approach provides greater flexibility and makes the logic easier to debug and maintain. It creates a
+clean separation between the high-level workflow (the campaign) and the low-level, reusable browser tasks (the actions).
 
 ## Workflow Engine
 
-The workflow engine drives the automation.
+With the move to Python-based campaigns, the concept of a distinct "workflow engine" has been simplified. The engine is
+now implicitly the Python script that runs the campaign (e.g., `main.py`).
 
-- **Campaigns**: Defined in YAML files in `assets/campaigns/`. A campaign is a sequence of steps.
-- **Steps**: Each step is a specific action (`connect`, `send_message`) or a condition (`wait_for_connection`).
-- **Data Handling**: Instead of passing a state dictionary between steps, the engine relies on the SQLite database as
-  the single source of truth. Each step queries the database for the information it needs. This logic is centralized in
-  a dedicated `linkedin/database.py` module.
-- **Scheduling**: For long-running waits, the engine schedules jobs with `APScheduler`, which polls for conditions (
-  e.g., connection accepted) before proceeding to the next step.
+These scripts orchestrate the automation by directly calling and sequencing functions from the `linkedin/actions`
+module. This approach is more flexible and easier to debug than the previous YAML-based system, as the entire workflow
+is defined in pure Python. State management is handled through a combination of the SQLite database and session objects.
 
 ## Actions
 
-Actions are individual, reusable scripts located in the `linkedin/actions/` directory. They are dynamically called by the workflow engine based on the `action` specified in a campaign's YAML file.
+Actions are the core building blocks of any campaign, located in the `linkedin/actions/` directory. They are modular,
+reusable functions that perform a single, specific task within the browser. Campaigns orchestrate these actions to
+create complex automation workflows.
 
-Each action function receives the profile data (if applicable) and a `params` dictionary containing any parameters defined for that step in the campaign YAML.
+### `connect.py`
 
-### `connect`
+- **`send_connection_request`**: This is the primary function for connecting with a profile. It first navigates to the
+  profile page and checks the current connection status. If not already connected or pending, it sends a connection
+  request *without* a note for maximum efficiency and acceptance rate. The logic for sending a note is preserved but
+  currently disabled.
 
-Sends a connection request to a profile.
+### `connection_status.py`
 
-**File:** `linkedin/actions/connect.py`
-**Function:** `connect(profile_data: dict, params: Dict[str, Any])`
+- **`get_connection_status`**: Determines the relationship with a profile. It first attempts to use the
+  `connection_degree` from the structured Voyager API data, which is fast and reliable. If the API data is unavailable,
+  it falls back to inspecting the user interface for visual cues like a "Pending" button or a "1st" degree connection
+  badge.
 
-**Parameters (`params`):**
+### `message.py`
 
-| Parameter | Type | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `note_template` | string | Path to the template file for the connection note. | (none) |
-| `template_type` | string | The type of template to use. Can be `jinja` or `ai_prompt`. | `jinja` |
+- **`send_follow_up_message`**: Orchestrates sending a message to a profile. It renders the message from a template and
+  calls the sending logic.
+- **`send_message_to_profile`**: Before sending, it calls `get_messaging_availability` to ensure a message can be sent (
+  i.e., the profiles are connected). If available, it executes the low-level `_perform_send_message` function, which
+  includes a robust fallback to using the clipboard if standard typing fails.
 
-### `is_connection_accepted`
+### `profile.py`
 
-Checks if a connection request was accepted. This is a condition action used in `wait` steps.
+- **`enrich_profile`**: This action uses the `PlaywrightLinkedinAPI` client to fetch detailed, structured data from
+  LinkedIn's internal Voyager API. It parses the response and returns a clean, enriched profile dictionary, which is
+  then used for personalized messaging or other actions.
 
-**File:** `linkedin/actions/connection.py`
-**Function:** `is_connection_accepted(linkedin_url: str) -> bool`
+### `search.py`
 
-**Parameters:** This action does not take any parameters from the campaign YAML.
-
-### `send_message`
-
-Sends a message to a connected profile.
-
-**File:** `linkedin/actions/message.py`
-**Function:** `send_message(profile_data: dict, params: Dict[str, Any])`
-
-**Parameters:** This action does not currently take any parameters from the campaign YAML. The message is hardcoded.
-
-### `read_urls`
-
-Reads a list of profile URLs from a CSV file. This is typically the first step in a campaign.
-
-**File:** `linkedin/actions/read_urls.py`
-**Function:** `read_urls(linkedin_url: str, params: Dict[str, Any]) -> List[str]`
-
-**Parameters (`params`):**
-
-| Parameter | Type | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `file_path` | string | The path to the CSV file containing the URLs. | (none) |
-
-### Utility Actions
-
-The following actions are not typically called directly from a campaign YAML but are used by other actions:
-
-*   **`login`**: Handles logging into LinkedIn and managing the session state.
-*   **`navigation`**: Provides functions for navigating to profiles, including simulating human-like search behavior.
-*   **`profile`**: Contains functions for retrieving profile information (currently incomplete).
+- **`search_profile`**: Handles all navigation to profile pages. It supports two modes:
+    1. **Direct**: Navigates straight to the profile URL (fast and efficient).
+    2. **Human-like (default)**: Simulates a real user by typing the person's name into the search bar, clicking the "
+       People" filter, and scanning the results. While doing so, it enriches and caches every profile it finds on the
+       results page, gathering valuable data for future use.

@@ -13,7 +13,7 @@ INPUT_CSV_PATH = Path("./assets/inputs/urls.csv")
 # CONNECT_TEMPLATE_FILE = "./assets/templates/connect_notes/leader.j2"
 # CONNECT_TEMPLATE_TYPE = "jinja"
 
-FOLLOWUP_TEMPLATE_FILE = "./assets/templates/prompts/followup_prompt.j2"
+FOLLOWUP_TEMPLATE_FILE = "./assets/templates/prompts/followup.j2"
 FOLLOWUP_TEMPLATE_TYPE = "ai_prompt"
 
 

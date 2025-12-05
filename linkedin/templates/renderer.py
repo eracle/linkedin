@@ -42,10 +42,7 @@ def render_template(template_file: str, template_type: str, context: Dict[str, A
     with open(template_file, 'r') as f:
         template_str = f.read()
 
-    if template_type == 'static':
-        return template_str.strip()
-
-    elif template_type == 'jinja':
+    if template_type == 'jinja':
         template = jinja2.Template(template_str)
         return template.render(**context).strip()
 

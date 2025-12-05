@@ -164,6 +164,6 @@ if __name__ == "__main__":
     send_follow_up_message(
         key=key,
         profile=profile,
-        template_file="./assets/templates/prompts/followup.j2",
-        template_type="static",
+        template_file="./assets/templates/messages/followup.j2",
+        template_type="jinja",
     )

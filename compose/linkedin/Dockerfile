@@ -1,5 +1,5 @@
 # Use the official Playwright Python Docker image as base (pre-includes browsers and deps)
-FROM mcr.microsoft.com/playwright/python:v1.55.0-noble
+FROM mcr.microsoft.com/playwright/python
 
 # Install Xvfb and x11vnc for virtual display and VNC access
 RUN apt-get update && apt-get install -y xvfb x11vnc && rm -rf /var/lib/apt/lists/*

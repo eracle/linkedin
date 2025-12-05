@@ -61,7 +61,6 @@ def get_account_config(handle: str) -> Dict[str, Any]:
     return {
         "handle": handle,
         "active": acct.get("active", True),
-        "display_name": acct.get("display_name", handle.replace("_", " ").title()),
         "proxy": acct.get("proxy"),
         "daily_connections": acct.get("daily_connections", 50),
         "daily_messages": acct.get("daily_messages", 20),

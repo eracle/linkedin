@@ -172,7 +172,7 @@ if __name__ == "__main__":
     status = send_connection_request(
         key=key,
         profile=test_profile,
-        template_file="./assets/templates/connect_notes/leader.j2",  # still works, just ignored for now
+        template_file="./assets/templates/messages/followup.j2",
     )
 
     print(f"Finished → Status: {status.value}")

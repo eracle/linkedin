@@ -1,7 +1,7 @@
 # linkedin/conf.py
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import yaml
 from dotenv import load_dotenv
@@ -21,13 +21,13 @@ ROOT_DIR = Path(__file__).parent.parent
 ASSETS_DIR = ROOT_DIR / "assets"
 
 COOKIES_DIR = ASSETS_DIR / "cookies"
-DATA_DIR = ASSETS_DIR / "data"  # This will now contain one .db per account
+DATA_DIR = ASSETS_DIR / "data"
 
 COOKIES_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 
 # ----------------------------------------------------------------------
-# SINGLE secrets file (unchanged)
+# SINGLE secrets file
 # ----------------------------------------------------------------------
 SECRETS_PATH = ASSETS_DIR / "accounts.secrets.yaml"
 
@@ -69,16 +69,37 @@ def get_account_config(handle: str) -> Dict[str, Any]:
         "password": acct.get("password"),
         # Runtime paths
         "cookie_file": COOKIES_DIR / f"{handle}.json",
-        "db_path": account_db_path,  # ← this is now per-handle
+        "db_path": account_db_path,  # per-handle database
     }
 
 
-def list_active_accounts() -> list[str]:
-    """Return list of active account handles"""
+def list_active_accounts() -> List[str]:
+    """Return list of active account handles (order preserved from YAML)."""
     return [
         handle for handle, cfg in _accounts_config.items()
         if cfg.get("active", True)
     ]
+
+
+def get_first_active_account() -> str | None:
+    """
+    Return the first active account handle from the config, or None if no active accounts.
+
+    The order is deterministic: it follows the insertion order in accounts.secrets.yaml
+    (YAML dictionaries preserve order since Python 3.7+).
+    """
+    active = list_active_accounts()
+    return active[0] if active else None
+
+
+def get_first_account_config() -> Dict[str, Any] | None:
+    """
+    Return the complete config dict for the first active account, or None if none exist.
+    """
+    handle = get_first_active_account()
+    if handle is None:
+        return None
+    return get_account_config(handle)
 
 
 # ----------------------------------------------------------------------
@@ -89,8 +110,16 @@ if __name__ == "__main__":
     print(f"Config file : {SECRETS_PATH}")
     print(f"Databases stored in: {DATA_DIR}")
     print("-" * 60)
-    for handle in list_active_accounts():
-        cfg = get_account_config(handle)
-        status = "ACTIVE" if cfg["active"] else "inactive"
-        print(f"{status} • {handle.ljust(20)}  →  {cfg['display_name']}")
-        print(f"               DB: {cfg['db_path'].name}")
+
+    active_handles = list_active_accounts()
+    if not active_handles:
+        print("No active accounts found.")
+    else:
+        for handle in active_handles:
+            cfg = get_account_config(handle)
+            status = "ACTIVE" if cfg["active"] else "inactive"
+            print(f"{status} • {handle.ljust(20)}  →  DB: {cfg['db_path'].name}")
+
+        print("-" * 60)
+        first = get_first_active_account()
+        print(f"First active account → {first or 'None'}")

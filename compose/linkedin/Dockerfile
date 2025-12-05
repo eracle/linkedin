@@ -1,5 +1,5 @@
 # Use the official Playwright Python Docker image as base (pre-includes browsers and deps)
-FROM mcr.microsoft.com/playwright/python
+FROM mcr.microsoft.com/playwright/python:v1.55.0-noble
 
 # Install Xvfb and x11vnc for virtual display and VNC access
 RUN apt-get update && apt-get install -y xvfb x11vnc && rm -rf /var/lib/apt/lists/*
@@ -18,6 +18,8 @@ RUN pip install uv
 COPY ./requirements /requirements
 RUN uv pip install --system -r /requirements/${BUILD_ENV}.txt
 
+# ← ADD THIS LINE (and only this line)
+RUN playwright install --with-deps chromium
 
 # Copy necessary startup scripts
 COPY ./compose/linkedin/start /start

@@ -9,12 +9,14 @@
 This open-source tool is designed to streamline and automate interactions on LinkedIn using browser automation
 techniques powered by Playwright. It enables users to create and manage campaigns for
 tasks like searching profiles, sending personalized connection requests, and following up with AI-generated messages
-tailored to individual profiles. With features such as multi-account support, scheduling for drip campaigns, a local
-database (using SQLite) for storing data and tracking metrics, and strong analytics for monitoring engagement,
+tailored to individual profiles. With features such as multi-account support, a local
+database (using SQLite) for storing data and tracking key performance metrics,
 this project aims to enhance productivity for networking and outreach efforts. Built with stealth features to mimic
-human behavior, it emphasizes ethical use while providing a flexible YAML-based configuration. Please note the legal
-disclaimer: this is an unofficial tool that may violate LinkedIn's terms, so proceed with caution and at your own risk.
-Join our Telegram group for discussions, and check the star history to see community interest!
+human behavior, it emphasizes ethical use while providing flexible Python-based campaign definitions. Please note the
+legal disclaimer: this is an unofficial tool that may violate LinkedIn's terms, so proceed with caution and at your own
+risk.
+
+Join our Telegram group for discussions!
 
 ### Join our [Telegram Group](https://t.me/+Y5bh9Vg8UVg5ODU0).
 
@@ -33,32 +35,25 @@ Join our Telegram group for discussions, and check the star history to see commu
     - [x] Implement profile search functionality
     - [x] Add sending of personalized connection requests
     - [x] Develop follow-up message capabilities
-    - [x] Configure campaigns using YAML files
-
-- **Future Planning/Scheduling**
-    - [x] Implement time-based action queuing
-    - [x] Add support for recurring tasks
-    - [x] Use async libraries for scheduling
-    - [x] Add persistence mechanisms for resuming interrupted sessions
+    - [x] Configure campaigns using Python modules
 
 - **Local Database**
     - [x] Integrate SQLite as the primary database
     - [x] Store scraped data in the database
-    - [ ] Log campaign activities
-    - [ ] Store schedules and tasks
-    - [ ] Track metrics in the database
+    - [x] Log campaign activities
+    - [x] Track metrics in the database
 
 - **Personalized Messages with AI**
     - [x] Integrate open AI models
     - [x] Scrape profile data for personalization
-    - [ ] Generate customized messages based on profile data
+    - [x] Generate customized messages based on profile data
 
 - **Multi accounts support**
-    - [ ] Allow multiple accounts to be stored in the db
+    - [x] Allow multiple accounts to be stored in the db
     - [ ] Execute multiple accounts campaigns
 
 - **Strong Analytics**
-    - [ ] Track action success rates    
+    - [x] Track action success rates
     - [ ] Monitor engagement metrics (e.g., connection accepts, replies)
     - [ ] Log errors for analysis
     - [ ] Develop dashboards for viewing metrics
@@ -67,22 +62,42 @@ Join our Telegram group for discussions, and check the star history to see commu
     - For a detailed explanation of the system's design, data models, and workflows, please see
       the [System Architecture Documentation](./docs/architecture.md).
 
-## Installation and Setup
+- **Documentation**
+    - [Configuration](./docs/configuration.md)
+    - [Templating](./docs/templating.md)
+    - [Testing Strategy](./docs/testing_strategy.md)
 
-You will need the following:
+## Quick Start
 
-- Docker and docker compose
-- A VNC viewer (e.g., Vinagre for Ubuntu)
-
-### Steps
-
-1. **Prepare your environment**: Install Docker from the [official website](https://www.docker.com/). If you don't have
-   a VNC viewer, install one. For Ubuntu, you can use Vinagre:
+0. ** Install Vinagre (Ubuntu): **
 
 ```bash
 sudo apt-get update
 sudo apt-get install vinagre
 ```
+
+1. **Build the Docker containers**:
+    ```bash
+    make build
+    ```
+
+2. **Start the application**:
+    ```bash
+    make up-view
+    ```
+3. **Stop the application**:
+    ```bash
+    make stop
+    ```
+4. **View logs**:
+    ```bash
+    make attach
+    ```
+5. **Run tests**:
+    ```bash
+    make test
+    ```
+
 
 ## Legal Disclaimer
 

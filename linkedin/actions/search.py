@@ -31,7 +31,7 @@ def _go_to_profile(resources: PlaywrightResources, url: str, public_identifier: 
     )
 
 
-def search_profile(account_session: AccountSession, profile: Dict[str, Any], direct=False):
+def search_profile(account_session: AccountSession, profile: Dict[str, Any], direct=True):
     resources = account_session.resources
     url = profile.get("url")
     public_id = profile.get("public_identifier")

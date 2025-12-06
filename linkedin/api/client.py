@@ -1,6 +1,7 @@
 # linkedin/api/client.py
+import json
 import logging
-from typing import Optional, Dict, Tuple
+from typing import Optional, Any
 from urllib.parse import urlparse
 
 from linkedin.api.voyager import parse_linkedin_voyager_response
@@ -71,7 +72,7 @@ class PlaywrightLinkedinAPI:
 
     def get_profile(
             self, public_identifier: Optional[str] = None, profile_url: Optional[str] = None
-    ) -> Tuple[Dict, Dict]:
+    ) -> tuple[None, None] | tuple[dict, Any]:
         """Fetch data for a given LinkedIn profile using Playwright context requests.
 
         :param public_identifier: LinkedIn public ID for a profile
@@ -101,12 +102,21 @@ class PlaywrightLinkedinAPI:
         # Use Playwright context request to fetch API data
         res = self.context.request.get(full_url, params=params, headers=self.headers)
 
-        if res.status == 401:
-            self.logger.error(f"Authentication failed (401): {res.body()}")
-            raise AuthenticationError("LinkedIn API returned 401 Unauthorized.")
-        elif not res.ok:
-            self.logger.info(f"Request failed with status {res.status}: {res.body()}")
-            return {}, {}
+        match res.status:
+            case 401:
+                self.logger.error(f"Authentication failed (401): {res.body()}")
+                raise AuthenticationError("LinkedIn API returned 401 Unauthorized.")
+
+            case 403:
+                body = res.json()
+                self.logger.warning(f"SKIPPING profile – inaccessible/blocked/deleted → {profile_url}")
+                self.logger.debug(f"Body: {json.dumps(body, indent=2)}")
+                return None, None
+
+        if not res.ok:
+            body_str = res.body().decode("utf-8", errors="ignore") if isinstance(res.body(), bytes) else str(res.body())
+            self.logger.error(f"Request failed with status {res.status}: {body_str}")
+            raise Exception(f"LinkedIn API error {res.status}: {body_str}")
 
         data = res.json()
         extracted_info = parse_linkedin_voyager_response(data, public_identifier=public_identifier)

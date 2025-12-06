@@ -39,6 +39,10 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]):
 
     enriched, raw_json = api.get_profile(profile_url=url)
 
+    if enriched is None:
+        logger.warning(f"SKIPPING profile – api.get_profile returned None → {url}")
+        return None, None
+
     full_name = enriched.get("full_name")
 
     if not full_name:

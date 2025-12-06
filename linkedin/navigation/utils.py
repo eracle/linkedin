@@ -5,6 +5,8 @@ import time
 from collections import namedtuple
 from typing import Callable
 
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+
 logger = logging.getLogger(__name__)
 
 # Central delay configuration
@@ -30,28 +32,31 @@ def wait(resources: PlaywrightResources, min_sec: float = HUMAN_DELAY_MIN, max_s
     resources.page.wait_for_load_state("load")
     # resources.page.wait_for_load_state("domcontentloaded")
 
-
+from urllib.parse import unquote
 def navigate_and_verify(
         resources: PlaywrightResources,
         action: Callable[[], None],
         expected_url_pattern: str,
-        timeout: int = 30_000,
+        timeout: int = 5_000,
         error_message: str = "Navigation verification failed",
 ):
-    """Navigate → wait for URL → human pause + load → verify."""
     page = resources.page
 
-    action()
-    page.wait_for_url(
-        lambda url: expected_url_pattern in url,
-        timeout=timeout,
-    )
-    wait(resources)  # uses the global delay range
-
-    if expected_url_pattern not in page.url:
-        raise RuntimeError(
-            f"{error_message}: Expected '{expected_url_pattern}' in URL, got '{page.url}'"
+    try:
+        action()
+        page.wait_for_url(
+            lambda url: expected_url_pattern in unquote(url),
+            timeout=timeout,
         )
-    logger.info("Navigation successful: %s", expected_url_pattern)
+    except PlaywrightTimeoutError:
+        # ignoring the exception here
+        # I will check for url matching down below
+        pass
 
+    wait(resources)
 
+    page_url = unquote(page.url)
+    if expected_url_pattern not in page_url:
+        raise RuntimeError(f"{error_message}: {expected_url_pattern} not in '{page_url}'")
+
+    logger.info("Navigation OK → %s", page.url)

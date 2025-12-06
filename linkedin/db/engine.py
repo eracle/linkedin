@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session, Session as SASession
 from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
 from linkedin.db.models import Base, Profile as DbProfile, CampaignRun, _make_short_run_id
-from linkedin.navigation.utils import decode_url_path_only  # your existing function
+from linkedin.navigation.utils import url_to_public_id, public_id_to_url  # NEW imports
 
 DatabaseSession: TypeAlias = SASession
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class Database:
     """
     One account → one database.
-    Profiles are saved instantly.
+    Profiles are saved instantly using public_identifier as PK.
     Sync to cloud happens ONLY when close() is called.
     """
 
@@ -47,7 +47,6 @@ class Database:
 
     def _sync_all_unsynced_profiles(self):
         with self.get_session() as db_session:
-            # Only sync profiles that were actually scraped and are not yet synced
             unsynced = db_session.query(DbProfile).filter_by(
                 scraped=True,
                 cloud_synced=False
@@ -80,13 +79,9 @@ class Database:
         return cls(db_path)
 
 
-def get_profile(session: DatabaseSession, url: str) -> Optional[Dict[str, Any]]:
-    url = decode_url_path_only(url)
-    result = session.query(DbProfile).filter_by(url=url).first()
-    return result.data if result else None
-
-
-# All campaign functions — 100% untouched
+# ─────────────────────────────────────────────────────────────────────────────
+# CAMPAIGN FUNCTIONS — unchanged (still valid)
+# ─────────────────────────────────────────────────────────────────────────────
 def has_campaign_run(session: DatabaseSession, name: str, handle: str, input_hash: str) -> bool:
     return session.query(CampaignRun).filter_by(
         name=name, handle=handle, input_hash=input_hash
@@ -180,45 +175,47 @@ def get_campaign_stats(session: DatabaseSession, name: str, handle: str, input_h
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# NEW: PROFILE LIFECYCLE FUNCTIONS (what you actually wanted)
+# NEW PROFILE LIFECYCLE — using public_identifier as PK
 # ─────────────────────────────────────────────────────────────────────────────
 
 def add_profile_urls(session: DatabaseSession, urls: List[str]):
-    """Phase 1: Just discovered URLs — not scraped yet"""
+    """Phase 1: Discover LinkedIn profiles → insert by public_identifier"""
     if not urls:
         return
 
-    clean_urls = {decode_url_path_only(u) for u in urls if decode_url_path_only(u)}
-    if not clean_urls:
+    public_ids = {
+        pid for url in urls
+        if (pid := url_to_public_id(url))
+    }
+
+    if not public_ids:
         return
 
-    to_insert = [{"url": u} for u in clean_urls]
+    to_insert = [{"public_identifier": pid} for pid in public_ids]
     session.execute(
-        DbProfile.__table__.insert().prefix_with("OR IGNORE"),
-        to_insert
+        DbProfile.__table__.insert()
+        .prefix_with("OR IGNORE")  # SQLite: do nothing on conflict
+        .values(to_insert)
     )
     session.commit()
 
-    # Simple one-liner debug per URL
-    for url in clean_urls:
-        logger.debug("Profile URL discovered → %s", url)
+    logger.info(f"Discovered {len(public_ids)} unique LinkedIn profiles (public_identifier)")
+    for pid in public_ids:
+        logger.debug("Profile discovered → %s", public_id_to_url(pid))
 
-    logger.info(f"Discovered {len(clean_urls)} profile URLs (deduped)")
 
 def save_scraped_profile(
         session: DatabaseSession,
         url: str,
         profile_data: Dict[str, Any],
-        raw_json: Dict[str, Any],
+        raw_json: Dict[str, Any] | None = None,
 ):
-    """Phase 2: Scrape succeeded → mark as scraped and save data"""
-    canon_url = decode_url_path_only(url)
-    if not canon_url:
-        return
+    """Phase 2: Save scraped data using public_identifier"""
+    public_id = url_to_public_id(url)
 
-    profile = session.get(DbProfile, canon_url)
+    profile = session.get(DbProfile, public_id)
     if profile is None:
-        profile = DbProfile(url=canon_url)
+        profile = DbProfile(public_identifier=public_id)
 
     profile.data = profile_data
     profile.raw_json = raw_json
@@ -228,14 +225,20 @@ def save_scraped_profile(
 
     session.merge(profile)
     session.commit()
-    logger.info(f"Scraped profile saved: {canon_url}")
+    logger.info(f"Scraped profile saved → {public_id_to_url(public_id)}")
 
 
-def get_next_url_to_scrape(session: DatabaseSession, limit: int = 100) -> List[str]:
-    """Get URLs that exist but haven't been scraped yet"""
-    rows = session.query(DbProfile.url).filter_by(scraped=False).limit(limit).all()
-    return [row.url for row in rows]
+def get_next_url_to_scrape(session: DatabaseSession, limit: int = 1) -> List[str]:
+    """Return clean LinkedIn URLs for unscraped profiles"""
+    rows = session.query(DbProfile.public_identifier).filter_by(scraped=False).limit(limit).all()
+    return [public_id_to_url(row.public_identifier) for row in rows]
 
 
 def count_pending_scrape(session: DatabaseSession) -> int:
     return session.query(DbProfile).filter_by(scraped=False).count()
+
+
+# Optional: Helper to get profile data by public_id (cleaner than old URL-based one)
+def get_profile_by_public_id(session: DatabaseSession, public_id: str) -> Optional[Dict[str, Any]]:
+    profile = session.get(DbProfile, public_id)
+    return profile.data if profile and profile.scraped else None

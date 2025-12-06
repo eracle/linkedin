@@ -3,7 +3,7 @@ import logging
 import random
 import time
 import urllib.parse
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlparse, urljoin
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
@@ -23,7 +23,6 @@ def human_delay():
 def wait(session):
     human_delay()
     session.page.wait_for_load_state("load")
-    # session.page.wait_for_load_state("domcontentloaded")
 
 
 def goto_page(session: "AccountSession",
@@ -54,17 +53,9 @@ def goto_page(session: "AccountSession",
         urls = _extract_in_urls(session)
         db_session = session.db.get_session()
         add_profile_urls(db_session, list(urls))
-        db_session.close()  # important: don't leak scoped_session
+        db_session.close()
     except Exception as e:
         logger.error(f"Failed to extract/save profile URLs after navigation: {e}", exc_info=True)
-
-
-def decode_url_path_only(url: str) -> str:
-    if not url:
-        return url
-    parsed = urlparse(url.lower())
-    clean = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-    return urllib.parse.unquote(clean)
 
 
 def _extract_in_urls(session):
@@ -73,7 +64,52 @@ def _extract_in_urls(session):
     for link in page.locator('a[href*="/in/"]').all():
         href = link.get_attribute("href")
         if href and "/in/" in href:
-            clean = urllib.parse.urlparse(href)._replace(query="", fragment="").geturl()
+            # resolves relative + protocol-relative URLs
+            full_url = urljoin(page.url, href.strip())
+            clean = urlparse(full_url)._replace(query="", fragment="").geturl()
             urls.add(clean)
     logger.info(f"Extracted {len(urls)} unique /in/ profiles")
     return urls
+
+
+def url_to_public_id(url: str) -> str:
+    """
+    Convert any LinkedIn profile URL → public_identifier (e.g. 'john-doe-1a2b3c4d')
+
+    Examples:
+      "https://www.linkedin.com/in/john-doe-1a2b3c4d/?originalSubdomain=fr" → "john-doe-1a2b3c4d"
+      "https://linkedin.com/in/alice/" → "alice"
+      "http://linkedin.com/in/bob-123/" → "bob-123"
+    """
+    if not url:
+        return ""
+
+    parsed = urlparse(url.strip().lower())
+    if not parsed.path:
+        return ""
+
+    # Remove leading '/in/' and trailing slash
+    path = parsed.path.strip("/")
+    if not path.startswith("in/"):
+        return ""
+
+    public_id = path[3:]  # strip the "in/"
+    if public_id.endswith("/"):
+        public_id = public_id[:-1]
+
+    return unquote(public_id)
+
+
+def public_id_to_url(public_id: str) -> str:
+    """
+    Convert public_identifier back to a clean LinkedIn profile URL.
+
+    You can choose www or not — both work, www is slightly more common.
+    """
+    if not public_id:
+        return ""
+
+    public_id = public_id.strip("/")
+    scheme = "https"
+    domain = "linkedin.com"
+    return f"{scheme}://{domain}/in/{public_id}/"

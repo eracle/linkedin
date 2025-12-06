@@ -8,7 +8,6 @@ import pandas as pd
 
 from linkedin.campaigns.connect_follow_up import process_profile_row, CAMPAIGN_NAME, INPUT_CSV_PATH
 from linkedin.conf import get_first_active_account
-from linkedin.navigation.utils import decode_url_path_only
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,6 @@ def load_profiles_urls_from_csv(csv_path: Path | str) -> List[str]:
         .str.strip()
         .replace({"nan": None, "<NA>": None})
         .dropna()
-        .apply(decode_url_path_only)  # Only clean decoded path, no query params
         .drop_duplicates()  # Remove duplicates (preserves order)
 
     )

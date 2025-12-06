@@ -17,18 +17,13 @@ def _make_short_run_id(name: str, handle: str, input_hash: str) -> str:
 class CampaignRun(Base):
     __tablename__ = "campaign_runs"
 
-    # Unique triple that identifies an exact campaign run
-    name = Column(String, primary_key=True)  # user-chosen campaign name
-    handle = Column(String, primary_key=True)  # LinkedIn account handle
-    input_hash = Column(String(64), primary_key=True)  # sha256 hex of filters/query
+    name = Column(String, primary_key=True)
+    handle = Column(String, primary_key=True)
+    input_hash = Column(String(64), primary_key=True)
 
-    # When we queued this campaign
     run_at = Column(DateTime, server_default=func.now(), nullable=False)
-
-    # Human-readable short ID (great for Temporal workflow_id and logs)
     short_id = Column(String(12), nullable=False, unique=True, index=True)
 
-    # STATISTICS
     total_profiles = Column(Integer, default=0, nullable=False)
     enriched = Column(Integer, default=0, nullable=False)
     connect_sent = Column(Integer, default=0, nullable=False)
@@ -48,7 +43,10 @@ class CampaignRun(Base):
 class Profile(Base):
     __tablename__ = 'profiles'
 
-    url = Column(String, primary_key=True)
+    # USING public_identifier as primary key
+    public_identifier = Column(String, primary_key=True)
+
+    scraped = Column(Boolean, default=False, server_default='false', nullable=False)
 
     # Parsed / cleaned data (what you return from get_profile)
     data = Column(JSON, nullable=True)

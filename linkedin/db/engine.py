@@ -46,9 +46,9 @@ class Database:
         logger.info("Database closed and fully synced.")
 
     def _sync_all_unsynced_profiles(self):
-        with self.get_session() as session:
+        with self.get_session() as db_session:
             # Only sync profiles that were actually scraped and are not yet synced
-            unsynced = session.query(DbProfile).filter_by(
+            unsynced = db_session.query(DbProfile).filter_by(
                 scraped=True,
                 cloud_synced=False
             ).all()
@@ -66,7 +66,7 @@ class Database:
             if success:
                 for p in unsynced:
                     p.cloud_synced = True
-                session.commit()
+                db_session.commit()
                 logger.info(f"SUCCESS: Synced {len(payload)} profiles to cloud")
             else:
                 logger.error("Sync failed — profiles remain unsynced. Will retry next close().")
@@ -192,13 +192,18 @@ def add_profile_urls(session: DatabaseSession, urls: List[str]):
     if not clean_urls:
         return
 
+    to_insert = [{"url": u} for u in clean_urls]
     session.execute(
         DbProfile.__table__.insert().prefix_with("OR IGNORE"),
-        [{"url": u} for u in clean_urls]
+        to_insert
     )
     session.commit()
-    logger.info(f"Discovered {len(clean_urls)} profile URLs (deduped)")
 
+    # Simple one-liner debug per URL
+    for url in clean_urls:
+        logger.debug("Profile URL discovered → %s", url)
+
+    logger.info(f"Discovered {len(clean_urls)} profile URLs (deduped)")
 
 def save_scraped_profile(
         session: DatabaseSession,

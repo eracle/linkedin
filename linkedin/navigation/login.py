@@ -20,7 +20,7 @@ SELECTORS = {
 }
 
 
-def playwright_login(session):
+def playwright_login(session: "AccountSession"):
     page = session.page
     config = get_account_config(session.handle)
     logger.info("Starting fresh LinkedIn login for %s", session.handle)
@@ -56,7 +56,7 @@ def build_playwright(storage_state=None):
     return page, context, browser, playwright
 
 
-def init_playwright_session(handle: str):
+def init_playwright_session(session: "AccountSession", handle: str):
     logger.info("Setting up browser for handle: %s", handle)
     config = get_account_config(handle)
     state_file = Path(config["cookie_file"])
@@ -67,17 +67,14 @@ def init_playwright_session(handle: str):
 
     page, context, browser, playwright = build_playwright(storage_state=storage_state)
 
-    # Create temporary object so we can reuse existing utils/login functions
-    temp_session = type("Temp", (), {"page": page, "handle": handle})()
-
     if not storage_state:
-        playwright_login(temp_session)
+        playwright_login(session)
         state_file.parent.mkdir(parents=True, exist_ok=True)
         context.storage_state(path=str(state_file))
         logger.info("Login successful – session saved to %s", state_file)
     else:
         goto_page(
-            temp_session,
+            session,
             action=lambda: page.goto(LINKEDIN_FEED_URL),
             expected_url_pattern="/feed",
             timeout=30_000,
@@ -90,19 +87,38 @@ def init_playwright_session(handle: str):
 
 
 if __name__ == "__main__":
+    import sys
+    from linkedin.sessions import SessionKey
+    from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
+    from linkedin.sessions import AccountSessionRegistry
+
     logging.getLogger().handlers.clear()
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s │ %(levelname)-8s │ %(message)s",
+        level=logging.DEBUG,
+        format='%(asctime)s │ %(levelname)-8s │ %(message)s',
         datefmt="%H:%M:%S",
     )
 
-    import sys
     if len(sys.argv) != 2:
         print("Usage: python -m linkedin.navigation.login <handle>")
         sys.exit(1)
 
     handle = sys.argv[1]
-    page, context, browser, playwright = init_playwright_session(handle)
+
+    key = SessionKey.make(
+        handle=handle,
+        campaign_name="test_message",
+        csv_path=INPUT_CSV_PATH,
+    )
+
+    session = AccountSessionRegistry.get_or_create_from_path(
+        handle=handle,
+        campaign_name="test_message",
+        csv_path=INPUT_CSV_PATH,
+    )
+
+    session.ensure_browser()
+
+    page, context, browser, playwright = init_playwright_session(session=session, handle=handle)
     print("Logged in! Close browser manually.")
     page.pause()

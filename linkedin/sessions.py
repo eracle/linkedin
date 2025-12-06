@@ -93,6 +93,7 @@ class AccountSession:
         if not self.page or self.page.is_closed():
             logger.info("Launching/recovering browser for %s – %s", self.handle, self.campaign_name)
             self.page, self.context, self.browser, self.playwright = init_playwright_session(
+                session=self,
                 handle=self.handle
             )
 

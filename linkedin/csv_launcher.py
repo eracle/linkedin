@@ -79,7 +79,7 @@ def launch_from_csv(
     profiles = load_profiles_urls_from_csv(csv_path)
     logger.info(f"Loaded {len(profiles)} profiles from CSV")
 
-    session = AccountSessionRegistry.get_or_create_from_path(
+    _ = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name=campaign_name,
         csv_path=csv_path,

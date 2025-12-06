@@ -26,13 +26,21 @@ def wait(session):
     # session.page.wait_for_load_state("domcontentloaded")
 
 
-def goto_page(session: "AccountSession", action, expected_url_pattern: str, timeout: int = 10_000, error_message: str = ""):
+def goto_page(session: "AccountSession",
+              action,
+              expected_url_pattern: str,
+              timeout: int = 10_000,
+              error_message: str = ""):
+    from linkedin.db.engine import add_profile_urls
     page = session.page
+    action()
+    if not page:
+        return
+
     try:
-        action()
         page.wait_for_url(lambda url: expected_url_pattern in unquote(url), timeout=timeout)
     except PlaywrightTimeoutError:
-        pass
+        pass  # we still continue and check URL below
 
     wait(session)
 
@@ -40,7 +48,15 @@ def goto_page(session: "AccountSession", action, expected_url_pattern: str, time
     if expected_url_pattern not in page_url:
         raise RuntimeError(f"{error_message}: {expected_url_pattern} not in '{page_url}'")
 
-    logger.info("Navigated → %s", page.url)
+    logger.info("Navigated to %s", page.url)
+
+    try:
+        urls = _extract_in_urls(session)
+        db_session = session.db.get_session()
+        add_profile_urls(db_session, list(urls))
+        db_session.close()  # important: don't leak scoped_session
+    except Exception as e:
+        logger.error(f"Failed to extract/save profile URLs after navigation: {e}", exc_info=True)
 
 
 def decode_url_path_only(url: str) -> str:

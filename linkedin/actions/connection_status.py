@@ -12,58 +12,50 @@ def get_connection_status(
         account_session: AccountSession,
         profile: Dict[str, Any],
 ) -> ConnectionStatus:
-    """
-    Checks the current connection status of a profile.
-    First tries the reliable connection_degree (int) from Voyager API using a map.
-    Falls back to UI inspection only when needed.
-    """
     resources = account_session.resources
-
     logger.debug("Checking connection status for %s", profile.get("full_name", "unknown"))
 
-    # ── Fast path: use connection_degree from Voyager API if present ──
     degree = profile.get("connection_degree")
 
-    # Mapping: connection_degree (int or None) → ConnectionStatus
-    degree_to_status = {
-        1: ConnectionStatus.CONNECTED,
-        2: ConnectionStatus.NOT_CONNECTED,
-        3: ConnectionStatus.NOT_CONNECTED,
-        None: None,  # explicitly continue to UI checks
-    }
+    # ── Fast path: only trust degree=1 as definitively CONNECTED ──
+    if degree == 1:
+        logger.debug("Connection status from API (degree=1) → CONNECTED")
+        return ConnectionStatus.CONNECTED
 
-    if degree in degree_to_status:
-        status = degree_to_status[degree]
-        if status is not None:  # i.e. we got a definitive answer
-            logger.debug("Connection status from API (degree=%s) → %s", degree, status.value)
-            return status
-        # else: degree is None → fall through to UI checks
-    else:
-        logger.debug("No connection_degree in profile data → falling back to UI inspection")
+    # For degree=2, 3, or None → we CANNOT trust API alone
+    # Because pending invitations still show degree 2/3
+    logger.debug(
+        "connection_degree=%s → cannot trust API (pending invites look same as not connected). "
+        "Falling back to UI inspection.",
+        degree
+    )
 
-    # ── Fallback: classic UI-based detection (unchanged) ──
+    # ── UI-based detection (now the ONLY reliable source for PENDING) ──
 
-    # 1. Pending
+    # 1. Pending invitation?
     if resources.page.locator('button[aria-label*="Pending"]:visible').count() > 0:
-        logger.debug("Found Pending button visible")
+        logger.debug("Found visible 'Pending' button → PENDING")
         return ConnectionStatus.PENDING
 
-    # 2. Already connected – distance badge starts with "1"
-    dist_locator = resources.page.locator('span[class^="distance-badge"]:visible')
+    # 2. Already connected? (double-check even if degree != 1, edge cases exist)
+    dist_locator = resources.page.locator('span[class*="distance-badge"]:visible')
     if dist_locator.count() > 0:
         badge_text = dist_locator.first.inner_text().strip()
-        logger.debug("Distance badge text: %r", badge_text)
+        logger.debug("Distance badge: %r", badge_text)
         if badge_text.startswith("1"):
+            logger.debug("Distance badge shows 1st → CONNECTED")
             return ConnectionStatus.CONNECTED
 
-    # 3. Can send a request
-    if resources.page.locator('button[aria-label*="Invite"]:visible').count() > 0:
-        logger.debug("Invite button visible")
+    # 3. Can send invitation?
+    invite_btn = resources.page.locator('button[aria-label*="Invite"][aria-label*="to connect"]:visible')
+    if invite_btn.count() > 0:
+        logger.debug("Found 'Connect' / 'Invite' button → NOT_CONNECTED")
         return ConnectionStatus.NOT_CONNECTED
 
-    # 4. Fallback
-    logger.debug("No known indicators found → UNKNOWN")
+    # 4. Unknown
+    logger.debug("No clear indicators → UNKNOWN")
     return ConnectionStatus.UNKNOWN
+
 
 if __name__ == "__main__":
     import sys

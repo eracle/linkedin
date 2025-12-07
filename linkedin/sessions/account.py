@@ -2,13 +2,27 @@
 from __future__ import annotations
 
 import logging
-from linkedin.navigation.utils import human_delay
-from linkedin.navigation.throttle import get_smooth_scrape_count, _wait_counter
+import random
+import time
 
+from linkedin.actions.profile import PlaywrightLinkedinAPI
 from linkedin.conf import get_account_config
 from linkedin.navigation.login import init_playwright_session
+from linkedin.navigation.throttle import get_smooth_scrape_count, _wait_counter
+from linkedin.sessions.registry import SessionKey
 
 logger = logging.getLogger(__name__)
+
+MIN_DELAY = 3
+MAX_DELAY = 5
+MIN_API_DELAY = 0.250
+MAX_API_DELAY = 0.500
+
+
+def human_delay(min, max):
+    delay = random.uniform(min, max)
+    logger.info(f"Pause: {delay:.2f}s")
+    time.sleep(delay)
 
 
 class AccountSession:
@@ -37,20 +51,35 @@ class AccountSession:
                 handle=self.handle
             )
 
-    def wait(self):
-        """Human-like pause + load wait + logging of pending scrapes"""
-        human_delay()
-        self.page.wait_for_load_state("load")
+    def wait(self, min_delay=MIN_DELAY, max_delay=MAX_DELAY):
+        from linkedin.db.engine import (
+            count_pending_scrape,
+            get_next_url_to_scrape,
+            save_scraped_profile,
+        )
 
-        from linkedin.db.engine import count_pending_scrape
         pending = count_pending_scrape(self)
 
         logger.debug(f"****************************************")
         logger.debug(f"Wait #{_wait_counter:04d} | Profiles still needing scrape: {pending}")
         logger.debug(f"****************************************")
 
-        _ = get_smooth_scrape_count(pending)
+        amount_to_scrape = get_smooth_scrape_count(pending)  # keeps original throttling logic happy
 
+        urls = get_next_url_to_scrape(self, limit=amount_to_scrape)
+        if urls:
+            min_api_delay = max(min_delay / len(urls), MIN_API_DELAY)
+            max_api_delay = max(max_delay / len(urls), MAX_API_DELAY)
+            api = PlaywrightLinkedinAPI(session=self)
+
+            for url in urls:
+                human_delay(min_api_delay, max_api_delay)
+                enriched, raw_json = api.get_profile(profile_url=url)
+                save_scraped_profile(self, url, enriched, raw_json)
+                logger.debug(f"Auto-scraped → {enriched.get('full_name', 'Unknown')} – {url}") if enriched else None
+        else:
+            human_delay(min_delay, max_delay)
+            self.page.wait_for_load_state("load")
 
     def close(self):
         if self.context:

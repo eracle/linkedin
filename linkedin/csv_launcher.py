@@ -71,8 +71,8 @@ def launch_from_csv(
             campaign_name=campaign_name,
         )
         results.append(result)
-        status = result.get('status', 'unknown')
-        logger.info(f"[{idx}] Completed → @{handle} | Status: {status}")
+        status = result.get('status')
+        logger.info(f"[{idx}] Completed → @{handle} | Status: {status} | URL: {profile_url}")
 
     # Summary
     successful = sum(1 for r in results if r.get("status") == "completed")

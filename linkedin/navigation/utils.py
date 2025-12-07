@@ -1,22 +1,10 @@
 # linkedin/navigation/utils.py
 import logging
-import random
-import time
 from urllib.parse import unquote, urlparse, urljoin
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 logger = logging.getLogger(__name__)
-
-# Central delay configuration
-HUMAN_DELAY_MIN = 1.5
-HUMAN_DELAY_MAX = 2.5
-
-
-def human_delay():
-    delay = random.uniform(HUMAN_DELAY_MIN, HUMAN_DELAY_MAX)
-    logger.info(f"Pause: {delay:.2f}s")
-    time.sleep(delay)
 
 
 def goto_page(session: "AccountSession",

@@ -6,8 +6,6 @@ import logging
 from pathlib import Path  # noqa
 from typing import Optional, NamedTuple
 
-from .account import AccountSession
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +19,7 @@ class AccountSessionRegistry:
             campaign_name: str,
             csv_hash: str,
     ) -> "AccountSession":
+        from .account import AccountSession
         key = SessionKey(handle, campaign_name, csv_hash)
 
         if key not in cls._instances:

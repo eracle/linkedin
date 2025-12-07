@@ -19,11 +19,6 @@ def human_delay():
     time.sleep(delay)
 
 
-def wait(session):
-    human_delay()
-    session.page.wait_for_load_state("load")
-
-
 def goto_page(session: "AccountSession",
               action,
               expected_url_pattern: str,
@@ -40,7 +35,7 @@ def goto_page(session: "AccountSession",
     except PlaywrightTimeoutError:
         pass  # we still continue and check URL below
 
-    wait(session)
+    session.wait()
 
     page_url = unquote(page.url)
     if expected_url_pattern not in page_url:
@@ -54,6 +49,7 @@ def goto_page(session: "AccountSession",
     except Exception as e:
         logger.error(f"Failed to extract/save profile URLs after navigation: {e}", exc_info=True)
 
+
 def _extract_in_urls(session):
     page = session.page
     urls = set()
@@ -66,46 +62,3 @@ def _extract_in_urls(session):
             urls.add(clean)
     logger.info(f"Extracted {len(urls)} unique /in/ profiles")
     return urls
-
-
-def url_to_public_id(url: str) -> str:
-    """
-    Convert any LinkedIn profile URL → public_identifier (e.g. 'john-doe-1a2b3c4d')
-
-    Examples:
-      "https://www.linkedin.com/in/john-doe-1a2b3c4d/?originalSubdomain=fr" → "john-doe-1a2b3c4d"
-      "https://linkedin.com/in/alice/" → "alice"
-      "http://linkedin.com/in/bob-123/" → "bob-123"
-    """
-    if not url:
-        return ""
-
-    parsed = urlparse(url.strip().lower())
-    if not parsed.path:
-        return ""
-
-    # Remove leading '/in/' and trailing slash
-    path = parsed.path.strip("/")
-    if not path.startswith("in/"):
-        return ""
-
-    public_id = path[3:]  # strip the "in/"
-    if public_id.endswith("/"):
-        public_id = public_id[:-1]
-
-    return unquote(public_id)
-
-
-def public_id_to_url(public_id: str) -> str:
-    """
-    Convert public_identifier back to a clean LinkedIn profile URL.
-
-    You can choose www or not — both work, www is slightly more common.
-    """
-    if not public_id:
-        return ""
-
-    public_id = public_id.strip("/")
-    scheme = "https"
-    domain = "linkedin.com"
-    return f"{scheme}://{domain}/in/{public_id}/"

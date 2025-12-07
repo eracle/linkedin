@@ -4,13 +4,13 @@ import logging
 from typing import Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode
 
-from linkedin.navigation.utils import wait, goto_page
-from linkedin.sessions.registry import AccountSessionRegistry, AccountSession
+from linkedin.navigation.utils import goto_page
+from linkedin.sessions.registry import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
 
 
-def _go_to_profile(session: AccountSession, url: str, public_identifier: str):
+def _go_to_profile(session: "AccountSession", url: str, public_identifier: str):
     """
     Go to profile URL only if we're not already on it.
     Checks by public_identifier — most reliable on LinkedIn.
@@ -29,7 +29,7 @@ def _go_to_profile(session: AccountSession, url: str, public_identifier: str):
     )
 
 
-def search_profile(session: AccountSession, profile: Dict[str, Any]):
+def search_profile(session: "AccountSession", profile: Dict[str, Any]):
     """
     Main entry point.
     Tries human-like search first → falls back to direct navigation.
@@ -49,7 +49,7 @@ def search_profile(session: AccountSession, profile: Dict[str, Any]):
         _go_to_profile(session, url, public_id)
 
 
-def _initiate_search(session: AccountSession, full_name: str):
+def _initiate_search(session: "AccountSession", full_name: str):
     """Go to feed and start typing the name in the global search bar."""
     page = session.page
 
@@ -87,7 +87,7 @@ def _initiate_search(session: AccountSession, full_name: str):
     )
 
 
-def _paginate_to_next_page(session: AccountSession, page_num: int):
+def _paginate_to_next_page(session: "AccountSession", page_num: int):
     page = session.page
     current = urlparse(page.url)
     params = parse_qs(current.query)
@@ -103,7 +103,7 @@ def _paginate_to_next_page(session: AccountSession, page_num: int):
     )
 
 
-def _simulate_human_search(session: AccountSession, profile: Dict[str, Any]) -> bool:
+def _simulate_human_search(session: "AccountSession", profile: Dict[str, Any]) -> bool:
     """
     Does a real LinkedIn search for the person's name,
     scans results, and clicks the correct profile if found.
@@ -151,7 +151,7 @@ def _simulate_human_search(session: AccountSession, profile: Dict[str, Any]) -> 
         # Go to next page if not last
         if current_page < max_pages_to_scan:
             _paginate_to_next_page(session, current_page + 1)
-            wait(session)  # extra safety
+            session.wait()  # extra safety
 
     logger.info(f"Profile {target_id} not found in first {max_pages_to_scan} pages")
     return False

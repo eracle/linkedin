@@ -3,13 +3,13 @@ import logging
 from typing import Dict, Any
 
 from linkedin.navigation.enums import ConnectionStatus
-from linkedin.sessions.registry import AccountSessionRegistry, AccountSession
+from linkedin.sessions.registry import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
 
 
 def get_connection_status(
-        session: AccountSession,
+        session: "AccountSession",
         profile: Dict[str, Any],
 ) -> ConnectionStatus:
     """

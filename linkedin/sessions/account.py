@@ -1,6 +1,9 @@
+# linkedin/sessions/account.py
 from __future__ import annotations
 
 import logging
+from linkedin.navigation.utils import human_delay
+from linkedin.navigation.throttle import get_smooth_scrape_count, _wait_counter
 
 from linkedin.conf import get_account_config
 from linkedin.navigation.login import init_playwright_session
@@ -33,6 +36,21 @@ class AccountSession:
                 session=self,
                 handle=self.handle
             )
+
+    def wait(self):
+        """Human-like pause + load wait + logging of pending scrapes"""
+        human_delay()
+        self.page.wait_for_load_state("load")
+
+        from linkedin.db.engine import count_pending_scrape
+        pending = count_pending_scrape(self)
+
+        logger.debug(f"****************************************")
+        logger.debug(f"Wait #{_wait_counter:04d} | Profiles still needing scrape: {pending}")
+        logger.debug(f"****************************************")
+
+        _ = get_smooth_scrape_count(pending)
+
 
     def close(self):
         if self.context:

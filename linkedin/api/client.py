@@ -6,7 +6,6 @@ from urllib.parse import urlparse
 
 from linkedin.api.voyager import parse_linkedin_voyager_response
 from linkedin.navigation.errors import AuthenticationError
-from linkedin.sessions.registry import AccountSession
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,7 @@ class PlaywrightLinkedinAPI:
 
     def __init__(
             self,
-            session: AccountSession,
+            session: "AccountSession",
     ):
         self.session = session
         self.page = session.page

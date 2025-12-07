@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
 
 from linkedin.conf import get_account_config
-from linkedin.navigation.utils import wait, goto_page
+from linkedin.navigation.utils import goto_page
 from linkedin.sessions.registry import SessionKey, AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
@@ -34,9 +34,9 @@ def playwright_login(session: "AccountSession"):
     )
 
     page.locator(SELECTORS["email"]).type(config["username"], delay=80)
-    wait(session)
+    session.wait()
     page.locator(SELECTORS["password"]).type(config["password"], delay=80)
-    wait(session)
+    session.wait()
 
     goto_page(
         session,

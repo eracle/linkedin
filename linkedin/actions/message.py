@@ -5,8 +5,7 @@ from typing import Dict, Any, Optional
 from linkedin.actions.connection_status import get_connection_status
 from linkedin.actions.search import search_profile
 from linkedin.navigation.enums import ConnectionStatus, MessageStatus
-from linkedin.navigation.utils import wait
-from linkedin.sessions.registry import AccountSessionRegistry, SessionKey, AccountSession
+from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
@@ -42,7 +41,7 @@ def send_follow_up_message(
     logger.info("Message result → %s → %s", profile.get("full_name", profile["url"]), status.value)
 
 
-def get_messaging_availability(session: AccountSession, profile: Dict[str, Any]) -> bool:
+def get_messaging_availability(session: "AccountSession", profile: Dict[str, Any]) -> bool:
     """
     Returns True if we should attempt to send a message.
     We allow messaging if:
@@ -66,7 +65,7 @@ def get_messaging_availability(session: AccountSession, profile: Dict[str, Any])
 
 def _perform_send_message(session, message: str):
     """Low-level message sending with fallback methods (2025-proof)."""
-    wait(session)
+    session.wait()
 
     page = session.page
 
@@ -79,12 +78,12 @@ def _perform_send_message(session, message: str):
         # Fallback: More → Message
         more = page.locator('button[id$="profile-overflow-action"]:visible').first
         more.click()
-        wait(session)
+        session.wait()
         msg_option = page.locator('div[aria-label$="to message"]:visible').first
         msg_option.click()
         logger.debug("Used More → Message flow")
 
-    wait(session)  # give messaging pane time to load
+    session.wait()  # give messaging pane time to load
 
     input_area = page.locator('div[class*="msg-form__contenteditable"]:visible').first
 
@@ -96,19 +95,19 @@ def _perform_send_message(session, message: str):
         logger.debug("fill() failed, falling back to clipboard paste: %s", e)
         input_area.click()
         page.evaluate(f"() => navigator.clipboard.writeText(`{message.replace('`', '\\`')}`)")
-        wait(session)
+        session.wait()
         input_area.press("ControlOrMeta+V")
-        wait(session)
+        session.wait()
 
     # Send
     send_btn = page.locator('button[type="submit"][class*="msg-form"]:visible').first
     send_btn.click(force=True)
-    wait(session)
+    session.wait()
     logger.info("Message sent successfully")
 
 
 def send_message_to_profile(
-        session: AccountSession,
+        session: "AccountSession",
         profile: Dict[str, Any],
         message: str,
 ) -> MessageStatus:

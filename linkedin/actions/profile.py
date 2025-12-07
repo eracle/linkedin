@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 
-from linkedin.navigation.utils import wait
 from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 from ..api.client import PlaywrightLinkedinAPI
 
@@ -32,7 +31,7 @@ def enrich_profile(key: SessionKey, profile: Dict[str, Any]) -> Tuple[Optional[D
     )
     session.ensure_browser()  # ← ensures browser + login are ready
 
-    wait(session)
+    session.wait()
 
     # Pass the live session.page to the API client
     api = PlaywrightLinkedinAPI(session=session)

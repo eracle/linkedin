@@ -3,7 +3,6 @@ import logging
 from typing import Optional, Dict, Any
 
 from linkedin.navigation.enums import ConnectionStatus
-from linkedin.navigation.utils import wait
 from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 
 logger = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ def send_connection_request(
 
 def _perform_send_invitation_without_note(session):
     """Click flow: sends connection request instantly without note."""
-    wait(session)
+    session.wait()
     top_card = session.page.locator('section:has(div.top-card-background-hero-image)')
 
     # Direct "Connect" button
@@ -80,14 +79,14 @@ def _perform_send_invitation_without_note(session):
             'button[aria-label*="More actions"]:visible'
         ).first
         more.click()
-        wait(session)
+        session.wait()
         connect_option = top_card.locator(
             'div[role="button"][aria-label^="Invite"][aria-label*=" to connect"]'
         ).first
         connect_option.click()
         logger.debug("Used 'More → Connect' flow")
 
-    wait(session)
+    session.wait()
 
     # Click "Send now" / "Send without a note"
     send_btn = session.page.locator(
@@ -96,7 +95,7 @@ def _perform_send_invitation_without_note(session):
         'button[aria-label*="Send invitation"]:not([aria-label*="note"])'
     )
     send_btn.first.click(force=True)
-    wait(session)
+    session.wait()
     logger.debug("Connection request submitted (no note)")
 
 
@@ -105,7 +104,7 @@ def _perform_send_invitation_without_note(session):
 # ===================================================================
 def _perform_send_invitation_with_note(session, message: str):
     """Full flow with custom note – ready to enable anytime."""
-    wait(session)
+    session.wait()
     top_card = session.page.locator('section:has(div.top-card-background-hero-image)')
 
     direct = top_card.locator('button[aria-label*="Invite"][aria-label*="to connect"]:visible')
@@ -114,20 +113,20 @@ def _perform_send_invitation_with_note(session, message: str):
     else:
         more = top_card.locator('button[id*="overflow"], button[aria-label*="More actions"]').first
         more.click()
-        wait(session)
+        session.wait()
         session.page.locator('div[role="button"][aria-label^="Invite"][aria-label*=" to connect"]').first.click()
 
-    wait(session)
+    session.wait()
     session.page.locator('button:has-text("Add a note")').first.click()
-    wait(session)
+    session.wait()
 
     textarea = session.page.locator('textarea#custom-message, textarea[name="message"]')
     textarea.first.fill(message)
-    wait(session)
+    session.wait()
     logger.debug("Filled note (%d chars)", len(message))
 
     session.page.locator('button:has-text("Send"), button[aria-label*="Send invitation"]').first.click(force=True)
-    wait(session)
+    session.wait()
     logger.debug("Connection request with note sent")
 
 

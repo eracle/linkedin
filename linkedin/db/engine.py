@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
 from linkedin.db.models import Base, Profile as DbProfile, CampaignRun, _make_short_run_id
-from linkedin.sessions.registry import AccountSession
+from linkedin.sessions.account import AccountSession
 
 logger = logging.getLogger(__name__)
 

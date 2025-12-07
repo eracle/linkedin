@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from linkedin.api.voyager import parse_linkedin_voyager_response
 from linkedin.navigation.errors import AuthenticationError
-from linkedin.sessions import AccountSession
+from linkedin.sessions.registry import AccountSession
 
 logger = logging.getLogger(__name__)
 

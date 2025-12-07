@@ -2,6 +2,7 @@
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+from urllib.parse import urlparse, unquote
 
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -9,8 +10,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
 from linkedin.db.models import Base, Profile as DbProfile, CampaignRun, _make_short_run_id
-from linkedin.navigation.utils import url_to_public_id, public_id_to_url
-from linkedin.sessions import AccountSession
+from linkedin.sessions.registry import AccountSession
 
 logger = logging.getLogger(__name__)
 
@@ -230,3 +230,46 @@ def count_pending_scrape(session: AccountSession) -> int:
 def get_profile_by_public_id(session: AccountSession, public_id: str) -> Optional[Dict[str, Any]]:
     profile = session.db.get_session().get(DbProfile, public_id)
     return profile.data if profile and profile.scraped else None
+
+
+def url_to_public_id(url: str) -> str:
+    """
+    Convert any LinkedIn profile URL → public_identifier (e.g. 'john-doe-1a2b3c4d')
+
+    Examples:
+      "https://www.linkedin.com/in/john-doe-1a2b3c4d/?originalSubdomain=fr" → "john-doe-1a2b3c4d"
+      "https://linkedin.com/in/alice/" → "alice"
+      "http://linkedin.com/in/bob-123/" → "bob-123"
+    """
+    if not url:
+        return ""
+
+    parsed = urlparse(url.strip().lower())
+    if not parsed.path:
+        return ""
+
+    # Remove leading '/in/' and trailing slash
+    path = parsed.path.strip("/")
+    if not path.startswith("in/"):
+        return ""
+
+    public_id = path[3:]  # strip the "in/"
+    if public_id.endswith("/"):
+        public_id = public_id[:-1]
+
+    return unquote(public_id)
+
+
+def public_id_to_url(public_id: str) -> str:
+    """
+    Convert public_identifier back to a clean LinkedIn profile URL.
+
+    You can choose www or not — both work, www is slightly more common.
+    """
+    if not public_id:
+        return ""
+
+    public_id = public_id.strip("/")
+    scheme = "https"
+    domain = "linkedin.com"
+    return f"{scheme}://{domain}/in/{public_id}/"

@@ -1,5 +1,4 @@
 # linkedin/csv_launcher.py
-import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -8,29 +7,9 @@ import pandas as pd
 
 from linkedin.campaigns.connect_follow_up import process_profile_row, CAMPAIGN_NAME, INPUT_CSV_PATH
 from linkedin.conf import get_first_active_account
+from linkedin.sessions.registry import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
-
-
-def hash_file(path: Path | str, chunk_size: int = 8192, algorithm: str = "sha256") -> str:
-    """
-    Compute a stable cryptographic hash of a file's contents.
-    Used to detect if the input CSV has changed → new campaign run.
-    """
-    path = Path(path)
-    if not path.is_file():
-        raise FileNotFoundError(f"Cannot hash file: {path} does not exist or is not a file")
-
-    hasher = hashlib.new(algorithm)
-
-    with path.open("rb") as f:
-        while chunk := f.read(chunk_size):
-            hasher.update(chunk)
-
-    full_hex = hasher.hexdigest()
-    short_hex = full_hex[:16]
-    logger.debug(f"Hashed file {path.name} → {short_hex} (full: {full_hex})")
-    return short_hex
 
 
 def load_profiles_urls_from_csv(csv_path: Path | str) -> List[str]:
@@ -70,8 +49,6 @@ def launch_from_csv(
         csv_path: Path | str = INPUT_CSV_PATH,
         campaign_name: str = CAMPAIGN_NAME,
 ) -> List[Dict[str, Any]]:
-    from linkedin.sessions import AccountSessionRegistry
-
     logger.info(f"Launching campaign '{campaign_name}' as @{handle} from CSV: {csv_path}")
 
     profiles = load_profiles_urls_from_csv(csv_path)

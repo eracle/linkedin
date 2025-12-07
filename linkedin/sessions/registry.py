@@ -1,33 +1,14 @@
-# linkedin/sessions.py
+# linkedin/sessions/registry.py
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path  # noqa
-from typing import NamedTuple, Optional
+from typing import Optional, NamedTuple
 
-from linkedin.conf import get_account_config
-from linkedin.csv_launcher import hash_file
-
-from linkedin.navigation.login import init_playwright_session
+from .account import AccountSession
 
 logger = logging.getLogger(__name__)
-
-
-class SessionKey(NamedTuple):
-    handle: str
-    campaign_name: str
-    csv_hash: str
-
-    def __str__(self) -> str:
-        return f"{self.handle}::{self.campaign_name}::{self.csv_hash}"
-
-    @classmethod
-    def make(cls, handle: str, campaign_name: str, csv_path: Path | str) -> "SessionKey":
-        csv_hash = hash_file(csv_path)
-        return cls(handle=handle, campaign_name=campaign_name, csv_hash=csv_hash)
-
-    def as_filename_safe(self) -> str:
-        return f"{self.handle}--{self.campaign_name}--{self.csv_hash}"
 
 
 class AccountSessionRegistry:
@@ -72,57 +53,42 @@ class AccountSessionRegistry:
         cls._instances.clear()
 
 
-class AccountSession:
-    def __init__(self, key: SessionKey):
-        from linkedin.db.engine import Database
-        self.key = key
-        self.handle = key.handle
-        self.campaign_name = key.campaign_name
-        self.csv_hash = key.csv_hash
+class SessionKey(NamedTuple):
+    handle: str
+    campaign_name: str
+    csv_hash: str
 
-        self.account_cfg = get_account_config(self.handle)
-        self.db = Database.from_handle(self.handle)
+    def __str__(self) -> str:
+        return f"{self.handle}::{self.campaign_name}::{self.csv_hash}"
 
-        # Playwright objects – created on first access or after crash
-        self.page = None
-        self.context = None
-        self.browser = None
-        self.playwright = None
+    @classmethod
+    def make(cls, handle: str, campaign_name: str, csv_path: Path | str) -> "SessionKey":
+        csv_hash = hash_file(csv_path)
+        return cls(handle=handle, campaign_name=campaign_name, csv_hash=csv_hash)
 
-    def ensure_browser(self):
-        """Launch or recover browser + login if needed. Call before using .page"""
-        if not self.page or self.page.is_closed():
-            logger.info("Launching/recovering browser for %s – %s", self.handle, self.campaign_name)
-            self.page, self.context, self.browser, self.playwright = init_playwright_session(
-                session=self,
-                handle=self.handle
-            )
+    def as_filename_safe(self) -> str:
+        return f"{self.handle}--{self.campaign_name}--{self.csv_hash}"
 
-    def close(self):
-        if self.context:
-            try:
-                self.context.close()
-                if self.browser:
-                    self.browser.close()
-                if self.playwright:
-                    self.playwright.stop()
-                logger.info("Browser closed gracefully (%s)", self.handle)
-            except Exception as e:
-                logger.debug("Error closing browser: %s", e)
-            finally:
-                self.page = self.context = self.browser = self.playwright = None
 
-        self.db.close()
-        logger.info("Account session closed → %s", self.key)
+def hash_file(path: Path | str, chunk_size: int = 8192, algorithm: str = "sha256") -> str:
+    """
+    Compute a stable cryptographic hash of a file's contents.
+    Used to detect if the input CSV has changed → new campaign run.
+    """
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Cannot hash file: {path} does not exist or is not a file")
 
-    def __del__(self):
-        try:
-            self.close()
-        except:
-            pass
+    hasher = hashlib.new(algorithm)
 
-    def __repr__(self) -> str:
-        return f"<AccountSession {self.key}>"
+    with path.open("rb") as f:
+        while chunk := f.read(chunk_size):
+            hasher.update(chunk)
+
+    full_hex = hasher.hexdigest()
+    short_hex = full_hex[:16]
+    logger.debug(f"Hashed file {path.name} → {short_hex} (full: {full_hex})")
+    return short_hex
 
 
 # ——————————————————————————————————————————————————————————————
@@ -140,7 +106,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) != 2:
-        print("Usage: python -m linkedin.sessions <handle>")
+        print("Usage: python -m linkedin.sessions.registry <handle>")
         sys.exit(1)
 
     handle = sys.argv[1]

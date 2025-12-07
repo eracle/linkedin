@@ -1,12 +1,11 @@
 # linkedin/actions/profile.py
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 
 from linkedin.navigation.utils import wait
-from linkedin.sessions import AccountSessionRegistry, SessionKey
+from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 from ..api.client import PlaywrightLinkedinAPI
 
 logger = logging.getLogger(__name__)

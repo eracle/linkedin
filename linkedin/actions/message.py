@@ -6,7 +6,7 @@ from linkedin.actions.connection_status import get_connection_status
 from linkedin.actions.search import search_profile
 from linkedin.navigation.enums import ConnectionStatus, MessageStatus
 from linkedin.navigation.utils import wait
-from linkedin.sessions import AccountSessionRegistry, SessionKey, AccountSession
+from linkedin.sessions.registry import AccountSessionRegistry, SessionKey, AccountSession
 from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ def send_message_to_profile(
 
 if __name__ == "__main__":
     import sys
-    from linkedin.sessions import SessionKey
+    from linkedin.sessions.registry import SessionKey
     from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
 
     logging.getLogger().handlers.clear()

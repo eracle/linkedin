@@ -3,6 +3,8 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
+from linkedin.sessions.registry import SessionKey
+
 logger = logging.getLogger(__name__)
 
 # ———————————————————————————————— USER CONFIGURATION ————————————————————————————————
@@ -23,7 +25,6 @@ def process_profile_row(
         handle: str,
         campaign_name: str = CAMPAIGN_NAME,
 ) -> Dict[str, Any]:
-    from linkedin.sessions import SessionKey
     from linkedin.actions.connect import send_connection_request
     from linkedin.actions.message import send_follow_up_message
     from linkedin.actions.profile import enrich_profile

@@ -5,7 +5,7 @@ from typing import Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode
 
 from linkedin.navigation.utils import wait, goto_page
-from linkedin.sessions import AccountSessionRegistry, AccountSession
+from linkedin.sessions.registry import AccountSessionRegistry, AccountSession
 
 logger = logging.getLogger(__name__)
 

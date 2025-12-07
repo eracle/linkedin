@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any
 
 from linkedin.navigation.enums import ConnectionStatus
 from linkedin.navigation.utils import wait
-from linkedin.sessions import AccountSessionRegistry, SessionKey
+from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def _perform_send_invitation_with_note(session, message: str):
 
 if __name__ == "__main__":
     import sys
-    from linkedin.sessions import SessionKey
+    from linkedin.sessions.registry import SessionKey
     from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
 
     if len(sys.argv) != 2:

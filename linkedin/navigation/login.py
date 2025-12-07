@@ -7,6 +7,7 @@ from playwright_stealth import Stealth
 
 from linkedin.conf import get_account_config
 from linkedin.navigation.utils import wait, goto_page
+from linkedin.sessions.registry import SessionKey, AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +89,8 @@ def init_playwright_session(session: "AccountSession", handle: str):
 
 if __name__ == "__main__":
     import sys
-    from linkedin.sessions import SessionKey
+
     from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
-    from linkedin.sessions import AccountSessionRegistry
 
     logging.getLogger().handlers.clear()
     logging.basicConfig(

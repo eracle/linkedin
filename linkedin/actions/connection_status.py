@@ -3,7 +3,7 @@ import logging
 from typing import Dict, Any
 
 from linkedin.navigation.enums import ConnectionStatus
-from linkedin.sessions import AccountSessionRegistry, AccountSession
+from linkedin.sessions.registry import AccountSessionRegistry, AccountSession
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def get_connection_status(
 if __name__ == "__main__":
     import sys
     import logging
-    from linkedin.sessions import SessionKey
+    from linkedin.sessions.registry import SessionKey
     from linkedin.actions.search import search_profile
     from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
 

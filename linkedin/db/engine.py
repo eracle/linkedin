@@ -1,17 +1,16 @@
-# linkedin/engine.py
+# linkedin/db/engine.py
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, TypeAlias, List
+from typing import Optional, Dict, Any, List
 
 from sqlalchemy import create_engine, func
-from sqlalchemy.orm import sessionmaker, scoped_session, Session as SASession
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
 from linkedin.db.models import Base, Profile as DbProfile, CampaignRun, _make_short_run_id
-from linkedin.navigation.utils import url_to_public_id, public_id_to_url  # NEW imports
-
-DatabaseSession: TypeAlias = SASession
+from linkedin.navigation.utils import url_to_public_id, public_id_to_url
+from linkedin.sessions import AccountSession
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +31,12 @@ class Database:
 
         session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(session_factory)
-
         self.db_path = Path(db_path)
 
     def get_session(self):
         return self.Session()
 
     def close(self):
-        """This is the ONLY place we sync to your backend."""
         logger.info("Database.close() triggered → syncing all unsynced profiles to cloud...")
         self._sync_all_unsynced_profiles()
         self.Session.remove()
@@ -80,85 +77,83 @@ class Database:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CAMPAIGN FUNCTIONS — unchanged (still valid)
+# CAMPAIGN FUNCTIONS — ONLY AccountSession
 # ─────────────────────────────────────────────────────────────────────────────
-def has_campaign_run(session: DatabaseSession, name: str, handle: str, input_hash: str) -> bool:
-    return session.query(CampaignRun).filter_by(
-        name=name, handle=handle, input_hash=input_hash
+def has_campaign_run(session: AccountSession, name: str, input_hash: str) -> bool:
+    return session.db.get_session().query(CampaignRun).filter_by(
+        name=name, handle=session.handle, input_hash=input_hash
     ).first() is not None
 
 
 def mark_campaign_run(
-        session: DatabaseSession,
+        session: AccountSession,
         name: str,
-        handle: str,
         input_hash: str,
-        short_id: str | None = None,
+        short_id: Optional[str] = None,
 ) -> str:
-    if has_campaign_run(session, name, handle, input_hash):
-        return session.query(CampaignRun.short_id).filter_by(
-            name=name, handle=handle, input_hash=input_hash
+    db = session.db.get_session()
+
+    if has_campaign_run(session, name, input_hash):
+        return db.query(CampaignRun.short_id).filter_by(
+            name=name, handle=session.handle, input_hash=input_hash
         ).scalar()
 
-    if short_id is None:
-        short_id = _make_short_run_id(name, handle, input_hash)
-
-    session.add(CampaignRun(
+    short_id = short_id or _make_short_run_id(name, session.handle, input_hash)
+    db.add(CampaignRun(
         name=name,
-        handle=handle,
+        handle=session.handle,
         input_hash=input_hash,
         short_id=short_id,
     ))
-    session.commit()
-    logger.info(f"Campaign run recorded → {name} | {handle} | {short_id}")
+    db.commit()
+    logger.info(f"Campaign run recorded → {name} | {session.handle} | {short_id}")
     return short_id
 
 
-def get_campaign_short_id(session: DatabaseSession, name: str, handle: str, input_hash: str) -> str | None:
-    return session.query(CampaignRun.short_id).filter_by(
-        name=name, handle=handle, input_hash=input_hash
+def get_campaign_short_id(session: AccountSession, name: str, input_hash: str) -> Optional[str]:
+    return session.db.get_session().query(CampaignRun.short_id).filter_by(
+        name=name, handle=session.handle, input_hash=input_hash
     ).scalar()
 
 
 def update_campaign_stats(
-        session: DatabaseSession,
+        session: AccountSession,
         name: str,
-        handle: str,
         input_hash: str,
         *,
-        total_profiles: int | None = None,
+        total_profiles: Optional[int] = None,
         increment_enriched: int = 0,
         increment_connect_sent: int = 0,
         increment_accepted: int = 0,
         increment_followup_sent: int = 0,
         increment_completed: int = 0,
 ):
-    run = session.query(CampaignRun).filter_by(
-        name=name, handle=handle, input_hash=input_hash
+    db = session.db.get_session()
+    run = db.query(CampaignRun).filter_by(
+        name=name, handle=session.handle, input_hash=input_hash
     ).first()
 
     if not run:
-        logger.warning(f"CampaignRun not found for stats update: {name}|{handle}")
+        logger.warning(f"CampaignRun not found: {name} | {session.handle}")
         return
 
     if total_profiles is not None:
         run.total_profiles = total_profiles
-
     run.enriched += increment_enriched
     run.connect_sent += increment_connect_sent
     run.accepted += increment_accepted
     run.followup_sent += increment_followup_sent
     run.completed += increment_completed
+    db.commit()
 
-    session.commit()
     logger.debug(f"Campaign stats updated → {run.short_id} | "
                  f"Enriched:{run.enriched} Connect:{run.connect_sent} "
                  f"Accepted:{run.accepted} Followup:{run.followup_sent} Done:{run.completed}")
 
 
-def get_campaign_stats(session: DatabaseSession, name: str, handle: str, input_hash: str) -> dict | None:
-    run = session.query(CampaignRun).filter_by(
-        name=name, handle=handle, input_hash=input_hash
+def get_campaign_stats(session: AccountSession, name: str, input_hash: str) -> Optional[dict]:
+    run = session.db.get_session().query(CampaignRun).filter_by(
+        name=name, handle=session.handle, input_hash=input_hash
     ).first()
     if not run:
         return None
@@ -175,70 +170,63 @@ def get_campaign_stats(session: DatabaseSession, name: str, handle: str, input_h
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# NEW PROFILE LIFECYCLE — using public_identifier as PK
+# PROFILE LIFECYCLE
 # ─────────────────────────────────────────────────────────────────────────────
-
-def add_profile_urls(session: DatabaseSession, urls: List[str]):
-    """Phase 1: Discover LinkedIn profiles → insert by public_identifier"""
+def add_profile_urls(session: AccountSession, urls: List[str]):
     if not urls:
         return
 
-    public_ids = {
-        pid for url in urls
-        if (pid := url_to_public_id(url))
-    }
-
+    public_ids = {pid for url in urls if (pid := url_to_public_id(url))}
     if not public_ids:
         return
 
+    db = session.db.get_session()
     to_insert = [{"public_identifier": pid} for pid in public_ids]
-    session.execute(
+    db.execute(
         DbProfile.__table__.insert()
-        .prefix_with("OR IGNORE")  # SQLite: do nothing on conflict
+        .prefix_with("OR IGNORE")
         .values(to_insert)
     )
-    session.commit()
+    db.commit()
 
-    logger.info(f"Discovered {len(public_ids)} unique LinkedIn profiles (public_identifier)")
+    logger.info(f"Discovered {len(public_ids)} unique LinkedIn profiles")
     for pid in public_ids:
         logger.debug("Profile discovered → %s", public_id_to_url(pid))
 
 
 def save_scraped_profile(
-        session: DatabaseSession,
+        session: AccountSession,
         url: str,
         profile_data: Dict[str, Any],
-        raw_json: Dict[str, Any] | None = None,
+        raw_json: Optional[Dict[str, Any]] = None,
 ):
-    """Phase 2: Save scraped data using public_identifier"""
     public_id = url_to_public_id(url)
+    db = session.db.get_session()
 
-    profile = session.get(DbProfile, public_id)
-    if profile is None:
-        profile = DbProfile(public_identifier=public_id)
-
+    profile = db.get(DbProfile, public_id) or DbProfile(public_identifier=public_id)
     profile.data = profile_data
     profile.raw_json = raw_json
     profile.scraped = True
     profile.cloud_synced = False
     profile.updated_at = func.now()
 
-    session.merge(profile)
-    session.commit()
+    db.merge(profile)
+    db.commit()
     logger.info(f"Scraped profile saved → {public_id_to_url(public_id)}")
 
 
-def get_next_url_to_scrape(session: DatabaseSession, limit: int = 1) -> List[str]:
-    """Return clean LinkedIn URLs for unscraped profiles"""
-    rows = session.query(DbProfile.public_identifier).filter_by(scraped=False).limit(limit).all()
+def get_next_url_to_scrape(session: AccountSession, limit: int = 1) -> List[str]:
+    rows = session.db.get_session() \
+        .query(DbProfile.public_identifier) \
+        .filter_by(scraped=False) \
+        .limit(limit).all()
     return [public_id_to_url(row.public_identifier) for row in rows]
 
 
-def count_pending_scrape(session: DatabaseSession) -> int:
-    return session.query(DbProfile).filter_by(scraped=False).count()
+def count_pending_scrape(session: AccountSession) -> int:
+    return session.db.get_session().query(DbProfile).filter_by(scraped=False).count()
 
 
-# Optional: Helper to get profile data by public_id (cleaner than old URL-based one)
-def get_profile_by_public_id(session: DatabaseSession, public_id: str) -> Optional[Dict[str, Any]]:
-    profile = session.get(DbProfile, public_id)
+def get_profile_by_public_id(session: AccountSession, public_id: str) -> Optional[Dict[str, Any]]:
+    profile = session.db.get_session().get(DbProfile, public_id)
     return profile.data if profile and profile.scraped else None

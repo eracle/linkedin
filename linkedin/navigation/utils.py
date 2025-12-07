@@ -2,7 +2,6 @@
 import logging
 import random
 import time
-import urllib.parse
 from urllib.parse import unquote, urlparse, urljoin
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -51,12 +50,9 @@ def goto_page(session: "AccountSession",
 
     try:
         urls = _extract_in_urls(session)
-        db_session = session.db.get_session()
-        add_profile_urls(db_session, list(urls))
-        db_session.close()
+        add_profile_urls(session, list(urls))
     except Exception as e:
         logger.error(f"Failed to extract/save profile URLs after navigation: {e}", exc_info=True)
-
 
 def _extract_in_urls(session):
     page = session.page

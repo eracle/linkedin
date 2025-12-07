@@ -7,7 +7,7 @@ from typing import NamedTuple, Optional
 
 from linkedin.conf import get_account_config
 from linkedin.csv_launcher import hash_file
-from linkedin.db.engine import Database
+
 from linkedin.navigation.login import init_playwright_session
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,7 @@ class AccountSessionRegistry:
 
 class AccountSession:
     def __init__(self, key: SessionKey):
+        from linkedin.db.engine import Database
         self.key = key
         self.handle = key.handle
         self.campaign_name = key.campaign_name

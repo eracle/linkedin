@@ -12,7 +12,7 @@ def goto_page(session: "AccountSession",
               expected_url_pattern: str,
               timeout: int = 10_000,
               error_message: str = ""):
-    from linkedin.db.engine import add_profile_urls
+    from linkedin.db.profiles import add_profile_urls
     page = session.page
     action()
     if not page:

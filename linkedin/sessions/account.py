@@ -13,15 +13,15 @@ from linkedin.sessions.registry import SessionKey
 
 logger = logging.getLogger(__name__)
 
-MIN_DELAY = 3
-MAX_DELAY = 5
+MIN_DELAY = 2
+MAX_DELAY = 3.5
 MIN_API_DELAY = 0.250
 MAX_API_DELAY = 0.500
 
 
 def human_delay(min, max):
     delay = random.uniform(min, max)
-    logger.info(f"Pause: {delay:.2f}s")
+    logger.debug(f"Pause: {delay:.2f}s")
     time.sleep(delay)
 
 
@@ -52,12 +52,10 @@ class AccountSession:
             )
 
     def wait(self, min_delay=MIN_DELAY, max_delay=MAX_DELAY):
-        from linkedin.db.engine import (
-            count_pending_scrape,
-            get_next_url_to_scrape,
-            save_scraped_profile,
-        )
-
+        from linkedin.db.profiles import count_pending_scrape
+        from linkedin.db.profiles import get_next_url_to_scrape
+        from linkedin.db.profiles import save_scraped_profile
+        logger.info(f"Pausing: {MIN_DELAY}-{MAX_DELAY}s")
         pending = count_pending_scrape(self)
 
         logger.debug(f"****************************************")
@@ -68,6 +66,7 @@ class AccountSession:
 
         urls = get_next_url_to_scrape(self, limit=amount_to_scrape)
         if urls:
+            logger.info(f"****************************************")
             min_api_delay = max(min_delay / len(urls), MIN_API_DELAY)
             max_api_delay = max(max_delay / len(urls), MAX_API_DELAY)
             api = PlaywrightLinkedinAPI(session=self)

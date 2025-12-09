@@ -38,18 +38,16 @@ def call_llm(prompt: str) -> str:
 
 
 def render_template(template_file: str, template_type: str, context: Dict[str, Any]) -> str:
-    """Renders the template based on the type, optionally passing to an LLM."""
-    with open(template_file, 'r') as f:
+    logger.info("Available template variables: %s", sorted(context.keys()))
+
+    with open(template_file, 'r', encoding='utf-8') as f:
         template_str = f.read()
 
-    if template_type == 'jinja':
-        template = jinja2.Template(template_str)
-        return template.render(**context).strip()
-
-    elif template_type == 'ai_prompt':
-        template = jinja2.Template(template_str)
-        prompt = template.render(**context).strip()
-        return call_llm(prompt)
-
-    else:
-        raise ValueError(f"Unknown template_type: {template_type}")
+    match template_type:
+        case 'jinja':
+            return jinja2.Template(template_str).render(**context).strip()
+        case 'ai_prompt':
+            prompt = jinja2.Template(template_str).render(**context).strip()
+            return call_llm(prompt)
+        case _:
+            raise ValueError(f"Unknown template_type: {template_type}")

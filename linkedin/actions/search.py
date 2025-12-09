@@ -30,8 +30,6 @@ def search_profile(session: "AccountSession", profile: Dict[str, Any]):
     Main entry point.
     Tries human-like search first → falls back to direct navigation.
     """
-
-    url = profile.get("url")
     public_identifier = profile.get("public_identifier")
 
     if f"/in/{public_identifier}" in session.page.url:
@@ -41,6 +39,8 @@ def search_profile(session: "AccountSession", profile: Dict[str, Any]):
     session.ensure_browser()
 
     search = _simulate_human_search(session, profile) if ENABLE_SCRAPE_IN_WAIT else False
+
+    url = profile.get("url")
     search or _go_to_profile(session, url, public_identifier)
 
 

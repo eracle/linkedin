@@ -66,47 +66,57 @@ def get_messaging_availability(session: "AccountSession", profile: Dict[str, Any
     return False
 
 
-def _perform_send_message_v1(session: "AccountSession", profile: Dict[str, Any], message: str):
-    """Low-level message sending with fallback methods (2025-proof)."""
+def _send_msg_pop_up(session: "AccountSession", profile: Dict[str, Any], message: str) -> bool:
+    """Low-level message sending with fallback methods (2025-proof). Returns True if sent successfully."""
     session.wait()
-
     page = session.page
 
-    # Try direct "Message" button
-    direct = page.locator('button[aria-label*="Message"]:visible')
-    if direct.count() > 0:
-        direct.first.click()
-        logger.debug("Clicked direct Message button")
-    else:
-        # Fallback: More → Message
-        more = page.locator('button[id$="profile-overflow-action"]:visible').first
-        more.click()
-        session.wait()
-        msg_option = page.locator('div[aria-label$="to message"]:visible').first
-        msg_option.click()
-        logger.debug("Used More → Message flow")
-
-    session.wait()  # give messaging pane time to load
-
-    input_area = page.locator('div[class*="msg-form__contenteditable"]:visible').first
-
-    # Method 1: fill() — fastest when it works
     try:
-        input_area.fill(message, timeout=10000)
-        logger.debug("Message typed using fill()")
-    except Exception as e:
-        logger.debug("fill() failed, falling back to clipboard paste: %s", e)
-        input_area.click()
-        page.evaluate(f"() => navigator.clipboard.writeText(`{message.replace('`', '\\`')}`)")
-        session.wait()
-        input_area.press("ControlOrMeta+V")
+        # === Open messaging pane ===
+        direct = page.locator('button[aria-label*="Message"]:visible')
+        if direct.count() > 0:
+            direct.first.click()
+            logger.debug("Clicked direct Message button")
+        else:
+            # Fallback: More → Message
+            more = page.locator('button[id$="profile-overflow-action"]:visible').first
+            more.click()
+            session.wait()
+            msg_option = page.locator('div[aria-label$="to message"]:visible').first
+            msg_option.click()
+            logger.debug("Used More → Message flow")
+
         session.wait()
 
-    # Send
-    send_btn = page.locator('button[type="submit"][class*="msg-form"]:visible').first
-    send_btn.click(force=True)
-    session.wait()
-    logger.info("Message sent successfully")
+        # === Type message ===
+        input_area = page.locator('div[class*="msg-form__contenteditable"]:visible').first
+
+        try:
+            input_area.fill(message, timeout=10000)
+            logger.debug("Message typed using fill()")
+        except Exception:
+            logger.debug("fill() failed, using clipboard paste")
+            input_area.click()
+            page.evaluate(f"""() => navigator.clipboard.writeText(`{message.replace("`", "\\`")}`)""")
+            session.wait()
+            input_area.press("ControlOrMeta+V")
+            session.wait()
+
+        # === Send ===
+        send_btn = page.locator('button[type="submit"][class*="msg-form"]:visible').first
+        send_btn.click(force=True)
+        session.wait()
+
+        # === Close the popup cleanly ===
+        page.keyboard.press("Escape")
+        session.wait()
+
+        logger.info("Message sent successfully to %s", profile.get("name", "user"))
+        return True
+
+    except Exception as e:
+        logger.error("Failed to send message to %s: %s", profile.get("name", "user"), e)
+        return False
 
 
 def _send_message(session: "AccountSession", profile: Dict[str, Any], message: str):
@@ -146,8 +156,7 @@ def send_message_to_profile(
         logger.info("Skipping message → not connected or pending")
         return MessageStatus.SKIPPED
 
-    _perform_send_message_v1(session, profile, message)
-    # _send_message(session, profile, message)
+    _send_msg_pop_up(session, profile, message) or _send_message(session, profile, message)
     return MessageStatus.SENT
 
 

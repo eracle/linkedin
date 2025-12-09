@@ -66,14 +66,18 @@ def get_connection_status(
 
 
     # 4. Nothing clear → play safe + SAVE HTML for debugging
-    logger.debug("No clear connection indicators → UNKNOWN")
+    logger.debug("No clear connection indicators, assuming: → NOT_CONNECTED")
 
+    # save_page(profile, session)
+    return ConnectionStatus.NOT_CONNECTED
+
+
+def save_page(profile: dict[str, Any], session):
     filepath = FIXTURE_PAGES_DIR / f"{profile.get("public_identifier")}.html"
     html_content = session.page.content()
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html_content)
     logger.info("Saved unknown connection status page → %s", filepath)
-    return ConnectionStatus.NOT_CONNECTED
 
 
 if __name__ == "__main__":

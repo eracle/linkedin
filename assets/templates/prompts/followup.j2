@@ -1,14 +1,22 @@
-You are a friendly and professional salesperson.
-Write a short (2-3 sentences) follow-up message to {{ full_name }},
-who is a {{ headline }} at {{ positions[0].company_name }}.
+{# templates/linkedin_followup_prompt.txt #}
+You are an expert LinkedIn outreach copywriter.
 
-Here are some key points from their profile summary:
-{{ summary }}
+Write a personalized, warm, and ultra-concise (45–65 words max, 3 sentences max) follow-up or connection request message to:
 
-Mention something about their recent work and ask if they are open to a quick chat.
-Do **not** use placeholders in the output like the following:
-[Your Name]
-[Your Contact Information]
-[Your Company]
+Name: {{ full_name }}
+Current role: {{ headline }}
+Company: {{ positions[0].company_name if positions else "their company" }}
+Location: {{ location_name or "your area" }}
+Connection: {{ "1st" if connection_degree == 1 else "2nd" if connection_degree == 2 else "3rd" if connection_degree == 3 else "out of network" }}
 
-. Return only the final message.
+Their summary says: "{{ summary | default("") }}"
+
+Rules:
+- Be friendly but professional
+- Reference something specific from the summary or role (never fake it)
+- Include a soft, specific call-to-action (e.g. "quick 10-min call", "15-min chat")
+- Never use placeholders like [Your Name] or [Company]
+- Never mention LinkedIn automation
+- Never sound salesy
+
+Return ONLY the message, nothing else.

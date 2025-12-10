@@ -21,7 +21,6 @@ def send_connection_request(
     from linkedin.actions.search import search_profile
     from linkedin.actions.connection_status import get_connection_status
 
-    # Get the singleton session (auto-recovers browser if crashed)
     session = AccountSessionRegistry.get_or_create(
         handle=key.handle,
         campaign_name=key.campaign_name,
@@ -30,10 +29,11 @@ def send_connection_request(
     session.ensure_browser()
     session.wait()
 
-    logger.debug("1. Navigating to profile: %s", profile.get("url"))
-    search_profile(session, profile)  # now takes session, not resources
+    public_identifier = profile.get('public_identifier')
 
-    # Render note if template provided (currently not sent – kept for future)
+    logger.debug("Navigating to profile → %s", public_identifier)
+    search_profile(session, profile)
+
     if template_file:
         from linkedin.templates.renderer import render_template
         message = render_template(template_file, template_type, profile)
@@ -41,8 +41,8 @@ def send_connection_request(
     else:
         message = ""
 
-    logger.debug("3. Checking current connection status...")
-    connection_status = get_connection_status(session, profile)  # now takes session
+    logger.debug("Checking current connection status...")
+    connection_status = get_connection_status(session, profile)
     logger.info("Current status → %s", connection_status.value)
 
     skip_reasons = {
@@ -51,15 +51,13 @@ def send_connection_request(
     }
 
     if connection_status in skip_reasons:
-        name = profile.get('full_name', profile.get('url'))
-        logger.info("Skipping send → %s (%s)", name, skip_reasons[connection_status])
+        logger.info("Skipping %s – %s", public_identifier, skip_reasons[connection_status])
         return connection_status
 
-    # 4. Send invitation WITHOUT note (current active flow)
+    # Send invitation WITHOUT note (current active flow)
     _perform_send_invitation_without_note(session)
 
-    name = profile.get('full_name') or profile.get('url')
-    logger.info("Connection request sent (no note) → %s", name)
+    logger.info("Connection request sent → %s", public_identifier)
     return ConnectionStatus.PENDING
 
 

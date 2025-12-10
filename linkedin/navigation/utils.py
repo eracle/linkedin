@@ -27,9 +27,9 @@ def goto_page(session: "AccountSession",
 
     session.wait()
 
-    page_url = unquote(page.url)
-    if expected_url_pattern not in page_url:
-        raise RuntimeError(f"{error_message}: {expected_url_pattern} not in '{page_url}'")
+    current = unquote(page.url)
+    if expected_url_pattern not in current:
+        raise RuntimeError(f"{error_message} → expected '{expected_url_pattern}' | got '{current}'")
 
     logger.debug("Navigated to %s", page.url)
     if ENABLE_SCRAPE_IN_WAIT:

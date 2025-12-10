@@ -35,12 +35,11 @@ def load_profiles_urls_from_csv(csv_path: Path | str) -> List[str]:
         .replace({"nan": None, "<NA>": None})
         .dropna()
         .drop_duplicates()  # Remove duplicates (preserves order)
-
     )
 
     logger.debug(f"First 10 rows of {csv_path.name}:\n{urls.head(10).to_string(index=False)}")
 
-    logger.info(f"Loaded {len(urls)} unique clean LinkedIn profile URLs")
+    logger.info(f"Loaded {len(urls):,} pristine LinkedIn profile URLs")
     return urls.tolist()
 
 
@@ -49,10 +48,10 @@ def launch_from_csv(
         csv_path: Path | str = INPUT_CSV_PATH,
         campaign_name: str = CAMPAIGN_NAME,
 ) -> List[Dict[str, Any]]:
-    logger.info(f"Launching campaign '{campaign_name}' as @{handle} from CSV: {csv_path}")
+    logger.info(f"Launching campaign '{campaign_name}' → running as @{handle} | CSV: {csv_path}")
 
     profiles = load_profiles_urls_from_csv(csv_path)
-    logger.info(f"Loaded {len(profiles)} profiles from CSV")
+    logger.info(f"Loaded {len(profiles):,} profiles from CSV – ready for battle!")
 
     _ = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
@@ -63,16 +62,22 @@ def launch_from_csv(
     results: List[Dict[str, Any]] = []
 
     for idx, profile_url in enumerate(profiles, start=1):
-        logger.info(f"[{idx}/{len(profiles)}] Processing → {profile_url}")
-
         result = process_profile_row(
             profile_url=profile_url,
             handle=handle,
             campaign_name=campaign_name,
         )
         results.append(result)
-        status = result.get('status')
-        logger.info(f"[{idx}] Completed → @{handle} | Status: {status} | URL: {profile_url}")
+        status = result.get('status', 'unknown')
+
+        if status == "completed":
+            status_emoji = "\033[1;92mCOMPLETED\033[0m"  # bold green
+        elif status == "waiting_for_acceptance":
+            status_emoji = "\033[93mPENDING\033[0m"  # yellow
+        else:
+            status_emoji = "\033[91mERROR\033[0m"  # red
+
+        logger.info(f"\033[32m[{idx}]\033[0m Done → @{handle} | {status_emoji} {status} |")
 
     # Summary
     successful = sum(1 for r in results if r.get("status") == "completed")
@@ -80,8 +85,8 @@ def launch_from_csv(
     errors = len(results) - successful - waiting
 
     logger.info(
-        f"Campaign '{campaign_name}' finished | "
-        f"Completed: {successful} | Waiting: {waiting} | Errors: {errors}"
+        f"\033[1;36mCampaign '{campaign_name}' completed!\033[0m "
+        f"Completed: {successful:,} | Waiting: {waiting:,} | Errors: {errors}"
     )
 
     return results
@@ -103,6 +108,6 @@ def launch_connect_follow_up_campaign(
                 "No handle provided and no active accounts found in assets/accounts.secrets.yaml. "
                 "Please either pass a handle explicitly or add at least one active account."
             )
-        logger.info(f"No handle specified → using first active account: @{handle}")
+        logger.info(f"No handle chosen → auto-picking the boss account: @{handle}")
 
     return launch_from_csv(handle=handle)

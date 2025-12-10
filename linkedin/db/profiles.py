@@ -47,7 +47,7 @@ def save_scraped_profile(
 
     db.merge(profile)
     db.commit()
-    logger.debug(f"Scraped profile saved → {public_id_to_url(public_id)}")
+
 
 
 def get_next_url_to_scrape(session: "AccountSession", limit: int = 1) -> List[str]:
@@ -103,11 +103,8 @@ def public_id_to_url(public_id: str) -> str:
     """
     if not public_id:
         return ""
-
     public_id = public_id.strip("/")
-    scheme = "https"
-    domain = "linkedin.com"
-    return f"{scheme}://{domain}/in/{public_id}/"
+    return f"https://www.linkedin.com/in/{public_id}/"
 
 
 def get_profile(session: "AccountSession", url: str):

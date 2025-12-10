@@ -22,10 +22,10 @@ class Database:
 
     def __init__(self, db_path: str):
         db_url = f"sqlite:///{db_path}"
-        logger.info(f"Initializing database at {db_path}")
+        logger.info("Initializing local DB → %s", Path(db_path).name)
         self.engine = create_engine(db_url, connect_args={"check_same_thread": False})
         Base.metadata.create_all(bind=self.engine)
-        logger.debug("Database tables ensured (create_all ran)")
+        logger.debug("DB schema ready (tables ensured)")
 
         session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(session_factory)
@@ -35,10 +35,10 @@ class Database:
         return self.Session()
 
     def close(self):
-        logger.info("Database.close() triggered → syncing all unsynced profiles to cloud...")
+        logger.info("DB.close() → syncing all unsynced profiles to cloud...")
         self._sync_all_unsynced_profiles()
         self.Session.remove()
-        logger.info("Database closed and fully synced.")
+        logger.info("DB closed and fully synced with cloud")
 
     def _sync_all_unsynced_profiles(self):
         with self.get_session() as db_session:
@@ -48,7 +48,7 @@ class Database:
             ).all()
 
             if not unsynced:
-                logger.info("No scraped + unsynced profiles found.")
+                logger.info("All profiles already synced")
                 return
 
             payload = [p.data for p in unsynced if p.data]
@@ -61,16 +61,16 @@ class Database:
                 for p in unsynced:
                     p.cloud_synced = True
                 db_session.commit()
-                logger.info(f"SUCCESS: Synced {len(payload)} profiles to cloud")
+                logger.info("SUCCESS: Synced %s new profile(s) to cloud", len(payload))
             else:
-                logger.error("Sync failed — profiles remain unsynced. Will retry next close().")
+                logger.error("Cloud sync failed — will retry on next close()")
 
     @classmethod
     def from_handle(cls, handle: str) -> "Database":
-        logger.info(f"Creating Database instance for account handle: {handle}")
+        logger.info("Spinning up DB for @%s", handle)
         config = get_account_config(handle)
         db_path = config["db_path"]
-        logger.debug(f"Resolved db_path for {handle}: {db_path}")
+        logger.debug("DB path → %s", db_path)
         return cls(db_path)
 
 
@@ -92,9 +92,10 @@ def mark_campaign_run(
     db = session.db.get_session()
 
     if has_campaign_run(session, name, input_hash):
-        return db.query(CampaignRun.short_id).filter_by(
+        existing = db.query(CampaignRun.short_id).filter_by(
             name=name, handle=session.handle, input_hash=input_hash
         ).scalar()
+        return existing
 
     short_id = short_id or _make_short_run_id(name, session.handle, input_hash)
     db.add(CampaignRun(
@@ -104,7 +105,7 @@ def mark_campaign_run(
         short_id=short_id,
     ))
     db.commit()
-    logger.info(f"Campaign run recorded → {name} | {session.handle} | {short_id}")
+    logger.info("Campaign started → %s | @%s | ID: %s", name, session.handle, short_id)
     return short_id
 
 
@@ -132,7 +133,7 @@ def update_campaign_stats(
     ).first()
 
     if not run:
-        logger.warning(f"CampaignRun not found: {name} | {session.handle}")
+        logger.warning("CampaignRun not found → %s | @%s", name, session.handle)
         return
 
     if total_profiles is not None:
@@ -144,9 +145,12 @@ def update_campaign_stats(
     run.completed += increment_completed
     db.commit()
 
-    logger.debug(f"Campaign stats updated → {run.short_id} | "
-                 f"Enriched:{run.enriched} Connect:{run.connect_sent} "
-                 f"Accepted:{run.accepted} Followup:{run.followup_sent} Done:{run.completed}")
+    logger.debug("Stats → %s | "
+                 "Enriched:%s Connect:%s "
+                 "Accepted:%s Followup:%s Done:%s",
+                 run.short_id,
+                 run.enriched, run.connect_sent,
+                 run.accepted, run.followup_sent, run.completed)
 
 
 def get_campaign_stats(session: "AccountSession", name: str, input_hash: str) -> Optional[dict]:

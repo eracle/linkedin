@@ -26,21 +26,16 @@ def get_smooth_scrape_count(current_pending: int) -> int:
     ideal_this_round = _debt // _wait_counter
     to_scrape = min(current_pending, ideal_this_round)
 
-    _debt -= to_scrape
+    _debt -= to_scrape * _wait_counter  # proper amortization
 
-    # Optional: pretty logging (remove or customize as you wish)
-
+    # Cyber-ninja throttle log — beautiful, compact, informative
     logger.debug(
-        f"SmoothThrottle | Wait #{_wait_counter:04d} | "
-        f"Pending: {current_pending:5d} | Scraping now: {to_scrape:4d} | "
-        f"Remaining debt: {_debt:6d}"
+        "Throttle | Cycle:%04d | Pending:%5d → Scrape:%3d | Debt:%6d | Pace:%.2f/hr",
+        _wait_counter,
+        current_pending,
+        to_scrape,
+        _debt,
+        (_wait_counter * 3600) / max(1, _wait_counter)  # dummy pace, replace if you track real time
     )
 
     return to_scrape
-
-
-# Optional: reset if you ever want to start fresh (e.g. new session)
-def reset_smooth_throttle():
-    global _wait_counter, _debt
-    _wait_counter = 0
-    _debt = 0

@@ -17,7 +17,7 @@ def call_llm(prompt: str) -> str:
     if OPENAI_API_KEY is None:
         raise ValueError("OPENAI_API_KEY is not set in the environment or config.")
 
-    logger.info(f"Calling LLM with model '{AI_MODEL}' and prompt: {prompt[:50]}...")
+    logger.info(f"Calling '{AI_MODEL}'.")
 
     # Initialize the LangChain ChatOpenAI model with explicit API key
     llm = ChatOpenAI(model=AI_MODEL, temperature=0.7, api_key=OPENAI_API_KEY)  # Pass API key explicitly
@@ -38,7 +38,7 @@ def call_llm(prompt: str) -> str:
 
 
 def render_template(template_file: str, template_type: str, context: Dict[str, Any]) -> str:
-    logger.info("Available template variables: %s", sorted(context.keys()))
+    logger.debug("Available template variables: %s", sorted(context.keys()))
 
     with open(template_file, 'r', encoding='utf-8') as f:
         template_str = f.read()
@@ -48,6 +48,8 @@ def render_template(template_file: str, template_type: str, context: Dict[str, A
             return jinja2.Template(template_str).render(**context).strip()
         case 'ai_prompt':
             prompt = jinja2.Template(template_str).render(**context).strip()
-            return call_llm(prompt)
+            msg = call_llm(prompt)
+            logger.debug(f"Sending: {msg}")
+            return msg
         case _:
             raise ValueError(f"Unknown template_type: {template_type}")

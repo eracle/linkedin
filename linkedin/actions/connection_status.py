@@ -20,40 +20,37 @@ def get_connection_status(
     # Ensure browser is ready (safe to call multiple times)
     session.ensure_browser()
     session.wait()
-    logger.debug("Checking connection status for %s", profile.get("full_name", "unknown"))
+
+    logger.debug("Checking connection status → %s", profile.get("public_identifier"))
 
     degree = profile.get("connection_degree")
 
     # Fast path: API says 1st degree → trust it
     if degree == 1:
-        logger.debug("Connection status from API (degree=1) → CONNECTED")
+        logger.debug("API reports 1st degree → instantly trusted as CONNECTED")
         return ConnectionStatus.CONNECTED
 
-    # For degree=2, 3, or None → API is unreliable (pending invites look identical)
-    logger.debug(
-        "connection_degree=%s → cannot trust API alone. Falling back to UI inspection.",
-        degree
-    )
+    logger.debug("connection_degree=%s → API unreliable, switching to UI inspection", degree or "None")
 
     main_container = session.page.locator('main').first
 
-    # 1a. Is there a "Pending" button?
+    # 1. Pending invitation?
     if main_container.locator('button[aria-label*="Pending"]:visible').count() > 0:
-        logger.debug("Found visible 'Pending' button → PENDING")
+        logger.debug("Detected 'Pending' button → PENDING")
         return ConnectionStatus.PENDING
 
     main_text = main_container.inner_text()
     # 1b. Is there a "Pending" label?
-    if any(indicator in main_text for indicator in ["Pending"]):
-        logger.debug("Found visible 'Pending' button → PENDING")
+    if any(x in main_text for x in ["Pending"]):
+        logger.debug("Detected 'Pending' text in page → PENDING")
         return ConnectionStatus.PENDING
 
-    # 2. Is there a "1st" label?
-    if any(indicator in main_text for indicator in ["1st", "1st degree", "1º", "1er"]):
-        logger.debug("Confirmed 1st degree connection via <main> text")
+    # 2. Already connected?
+    if any(x in main_text for x in ["1st", "1st degree", "1º", "1er"]):
+        logger.debug("Confirmed 1st degree via page text → CONNECTED")
         return ConnectionStatus.CONNECTED
 
-    # 3a. Is there a "Connect" button?
+    # 3a. Connect button visible?
     invite_btn = main_container.locator('button[aria-label*="Invite"][aria-label*="to connect"]:visible')
     if invite_btn.count() > 0:
         logger.debug("Found 'Connect' button → NOT_CONNECTED")
@@ -61,14 +58,12 @@ def get_connection_status(
 
     # 3b. Is there a "Connect" label?
     if any(indicator in main_text for indicator in ["Connect"]):
-        logger.debug("Found 'Connect' label → NOT_CONNECTED")
+        logger.debug("Found 'Connect' label in page → NOT_CONNECTED")
         return ConnectionStatus.NOT_CONNECTED
 
-
-    # 4. Nothing clear → play safe + SAVE HTML for debugging
-    logger.debug("No clear connection indicators, assuming: → NOT_CONNECTED")
-
-    # save_page(profile, session)
+    # 4. Ambiguous → default safe
+    logger.debug("No clear indicators → defaulting to NOT_CONNECTED")
+    # save_page(profile, session)  # uncomment if you want HTML dumps
     return ConnectionStatus.NOT_CONNECTED
 
 
@@ -77,7 +72,7 @@ def save_page(profile: dict[str, Any], session):
     html_content = session.page.content()
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(html_content)
-    logger.info("Saved unknown connection status page → %s", filepath)
+    logger.info("Saved ambiguous connection status page → %s", filepath)
 
 
 if __name__ == "__main__":

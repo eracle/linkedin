@@ -24,7 +24,7 @@ def scrape_profile(key: SessionKey, profile: Dict[str, Any]) -> Dict:
     existing = get_profile(session, url)
 
     if existing:
-        logger.info("Profile already enriched in DB → returning cached data: %s", url)
+        logger.info("Cache hit! Reusing enriched data → %s", url)
         return existing.data
 
     # ── Existing enrichment logic (100% unchanged) ──
@@ -36,11 +36,11 @@ def scrape_profile(key: SessionKey, profile: Dict[str, Any]) -> Dict:
     logger.info("Enriching profile → %s", url)
     profile, data = api.get_profile(profile_url=url)
 
-    logger.info("Profile enriched successfully: %s – %s", profile.get("full_name"), url)
+    logger.info("Profile enriched – %s", profile.get("public_identifier"))
 
     debug_profile_preview(profile) if logger.isEnabledFor(logging.DEBUG) else None
 
-    return profile, data
+    return profile
 
 
 def debug_profile_preview(enriched):

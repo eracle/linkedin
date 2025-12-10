@@ -22,100 +22,88 @@ def send_follow_up_message(
         template_type: str = "jinja",
         message: Optional[str] = None,
 ):
-    """Sends a follow-up message to a 1st-degree connection."""
     session = AccountSessionRegistry.get_or_create(
         handle=key.handle,
         campaign_name=key.campaign_name,
         csv_hash=key.csv_hash,
     )
-    session.ensure_browser()  # ← ensures page is alive and logged in
+    session.ensure_browser()
 
-    # Navigate to profile
+    public_identifier = profile.get("public_identifier")
+
     search_profile(session, profile)
 
-    # Render message if not provided directly
     if message is None and template_file:
         message = render_template(template_file, template_type, profile)
     elif message is None:
         message = ""
 
-    # Send the message
     status = send_message_to_profile(session, profile, message)
-    logger.info("Message result → %s → %s", profile.get("full_name", profile["url"]), status.value)
+    emoji = "sent" if status == MessageStatus.SENT else "skipped" if status == MessageStatus.SKIPPED else "failed"
+    logger.info("Message %s → %s", emoji, public_identifier)
 
 
 def get_messaging_availability(session: "AccountSession", profile: Dict[str, Any]) -> bool:
-    """
-    Returns True if we should attempt to send a message.
-    We allow messaging if:
-      - Definitely CONNECTED
-      - Or status is UNKNOWN (better to try than miss a real connection)
-    """
     status = get_connection_status(session, profile)
-
-    logger.debug("Messaging availability check → %s → %s", profile.get("full_name", "unknown"), status.value)
+    public_identifier = profile.get("public_identifier")
+    logger.debug("Messaging check → %s → %s", public_identifier, status.value)
 
     if status == ConnectionStatus.CONNECTED:
         return True
 
     if status == ConnectionStatus.NOT_CONNECTED:
-        logger.info("Messaging blocked → not connected")
+        logger.info("Messaging blocked → not connected with %s", public_identifier)
     elif status == ConnectionStatus.PENDING:
-        logger.info("Messaging blocked → connection still pending")
+        logger.info("Messaging blocked → still pending with %s", public_identifier)
 
     return False
 
 
 def _send_msg_pop_up(session: "AccountSession", profile: Dict[str, Any], message: str) -> bool:
-    """Low-level message sending with fallback methods (2025-proof). Returns True if sent successfully."""
     session.wait()
     page = session.page
+    public_identifier = profile.get("public_identifier")
 
     try:
-        # === Open messaging pane ===
         direct = page.locator('button[aria-label*="Message"]:visible')
         if direct.count() > 0:
             direct.first.click()
-            logger.debug("Clicked direct Message button")
+            logger.debug("Opened Message popup (direct button)")
         else:
-            # Fallback: More → Message
             more = page.locator('button[id$="profile-overflow-action"]:visible').first
             more.click()
             session.wait()
             msg_option = page.locator('div[aria-label$="to message"]:visible').first
             msg_option.click()
-            logger.debug("Used More → Message flow")
+            logger.debug("Opened Message via More → Message")
 
         session.wait()
 
-        # === Type message ===
         input_area = page.locator('div[class*="msg-form__contenteditable"]:visible').first
 
         try:
             input_area.fill(message, timeout=10000)
-            logger.debug("Message typed using fill()")
+            logger.debug("Message typed cleanly")
         except Exception:
-            logger.debug("fill() failed, using clipboard paste")
+            logger.debug("fill() failed → using clipboard paste")
             input_area.click()
             page.evaluate(f"""() => navigator.clipboard.writeText(`{message.replace("`", "\\`")}`)""")
             session.wait()
             input_area.press("ControlOrMeta+V")
             session.wait()
 
-        # === Send ===
         send_btn = page.locator('button[type="submit"][class*="msg-form"]:visible').first
         send_btn.click(force=True)
         session.wait()
 
-        # === Close the popup cleanly ===
         page.keyboard.press("Escape")
         session.wait()
 
-        logger.info("Message sent successfully to %s", profile.get("name", "user"))
+        logger.info("Message sent to %s", public_identifier)
         return True
 
     except Exception as e:
-        logger.error("Failed to send message to %s: %s", profile.get("name", "user"), e)
+        logger.error("Failed to send message to %s → %s", public_identifier, e)
         return False
 
 
@@ -153,11 +141,11 @@ def send_message_to_profile(
         message: str,
 ) -> MessageStatus:
     if not get_messaging_availability(session, profile):
-        logger.info("Skipping message → not connected or pending")
+        logger.info("Message skipped → not connected")
         return MessageStatus.SKIPPED
 
-    _send_msg_pop_up(session, profile, message) or _send_message(session, profile, message)
-    return MessageStatus.SENT
+    success = _send_msg_pop_up(session, profile, message) or _send_message(session, profile, message)
+    return MessageStatus.SENT if success else MessageStatus.SKIPPED
 
 
 if __name__ == "__main__":

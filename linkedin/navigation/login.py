@@ -24,7 +24,7 @@ SELECTORS = {
 def playwright_login(session: "AccountSession"):
     page = session.page
     config = get_account_config(session.handle)
-    logger.info("Starting fresh LinkedIn login for %s", session.handle)
+    logger.info("\033[36mFresh login sequence starting for @%s\033[0m", session.handle)
 
     goto_page(
         session,
@@ -58,13 +58,13 @@ def build_playwright(storage_state=None):
 
 
 def init_playwright_session(session: "AccountSession", handle: str):
-    logger.info("Setting up browser for handle: %s", handle)
+    logger.info("\033[96mConfiguring browser for @%s\033[0m", handle)
     config = get_account_config(handle)
     state_file = Path(config["cookie_file"])
 
     storage_state = str(state_file) if state_file.exists() else None
     if storage_state:
-        logger.info("Loading saved cookies from: %s", state_file)
+        logger.info("Devouring saved cookies → %s", state_file)
 
     page, context, browser, playwright = build_playwright(storage_state=storage_state)
 
@@ -72,7 +72,7 @@ def init_playwright_session(session: "AccountSession", handle: str):
         playwright_login(session)
         state_file.parent.mkdir(parents=True, exist_ok=True)
         context.storage_state(path=str(state_file))
-        logger.info("Login successful – session saved to %s", state_file)
+        logger.info("\033[92mLogin successful – session saved → %s\033[0m", state_file)
     else:
         goto_page(
             session,
@@ -83,7 +83,7 @@ def init_playwright_session(session: "AccountSession", handle: str):
         )
 
     page.wait_for_load_state("load")
-    logger.info("Browser ready and authenticated!")
+    logger.info("\033[1;32mBrowser awake and fully authenticated!\033[0m")
     return page, context, browser, playwright
 
 

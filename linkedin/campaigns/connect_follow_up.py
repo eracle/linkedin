@@ -27,7 +27,7 @@ def process_profile_row(
 ) -> Dict[str, Any]:
     from linkedin.actions.connect import send_connection_request
     from linkedin.actions.message import send_follow_up_message
-    from linkedin.actions.profile import enrich_profile
+    from linkedin.actions.profile import scrape_profile
     from linkedin.navigation.enums import ConnectionStatus
 
     key = SessionKey.make(
@@ -43,8 +43,8 @@ def process_profile_row(
 
     # 1. Enrich
     logger.debug("Enriching profile...")
-    enriched, _ = enrich_profile(key=key, profile=profile)
-    if enriched is None:
+    profile = scrape_profile(key=key, profile=profile)
+    if profile is None:
         logger.warning(
             f"Skipping @{handle} – enrichment failed "
         )
@@ -58,7 +58,7 @@ def process_profile_row(
     logger.debug("Sending connection request...")
     status = send_connection_request(
         key=key,
-        profile=enriched,
+        profile=profile,
         # template_file=CONNECT_TEMPLATE_FILE,
         # template_type=CONNECT_TEMPLATE_TYPE,
     )
@@ -69,7 +69,7 @@ def process_profile_row(
         logger.info("Already connected → sending follow-up")
         send_follow_up_message(
             key=key,
-            profile=enriched,
+            profile=profile,
             template_file=FOLLOWUP_TEMPLATE_FILE,
             template_type=FOLLOWUP_TEMPLATE_TYPE,
         )

@@ -5,10 +5,9 @@ from sqlalchemy import func
 
 from linkedin.db.engine import logger
 from linkedin.db.models import Profile as DbProfile
-from linkedin.sessions.account import AccountSession
 
 
-def add_profile_urls(session: AccountSession, urls: List[str]):
+def add_profile_urls(session: "AccountSession", urls: List[str]):
     if not urls:
         return
 
@@ -31,7 +30,7 @@ def add_profile_urls(session: AccountSession, urls: List[str]):
 
 
 def save_scraped_profile(
-        session: AccountSession,
+        session: "AccountSession",
         url: str,
         profile_data: Dict[str, Any],
         raw_json: Optional[Dict[str, Any]] = None,
@@ -51,7 +50,7 @@ def save_scraped_profile(
     logger.debug(f"Scraped profile saved → {public_id_to_url(public_id)}")
 
 
-def get_next_url_to_scrape(session: AccountSession, limit: int = 1) -> List[str]:
+def get_next_url_to_scrape(session: "AccountSession", limit: int = 1) -> List[str]:
     rows = session.db.get_session() \
         .query(DbProfile.public_identifier) \
         .filter_by(scraped=False) \
@@ -59,11 +58,11 @@ def get_next_url_to_scrape(session: AccountSession, limit: int = 1) -> List[str]
     return [public_id_to_url(row.public_identifier) for row in rows]
 
 
-def count_pending_scrape(session: AccountSession) -> int:
+def count_pending_scrape(session: "AccountSession") -> int:
     return session.db.get_session().query(DbProfile).filter_by(scraped=False).count()
 
 
-def get_profile_by_public_id(session: AccountSession, public_id: str) -> Optional[Dict[str, Any]]:
+def get_profile_by_public_id(session: "AccountSession", public_id: str) -> Optional[Dict[str, Any]]:
     profile = session.db.get_session().get(DbProfile, public_id)
     return profile.data if profile and profile.scraped else None
 
@@ -111,14 +110,12 @@ def public_id_to_url(public_id: str) -> str:
     return f"{scheme}://{domain}/in/{public_id}/"
 
 
-def is_profile_already_scraped(session: AccountSession, url: str) -> bool:
+def get_profile(session: "AccountSession", url: str):
     public_id = url_to_public_id(url)
     if not public_id:
-        return False
+        return None
 
-    exists = session.db.get_session() \
-        .query(DbProfile.public_identifier) \
+    return session.db.get_session() \
+        .query(DbProfile) \
         .filter_by(public_identifier=public_id, scraped=True) \
-        .first() is not None
-
-    return exists
+        .first()

@@ -27,6 +27,8 @@ def send_connection_request(
         campaign_name=key.campaign_name,
         csv_hash=key.csv_hash,
     )
+    session.ensure_browser()
+    session.wait()
 
     logger.debug("1. Navigating to profile: %s", profile.get("url"))
     search_profile(session, profile)  # now takes session, not resources

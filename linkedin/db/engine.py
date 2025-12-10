@@ -9,7 +9,6 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from linkedin.api.logging import log_profiles
 from linkedin.conf import get_account_config
 from linkedin.db.models import Base, Profile as DbProfile, CampaignRun, _make_short_run_id
-from linkedin.sessions.account import AccountSession
 
 logger = logging.getLogger(__name__)
 
@@ -78,14 +77,14 @@ class Database:
 # ─────────────────────────────────────────────────────────────────────────────
 # CAMPAIGN FUNCTIONS — ONLY AccountSession
 # ─────────────────────────────────────────────────────────────────────────────
-def has_campaign_run(session: AccountSession, name: str, input_hash: str) -> bool:
+def has_campaign_run(session: "AccountSession", name: str, input_hash: str) -> bool:
     return session.db.get_session().query(CampaignRun).filter_by(
         name=name, handle=session.handle, input_hash=input_hash
     ).first() is not None
 
 
 def mark_campaign_run(
-        session: AccountSession,
+        session: "AccountSession",
         name: str,
         input_hash: str,
         short_id: Optional[str] = None,
@@ -109,14 +108,14 @@ def mark_campaign_run(
     return short_id
 
 
-def get_campaign_short_id(session: AccountSession, name: str, input_hash: str) -> Optional[str]:
+def get_campaign_short_id(session: "AccountSession", name: str, input_hash: str) -> Optional[str]:
     return session.db.get_session().query(CampaignRun.short_id).filter_by(
         name=name, handle=session.handle, input_hash=input_hash
     ).scalar()
 
 
 def update_campaign_stats(
-        session: AccountSession,
+        session: "AccountSession",
         name: str,
         input_hash: str,
         *,
@@ -150,7 +149,7 @@ def update_campaign_stats(
                  f"Accepted:{run.accepted} Followup:{run.followup_sent} Done:{run.completed}")
 
 
-def get_campaign_stats(session: AccountSession, name: str, input_hash: str) -> Optional[dict]:
+def get_campaign_stats(session: "AccountSession", name: str, input_hash: str) -> Optional[dict]:
     run = session.db.get_session().query(CampaignRun).filter_by(
         name=name, handle=session.handle, input_hash=input_hash
     ).first()

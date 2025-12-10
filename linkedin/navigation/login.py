@@ -7,7 +7,7 @@ from playwright_stealth import Stealth
 
 from linkedin.conf import get_account_config
 from linkedin.navigation.utils import goto_page
-from linkedin.sessions.registry import SessionKey, AccountSessionRegistry
+from linkedin.sessions.registry import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -105,13 +105,7 @@ if __name__ == "__main__":
 
     handle = sys.argv[1]
 
-    key = SessionKey.make(
-        handle=handle,
-        campaign_name="test_message",
-        csv_path=INPUT_CSV_PATH,
-    )
-
-    session = AccountSessionRegistry.get_or_create_from_path(
+    session, key = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name="test_message",
         csv_path=INPUT_CSV_PATH,

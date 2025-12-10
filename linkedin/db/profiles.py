@@ -4,7 +4,13 @@ from urllib.parse import urlparse, unquote
 from sqlalchemy import func
 
 from linkedin.db.engine import logger
-from linkedin.db.models import Profile as DbProfile
+from linkedin.db.models import Profile as DbProfile, Profile
+from linkedin.navigation.enums import ProfileState
+
+
+def add_profiles_to_campaign(session, profiles):
+    add_profile_urls(session, [profile['url'] for profile in profiles])
+    [set_profile_state(session, profile, new_state=ProfileState.DISCOVERED) for profile in profiles]
 
 
 def add_profile_urls(session: "AccountSession", urls: List[str]):
@@ -25,46 +31,43 @@ def add_profile_urls(session: "AccountSession", urls: List[str]):
     db.commit()
 
     logger.debug(f"Discovered {len(public_ids)} unique LinkedIn profiles")
-    for pid in public_ids:
-        logger.debug("Profile discovered → %s", public_id_to_url(pid))
 
 
 def save_scraped_profile(
         session: "AccountSession",
         url: str,
-        profile_data: Dict[str, Any],
-        raw_json: Optional[Dict[str, Any]] = None,
+        profile: Dict[str, Any],
+        data: Optional[Dict[str, Any]] = None,
 ):
     public_id = url_to_public_id(url)
     db = session.db.get_session()
 
-    profile = db.get(DbProfile, public_id) or DbProfile(public_identifier=public_id)
-    profile.data = profile_data
-    profile.raw_json = raw_json
-    profile.scraped = True
-    profile.cloud_synced = False
-    profile.updated_at = func.now()
+    profile_db = db.get(DbProfile, public_id) or DbProfile(public_identifier=public_id)
+    profile_db.profile = profile
+    profile_db.data = data
+    profile_db.cloud_synced = False
+    profile_db.updated_at = func.now()
 
-    db.merge(profile)
+    db.merge(profile_db)
     db.commit()
 
 
-
 def get_next_url_to_scrape(session: "AccountSession", limit: int = 1) -> List[str]:
+    # Terminal profile states
+    to_scrape_states = [ProfileState.DISCOVERED]
+
     rows = session.db.get_session() \
         .query(DbProfile.public_identifier) \
-        .filter_by(scraped=False) \
+        .filter_by(Profile.state.in_(to_scrape_states)) \
         .limit(limit).all()
     return [public_id_to_url(row.public_identifier) for row in rows]
 
 
 def count_pending_scrape(session: "AccountSession") -> int:
-    return session.db.get_session().query(DbProfile).filter_by(scraped=False).count()
-
-
-def get_profile_by_public_id(session: "AccountSession", public_id: str) -> Optional[Dict[str, Any]]:
-    profile = session.db.get_session().get(DbProfile, public_id)
-    return profile.data if profile and profile.scraped else None
+    to_scrape_states = [ProfileState.DISCOVERED]
+    return (session.db.get_session()
+            .query(DbProfile)
+            .filter_by(Profile.state.in_(to_scrape_states)).count())
 
 
 def url_to_public_id(url: str) -> str:
@@ -107,12 +110,67 @@ def public_id_to_url(public_id: str) -> str:
     return f"https://www.linkedin.com/in/{public_id}/"
 
 
-def get_profile(session: "AccountSession", url: str):
-    public_id = url_to_public_id(url)
-    if not public_id:
+def get_profile_from_url(session: "AccountSession", url: str):
+    public_identifier = url_to_public_id(url)
+    if not public_identifier:
         return None
 
+    return get_profile(session, public_identifier)
+
+
+def get_profile(session: "AccountSession", public_identifier: str) -> Any:
     return session.db.get_session() \
         .query(DbProfile) \
-        .filter_by(public_identifier=public_id, scraped=True) \
+        .filter_by(public_identifier=public_identifier) \
         .first()
+
+
+def get_profile_state(session: "AccountSession", public_id: str) -> str:
+    row = session.db.get_session().get(Profile, public_id)
+    return row.state if row else "discovered"
+
+
+def set_profile_state(session: "AccountSession", profile, new_state: str):
+    public_identifier = profile['public_identifier']
+    db = session.db.get_session()
+    row = db.get(Profile, public_identifier)
+    if not row:
+        row = Profile(public_identifier=public_identifier, state=new_state)
+        db.add(row)
+    else:
+        row.state = new_state
+    db.commit()
+
+    log_msg = None
+    match new_state:
+        case ProfileState.DISCOVERED:
+            log_msg = "\033[32mDISCOVERED\033[0m"
+        case ProfileState.ENRICHED:
+            log_msg = "\033[93mENRICHED\033[0m"
+        case ProfileState.CONNECTED:
+            log_msg = "\033[32mCONNECTED\033[0m"
+        case ProfileState.COMPLETED:
+            log_msg = "\033[1;92mCOMPLETED\033[0m"
+        case _:
+            log_msg = "\033[91mERROR\033[0m"
+    logger.info(f"{public_identifier} {log_msg}")
+
+
+def get_unfinished_profiles(session: "AccountSession") -> List[Dict[str, Any]]:
+    """
+    Return a list of profile `data` dicts for all profiles whose state is
+    NOT COMPLETED and NOT FAILED.
+    """
+    db = session.db.get_session()
+
+    # Terminal profile states
+    terminal_states = [ProfileState.COMPLETED, ProfileState.FAILED]
+
+    rows = (
+        db.query(Profile.profile)
+        .filter(Profile.state.notin_(terminal_states))
+        .all()
+    )
+
+    # SQLAlchemy returns list of tuples → extract the dicts
+    return [row[0] for row in rows if row[0] is not None]

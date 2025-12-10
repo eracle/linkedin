@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 from linkedin.conf import FIXTURE_PROFILES_DIR
-from linkedin.db.profiles import get_profile
+from linkedin.db.profiles import get_profile_from_url, save_scraped_profile
 from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 from ..api.client import PlaywrightLinkedinAPI
 
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def scrape_profile(key: SessionKey, profile: Dict[str, Any]) -> Dict:
+    print(profile)
     url = profile["url"]
 
     session = AccountSessionRegistry.get_or_create(
@@ -21,11 +22,11 @@ def scrape_profile(key: SessionKey, profile: Dict[str, Any]) -> Dict:
         csv_hash=key.csv_hash,
     )
 
-    existing = get_profile(session, url)
+    existing = get_profile_from_url(session, url)
 
     if existing:
         logger.info("Cache hit! Reusing enriched data → %s", url)
-        return existing.data
+        return existing.profile
 
     # ── Existing enrichment logic (100% unchanged) ──
     session.ensure_browser()
@@ -40,6 +41,7 @@ def scrape_profile(key: SessionKey, profile: Dict[str, Any]) -> Dict:
 
     debug_profile_preview(profile) if logger.isEnabledFor(logging.DEBUG) else None
 
+    save_scraped_profile(session, url, profile, data)
     return profile
 
 

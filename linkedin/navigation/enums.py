@@ -11,3 +11,11 @@ class MessageStatus(Enum):
     SENT = "sent"
     SKIPPED = "skipped"
     UNKNOWN = "unknown"
+
+
+class ProfileState(str, Enum):
+    DISCOVERED = "discovered"
+    ENRICHED = "enriched"
+    CONNECTED = "connected"
+    COMPLETED = "completed"
+    FAILED = "failed"

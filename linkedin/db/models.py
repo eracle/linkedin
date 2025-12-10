@@ -46,16 +46,16 @@ class Profile(Base):
     # USING public_identifier as primary key
     public_identifier = Column(String, primary_key=True)
 
-    scraped = Column(Boolean, default=False, server_default='false', nullable=False)
-
     # Parsed / cleaned data (what you return from get_profile)
-    data = Column(JSON, nullable=True)
+    profile = Column(JSON, nullable=True)
 
     # Full raw JSON from LinkedIn's API (for debugging, re-parsing, etc.)
-    raw_json = Column(JSON, nullable=True)
+    data = Column(JSON, nullable=True)
 
     # Whether this profile has been sent to your backend / cloud / CRM
     cloud_synced = Column(Boolean, default=False, server_default='false', nullable=False)
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    state = Column(String, nullable=False, default="discovered")

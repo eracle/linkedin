@@ -1,18 +1,19 @@
 # linkedin/csv_launcher.py
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Optional
 
 import pandas as pd
 
 from linkedin.campaigns.connect_follow_up import process_profile_row, CAMPAIGN_NAME, INPUT_CSV_PATH
 from linkedin.conf import get_first_active_account
+from linkedin.db.profiles import url_to_public_id, add_profiles_to_campaign, get_unfinished_profiles
 from linkedin.sessions.registry import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
 
 
-def load_profiles_urls_from_csv(csv_path: Path | str) -> List[str]:
+def load_profiles_urls_from_csv(csv_path: Path | str):
     csv_path = Path(csv_path)
     if not csv_path.is_file():
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
@@ -28,73 +29,57 @@ def load_profiles_urls_from_csv(csv_path: Path | str) -> List[str]:
     if url_column is None:
         raise ValueError(f"No URL column found. Available: {list(df.columns)}")
 
-    urls = (
-        df[url_column]
+    # Clean, dedupe, keep as DataFrame
+    urls_df = (
+        df[[url_column]]
         .astype(str)
-        .str.strip()
+        .apply(lambda col: col.str.strip())
         .replace({"nan": None, "<NA>": None})
         .dropna()
-        .drop_duplicates()  # Remove duplicates (preserves order)
+        .drop_duplicates()
     )
 
-    logger.debug(f"First 10 rows of {csv_path.name}:\n{urls.head(10).to_string(index=False)}")
-
-    logger.info(f"Loaded {len(urls):,} pristine LinkedIn profile URLs")
-    return urls.tolist()
+    # Add public identifier
+    urls_df["public_identifier"] = urls_df[url_column].apply(url_to_public_id)
+    logger.debug(f"First 10 rows of {csv_path.name}:\n"
+                 f"{urls_df.head(10).to_string(index=False)}"
+                 )
+    logger.info(f"Loaded {len(urls_df):,} pristine LinkedIn profile URLs")
+    return urls_df.to_dict(orient="records")
 
 
 def launch_from_csv(
         handle: str,
         csv_path: Path | str = INPUT_CSV_PATH,
         campaign_name: str = CAMPAIGN_NAME,
-) -> List[Dict[str, Any]]:
+):
     logger.info(f"Launching campaign '{campaign_name}' → running as @{handle} | CSV: {csv_path}")
 
     profiles = load_profiles_urls_from_csv(csv_path)
     logger.info(f"Loaded {len(profiles):,} profiles from CSV – ready for battle!")
 
-    _ = AccountSessionRegistry.get_or_create_from_path(
+    session, key = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name=campaign_name,
         csv_path=csv_path,
     )
 
-    results: List[Dict[str, Any]] = []
+    add_profiles_to_campaign(session, profiles)
 
-    for idx, profile_url in enumerate(profiles, start=1):
-        result = process_profile_row(
-            profile_url=profile_url,
-            handle=handle,
-            campaign_name=campaign_name,
-        )
-        results.append(result)
-        status = result.get('status', 'unknown')
+    # profiles = get_unfinished_profiles(session)
 
-        if status == "completed":
-            status_emoji = "\033[1;92mCOMPLETED\033[0m"  # bold green
-        elif status == "waiting_for_acceptance":
-            status_emoji = "\033[93mPENDING\033[0m"  # yellow
-        else:
-            status_emoji = "\033[91mERROR\033[0m"  # red
-
-        logger.info(f"\033[32m[{idx}]\033[0m Done → @{handle} | {status_emoji} {status} |")
-
-    # Summary
-    successful = sum(1 for r in results if r.get("status") == "completed")
-    waiting = sum(1 for r in results if r.get("status") == "waiting_for_acceptance")
-    errors = len(results) - successful - waiting
-
-    logger.info(
-        f"\033[1;36mCampaign '{campaign_name}' completed!\033[0m "
-        f"Completed: {successful:,} | Waiting: {waiting:,} | Errors: {errors}"
-    )
-
-    return results
+    for profile in profiles:
+        while process_profile_row(
+                key=key,
+                session=session,
+                public_identifier=profile['public_identifier'],
+        ):
+            pass
 
 
 def launch_connect_follow_up_campaign(
         handle: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+):
     """
     One-liner to run the connect → follow-up campaign.
 
@@ -110,4 +95,4 @@ def launch_connect_follow_up_campaign(
             )
         logger.info(f"No handle chosen → auto-picking the boss account: @{handle}")
 
-    return launch_from_csv(handle=handle)
+    launch_from_csv(handle=handle)

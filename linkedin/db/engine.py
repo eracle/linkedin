@@ -51,7 +51,7 @@ class Database:
                 logger.info("All profiles already synced")
                 return
 
-            payload = [p.data for p in unsynced if p.data]
+            payload = [p.profile for p in unsynced if p.profile]
             if not payload:
                 return
 

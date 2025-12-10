@@ -29,8 +29,6 @@ def send_follow_up_message(
     )
     session.ensure_browser()
 
-    public_identifier = profile.get("public_identifier")
-
     search_profile(session, profile)
 
     if message is None and template_file:
@@ -38,9 +36,7 @@ def send_follow_up_message(
     elif message is None:
         message = ""
 
-    status = send_message_to_profile(session, profile, message)
-    emoji = "sent" if status == MessageStatus.SENT else "skipped" if status == MessageStatus.SKIPPED else "failed"
-    logger.info("Message %s → %s", emoji, public_identifier)
+    return send_message_to_profile(session, profile, message)
 
 
 def get_messaging_availability(session: "AccountSession", profile: Dict[str, Any]) -> bool:
@@ -94,7 +90,7 @@ def _send_msg_pop_up(session: "AccountSession", profile: Dict[str, Any], message
 
         send_btn = page.locator('button[type="submit"][class*="msg-form"]:visible').first
         send_btn.click(force=True)
-        session.wait()
+        session.wait(4, 5)
 
         page.keyboard.press("Escape")
         session.wait()
@@ -172,7 +168,7 @@ if __name__ == "__main__":
         csv_path=INPUT_CSV_PATH,
     )
 
-    session = AccountSessionRegistry.get_or_create_from_path(
+    session, _ = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name="test_message",
         csv_path=INPUT_CSV_PATH,

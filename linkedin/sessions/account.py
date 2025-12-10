@@ -76,9 +76,9 @@ class AccountSession:
 
             for url in urls:
                 human_delay(min_api_delay, max_api_delay)
-                enriched, raw_json = api.get_profile(profile_url=url)
-                save_scraped_profile(self, url, enriched, raw_json)
-                logger.debug(f"Auto-scraped → {enriched.get('full_name', 'Unknown')} – {url}") if enriched else None
+                profile, data = api.get_profile(profile_url=url)
+                save_scraped_profile(self, url, profile, data)
+                logger.debug(f"Auto-scraped → {profile.get('full_name')} – {url}") if profile else None
         else:
             human_delay(min_delay, max_delay)
             self.page.wait_for_load_state("load")

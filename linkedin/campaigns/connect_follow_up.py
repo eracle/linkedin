@@ -1,8 +1,10 @@
 # campaigns/connect_follow_up.py
 import logging
 from pathlib import Path
-from typing import Dict, Any
 
+from linkedin.db.profiles import get_profile_state, set_profile_state, get_profile
+from linkedin.navigation.enums import ProfileState, MessageStatus
+from linkedin.navigation.exceptions import TerminalStateError
 from linkedin.sessions.registry import SessionKey
 
 logger = logging.getLogger(__name__)
@@ -21,65 +23,41 @@ FOLLOWUP_TEMPLATE_TYPE = "ai_prompt"
 
 # ———————————————————————————————— Core Logic ————————————————————————————————
 def process_profile_row(
-        profile_url: str,
-        handle: str,
-        campaign_name: str = CAMPAIGN_NAME,
-) -> Dict[str, Any]:
+        key: SessionKey,
+        session: "AccountSession",
+        public_identifier: str,
+):
     from linkedin.actions.connect import send_connection_request
     from linkedin.actions.message import send_follow_up_message
     from linkedin.actions.profile import scrape_profile
     from linkedin.navigation.enums import ConnectionStatus
 
-    key = SessionKey.make(
-        handle=handle,
-        campaign_name=campaign_name,
-        csv_path=INPUT_CSV_PATH,
-    )
+    old_state = ProfileState(get_profile_state(session, public_identifier) or ProfileState.DISCOVERED)
+    profile = get_profile(session, public_identifier).profile
+    new_state = None
 
-    profile = {"url": profile_url}
+    match old_state:
+        case ProfileState.COMPLETED | ProfileState.FAILED:
+            return None
 
-    logger.info(f"Processing → @{handle} | {profile_url} | SessionKey: {key}")
-    logger.debug(f"SessionKey details → handle={key.handle} campaign={key.campaign_name} hash={key.csv_hash}")
+        case ProfileState.DISCOVERED:
+            profile = scrape_profile(key=key, profile=profile)
+            new_state = ProfileState.FAILED.value if profile is None else ProfileState.ENRICHED.value
 
-    # 1. Enrich
-    logger.debug("Enriching profile...")
-    profile = scrape_profile(key=key, profile=profile)
-    if profile is None:
-        logger.warning(
-            f"Skipping @{handle} – enrichment failed "
-        )
-        return {
-            "handle": handle,
-            "status": "skipped",
-            "action": "enrichment_failed",
-        }
+        case ProfileState.ENRICHED:
+            status = send_connection_request(key=key, profile=profile)
+            new_state = ProfileState.CONNECTED.value if status == ConnectionStatus.CONNECTED else ProfileState.ENRICHED.value
 
-    # 2. Send connection request (if needed)
-    logger.debug("Sending connection request...")
-    status = send_connection_request(
-        key=key,
-        profile=profile,
-        # template_file=CONNECT_TEMPLATE_FILE,
-        # template_type=CONNECT_TEMPLATE_TYPE,
-    )
-    logger.info(f"Connection request result → {status.value}")
+        case ProfileState.CONNECTED:
+            status = send_follow_up_message(
+                key=key,
+                profile=profile,
+                template_file=FOLLOWUP_TEMPLATE_FILE,
+                template_type=FOLLOWUP_TEMPLATE_TYPE,
+            )
+            new_state = ProfileState.COMPLETED if status == MessageStatus.SENT else ProfileState.CONNECTED
+        case _:
+            raise TerminalStateError(f"Profile {public_identifier} is {old_state.value}")
 
-    # If already connected or pending → send follow-up immediately
-    if status == ConnectionStatus.CONNECTED:
-        logger.info("Already connected → sending follow-up")
-        send_follow_up_message(
-            key=key,
-            profile=profile,
-            template_file=FOLLOWUP_TEMPLATE_FILE,
-            template_type=FOLLOWUP_TEMPLATE_TYPE,
-        )
-        final_action = "follow_up_sent"
-    else:
-        logger.info(f"Connection request {status.value.lower()} → will follow-up later")
-        final_action = "connection_request_sent"
-
-    return {
-        "handle": handle,
-        "status": "completed" if final_action == "follow_up_sent" else "waiting_for_acceptance",
-        "action": final_action,
-    }
+    set_profile_state(session, profile, new_state)
+    return profile

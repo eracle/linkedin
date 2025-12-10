@@ -5,13 +5,10 @@ from typing import Optional, Any
 from urllib.parse import urlparse
 
 from linkedin.api.voyager import parse_linkedin_voyager_response
+from linkedin.db.profiles import url_to_public_id
+from linkedin.navigation.exceptions import AuthenticationError
 
 logger = logging.getLogger(__name__)
-
-
-class AuthenticationError(Exception):
-    """Custom exception for 401 Unauthorized errors."""
-    pass
 
 
 class PlaywrightLinkedinAPI:
@@ -66,7 +63,7 @@ class PlaywrightLinkedinAPI:
             self, public_identifier: Optional[str] = None, profile_url: Optional[str] = None
     ) -> tuple[None, None] | tuple[dict, Any]:
         if not public_identifier and profile_url:
-            public_identifier = urlparse(profile_url).path.strip('/').split('/')[-1]
+            public_identifier = url_to_public_id(profile_url)
 
         if not public_identifier:
             raise ValueError("Need public_identifier or profile_url")

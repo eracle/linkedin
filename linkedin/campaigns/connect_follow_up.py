@@ -37,14 +37,12 @@ def process_profile_row(
     public_identifier = profile['public_identifier']
     profile_row = get_profile(session, public_identifier)
 
-    # ──── FIX START ────
     if profile_row:
         current_state = ProfileState(profile_row.state)   # ← string → enum
         enriched_profile = profile_row.profile or profile
     else:
         current_state = ProfileState.DISCOVERED
         enriched_profile = profile
-    # ──── FIX END ────
 
     logger.debug(f"Actual state: {public_identifier}  {current_state}")
 

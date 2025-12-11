@@ -12,11 +12,6 @@ from linkedin.navigation.enums import ProfileState
 logger = logging.getLogger(__name__)
 
 
-def add_profiles_to_campaign(session, profiles):
-    add_profile_urls(session, [profile['url'] for profile in profiles])
-    [set_profile_state(session, profile['public_identifier'], new_state=ProfileState.DISCOVERED) for profile in profiles]
-
-
 def add_profile_urls(session: "AccountSession", urls: List[str]):
     if not urls:
         return
@@ -36,8 +31,6 @@ def add_profile_urls(session: "AccountSession", urls: List[str]):
 
     logger.debug(f"Discovered {len(public_ids)} unique LinkedIn profiles")
 
-
-# linkedin/db/profiles.py
 
 def save_scraped_profile(
         session: "AccountSession",

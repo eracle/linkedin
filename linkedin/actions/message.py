@@ -11,7 +11,7 @@ from linkedin.templates.renderer import render_template
 
 logger = logging.getLogger(__name__)
 
-LINKEDIN_MESSAGING_URL = "https://www.linkedin.com/messaging/"
+LINKEDIN_MESSAGING_URL = "https://www.linkedin.com/messaging/thread/new/"
 
 
 def send_follow_up_message(
@@ -112,23 +112,27 @@ def _send_message(session: "AccountSession", profile: Dict[str, Any], message: s
         timeout=30_000,
         error_message="Error opening messaging",
     )
-    # Click the element with class="entry-point"
-    session.page.locator(".entry-point").click(timeout=10_000)
+    try:
+        # Search person
+        session.page.locator('input[class^="msg-connections"]').type(full_name, delay=50)
+        session.wait(0.5, 1)
 
-    # Search person
-    session.page.locator('input[class^="msg-connections"]').type(full_name, delay=120)
+        item = session.page.locator('div[class*="msg-connections-typeahead__search-result-row"]').first
+        session.wait(0.5, 1)
 
-    selector = 'li[data-view-name="messaging-type-ahead-card"]:first-of-type'
+        # Scroll into view + click (very reliable on LinkedIn)
+        item.scroll_into_view_if_needed()
+        item.click(delay=200)  # small delay between mousedown/mouseup = very human
 
-    item = session.page.locator(selector)
-    item.wait_for(state="visible")
+        session.page.locator('div[class^="msg-form__contenteditable"]').type(message, delay=10)
 
-    # Scroll into view + click (very reliable on LinkedIn)
-    item.scroll_into_view_if_needed()
-    item.click(delay=200)  # small delay between mousedown/mouseup = very human
-
-    session.page.locator('div[class^="msg-form__contenteditable"]').type(message, delay=120)
-    session.page.locator('div[class^="class="msg-form__send-button"]').press("Enter")
+        session.page.locator('button[class^="msg-form__send-button"]').click(delay=200)
+        session.wait(0.5, 1)
+        return True
+    except Exception as e:
+        public_identifier = profile.get("public_identifier")
+        logger.error("Failed to send message to %s → %s", public_identifier, e)
+        return False
 
 
 def send_message_to_profile(
@@ -139,8 +143,9 @@ def send_message_to_profile(
     if not get_messaging_availability(session, profile):
         logger.info("Message skipped → not connected")
         return MessageStatus.SKIPPED
-
-    success = _send_msg_pop_up(session, profile, message) or _send_message(session, profile, message)
+    s1 = _send_msg_pop_up(session, profile, message)
+    s2 = s1 or _send_message(session, profile, message)
+    success = s2
     return MessageStatus.SENT if success else MessageStatus.SKIPPED
 
 

@@ -1,5 +1,6 @@
 # linkedin/actions/template.py
 import logging
+from pathlib import Path
 from typing import Dict, Any
 
 import jinja2
@@ -40,16 +41,18 @@ def call_llm(prompt: str) -> str:
 def render_template(template_file: str, template_type: str, context: Dict[str, Any]) -> str:
     logger.debug("Available template variables: %s", sorted(context.keys()))
 
-    with open(template_file, 'r', encoding='utf-8') as f:
-        template_str = f.read()
+    template_path = Path(template_file)
+    folder = template_path.parent  # folder of the template itself
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(folder))
+    template = env.get_template(template_path.name)  # load just the filename
+
+    rendered = template.render(**context).strip()
+    logger.debug(f"Rendered template: {rendered}")
 
     match template_type:
         case 'jinja':
-            return jinja2.Template(template_str).render(**context).strip()
+            return rendered
         case 'ai_prompt':
-            prompt = jinja2.Template(template_str).render(**context).strip()
-            msg = call_llm(prompt)
-            logger.debug(f"Sending: {msg}")
-            return msg
+            return call_llm(rendered)
         case _:
             raise ValueError(f"Unknown template_type: {template_type}")

@@ -19,7 +19,7 @@ def profile(profile_data):
 
 @pytest.fixture
 def profile_data():
-    fixture_path = Path(__file__).parent.parent / "fixtures" / "linkedin_profile.json"
+    fixture_path = Path(__file__).parent.parent / "fixtures" / "profiles" /"linkedin_profile.json"
     with open(fixture_path, encoding="utf-8") as f:
         return json.load(f)
 

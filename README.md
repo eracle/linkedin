@@ -24,20 +24,26 @@ make up
 - [Usage](#usage)
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
 - [Community](#community)
 - [License](#license)
 
 ## Features
-✓ **Advanced Browser Automation:** Utilizes Playwright for robust, human-like interaction with a stealth plugin to minimize detection.  
-✓ **Reliable Data Scraping:** Bypasses traditional HTML scraping by using LinkedIn's internal Voyager API for structured and reliable profile data.  
-✓ **Python-Native Campaigns:** Define sophisticated automation sequences directly in Python for maximum flexibility and control.  
-✓ **Stateful Workflow Engine:** Tracks the state of each profile (e.g., `DISCOVERED`, `ENRICHED`, `CONNECTED`, `COMPLETED`) in a local database, ensuring campaigns can be stopped and resumed without losing progress.  
-✓ **Persistent Local Database:** Full ownership and access to your data with a dedicated SQLite database for each LinkedIn account.  
-✓ **Containerized Environment:** One-command builds and deployment with Docker and Make.  
-✓ **Visual Debugging:** Watch the automation in real-time with a built-in VNC server, accessible at `localhost:5900`.
-✓ **AI-Ready Templating:** Easily integrate with generative AI (e.g., GPT) for hyper-personalized messages using a powerful prompt-based templating system.
+✓ **Advanced Browser Automation:** 
+Utilizes Playwright for robust, human-like interaction with a stealth plugin to minimize detection.  
+✓ **Reliable Data Scraping:** 
+Bypasses traditional HTML scraping by using LinkedIn's internal Voyager API for structured and reliable profile data.  
+✓ **Python-Native Campaigns:** 
+Define sophisticated automation sequences directly in Python for maximum flexibility and control.  
+✓ **Stateful Workflow Engine:** 
+Tracks the state of each profile (e.g., `DISCOVERED`, `ENRICHED`, `CONNECTED`, `COMPLETED`) in a local database, ensuring campaigns can be stopped and resumed without losing progress.  
+✓ **Persistent Local Database:** 
+Full ownership and access to your data with a dedicated SQLite database for each LinkedIn account.  
+✓ **Containerized Environment:** 
+One-command builds and deployment with Docker and Make.  
+✓ **Visual Debugging:** 
+Watch the automation in real-time with a built-in VNC server, accessible at `localhost:5900`.
+✓ **AI-Ready Templating:** 
+Easily integrate with generative AI (e.g., GPT) for hyper-personalized messages using a powerful prompt-based templating system.
 
 ## Installation
 
@@ -115,7 +121,6 @@ You can modify the campaign logic and message templates directly in the `linkedi
 
 
 ## Community
-- [GitHub Discussions](https://github.com/eracle/OpenOutreach/discussions)
 - [Telegram Group](https://t.me/+Y5bh9Vg8UVg5ODU0).
 
 

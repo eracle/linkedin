@@ -9,6 +9,7 @@ from linkedin.campaigns.connect_follow_up import process_profile_row, CAMPAIGN_N
 from linkedin.conf import get_first_active_account
 from linkedin.db.profiles import url_to_public_id
 from linkedin.navigation.exceptions import SkipProfile
+from linkedin.navigation.utils import save_page
 from linkedin.sessions.registry import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,6 @@ def launch_from_csv(
         go_ahead = True
         while go_ahead:
             try:
-
                 profile = process_profile_row(
                     key=key,
                     session=session,
@@ -78,7 +78,8 @@ def launch_from_csv(
                 go_ahead = bool(profile)
             except SkipProfile as e:
                 public_identifier = profile["public_identifier"]
-                logger.info(f"Skipping profile: {public_identifier} reason: {e}")
+                logger.info(f"\033[91mSkipping profile: {public_identifier} reason: {e}\033[0m")
+                save_page(session, profile)
                 go_ahead = False
 
 

@@ -1,38 +1,52 @@
 # linkedin/navigation/throttle.py
+
 import logging
 
 from linkedin.db.profiles import count_pending_scrape
 
 logger = logging.getLogger(__name__)
 
-# Simple state
-_state = {
-    "wait_count": 0,
-    "last_pending": 0,
-    "total_scraped": 0,
-}
+INITIAL_BATCH = 5  # ← the only number you ever touch
 
 
-def determine_batch_size(session: "AccountSession") -> int:
-    current_pending = count_pending_scrape(session)
-    s = _state
+class ThrottleState:
+    def __init__(self):
+        self.last_pending = None
+        self.total_processed = 0
+        self.processed_cycles = 0
 
-    s["wait_count"] += 1
-    wait_no = s["wait_count"]
+    def determine_batch_size(self, session) -> int:
+        current = count_pending_scrape(session)
 
-    delta = current_pending - s["last_pending"] if wait_no > 1 else 0
-    s["last_pending"] = current_pending
-    s["total_scraped"] += max(delta, 0)
+        if self.last_pending is None:  # first call ever
+            self.last_pending = current
+            return INITIAL_BATCH
 
-    avg_per_cycle = s["total_scraped"] // wait_no if wait_no > 1 else delta
-    batch_size = min(current_pending, max(1, avg_per_cycle))
+        processed = max(self.last_pending - current, 0)
 
-    logger.debug(
-        f"Throttle | Cycle {wait_no:04d} | "
-        f"Pending {current_pending:4d} | "
-        f"Scraped {delta:3d} | "
-        f"Avg {avg_per_cycle:3d} | "
-        f"Batch {batch_size:3d}"
-    )
+        if processed > 0:
+            self.total_processed += processed
+            self.processed_cycles += 1
 
-    return batch_size
+        self.last_pending = current
+
+        if self.processed_cycles == 0:
+            batch = INITIAL_BATCH
+        else:
+            batch = self.total_processed // self.processed_cycles
+
+        batch = min(batch, current or 0)  # don’t take more than exist
+        batch = max(1, batch)  # never zero
+
+        logger.debug(
+            "Throttle | Pending=%2d | Processed=%2d | Avg=%d | Batch=%d",
+            current, processed,
+            self.total_processed // self.processed_cycles if self.processed_cycles else 0,
+            batch
+        )
+
+        return batch
+
+
+_throttle_state = ThrottleState()
+determine_batch_size = _throttle_state.determine_batch_size

@@ -4,7 +4,8 @@ from urllib.parse import unquote, urlparse, urljoin
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-from linkedin.conf import SYNC_PROFILES
+from linkedin.conf import SYNC_PROFILES, FIXTURE_PAGES_DIR
+from linkedin.navigation.exceptions import SkipProfile
 
 logger = logging.getLogger(__name__)
 
@@ -52,3 +53,33 @@ def _extract_in_urls(session):
             urls.add(clean)
     logger.debug(f"Extracted {len(urls)} unique /in/ profiles")
     return urls
+
+
+def get_top_card(session):
+    top_card = session.page.locator('section:has(div.top-card-background-hero-image)')
+
+    if top_card.count() == 0:
+        top_card = session.page.locator('section[data-member-id]')
+
+    if top_card.count() == 0:
+        top_card = session.page.locator('section.artdeco-card:has(> div.pv-top-card)')
+
+    if top_card.count() == 0:
+        top_card = session.page.locator('section[data-member-id] >> div.pv-top-card').locator('..')
+
+    if top_card.count() == 0:
+        top_card = session.page.locator('section:has(> div[class*="pv-top-card"])')
+
+    if top_card.count() == 0:
+        logger.info("Skipping profile")
+        raise SkipProfile("Top Card section not found")
+
+    return top_card.first  # there’s always only one
+
+
+def save_page(session: "AccountSession", profile: dict, ):
+    filepath = FIXTURE_PAGES_DIR / f"{profile.get("public_identifier")}.html"
+    html_content = session.page.content()
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    logger.info("Saved ambiguous connection status page → %s", filepath)

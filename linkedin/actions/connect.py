@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any
 
 from linkedin.navigation.enums import ConnectionStatus
 from linkedin.navigation.exceptions import SkipProfile
+from linkedin.navigation.utils import get_top_card
 from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ def send_connection_request(
 
 def _connect_direct(session):
     session.wait()
-    top_card = session.page.locator('section:has(div.top-card-background-hero-image)')
+    top_card = get_top_card(session)
     direct = top_card.locator('button[aria-label*="Invite"][aria-label*="to connect"]:visible')
     if direct.count() == 0:
         return False
@@ -86,14 +87,16 @@ def _connect_direct(session):
 
 def _connect_via_more(session):
     session.wait()
-    top_card = session.page.locator('section:has(div.top-card-background-hero-image)')
+    top_card = get_top_card(session)
 
     # Fallback: More → Connect
     more = top_card.locator(
         'button[id*="overflow"]:visible, '
         'button[aria-label*="More actions"]:visible'
-    ).first
-    more.click()
+    )
+    if more.count() == 0:
+        return False
+    more.first.click()
 
     session.wait()
 
@@ -131,7 +134,7 @@ def _click_without_note(session):
 def _perform_send_invitation_with_note(session, message: str):
     """Full flow with custom note – ready to enable anytime."""
     session.wait()
-    top_card = session.page.locator('section:has(div.top-card-background-hero-image)')
+    top_card = get_top_card(session)
 
     direct = top_card.locator('button[aria-label*="Invite"][aria-label*="to connect"]:visible')
     if direct.count() > 0:

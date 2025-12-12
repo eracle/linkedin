@@ -32,8 +32,8 @@ FIXTURE_DIR = ROOT_DIR / "tests" / "fixtures"
 FIXTURE_PROFILES_DIR = FIXTURE_DIR / "profiles"
 FIXTURE_PAGES_DIR = FIXTURE_DIR / "pages"
 
-MIN_DELAY = 5
-MAX_DELAY = 8
+MIN_DELAY = 1
+MAX_DELAY = 2
 
 # ←←← FEATURE FLAG – set to False to completely disable auto-scraping in wait() ←←←
 SYNC_PROFILES = False

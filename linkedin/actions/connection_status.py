@@ -2,8 +2,8 @@
 import logging
 from typing import Dict, Any
 
-from linkedin.conf import FIXTURE_PAGES_DIR
 from linkedin.navigation.enums import ConnectionStatus
+from linkedin.navigation.utils import get_top_card
 from linkedin.sessions.registry import AccountSessionRegistry
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def get_connection_status(
 
     logger.debug("connection_degree=%s → API unreliable, switching to UI inspection", degree or "None")
 
-    top_card = session.page.locator('section:has(div.top-card-background-hero-image)')
+    top_card = get_top_card(session)
 
     # 1. Pending invitation?
     if top_card.locator('button[aria-label*="Pending"]:visible').count() > 0:
@@ -69,14 +69,6 @@ def get_connection_status(
     logger.debug("No clear indicators → defaulting to NOT_CONNECTED")
     # save_page(profile, session)  # uncomment if you want HTML dumps
     return ConnectionStatus.NOT_CONNECTED
-
-
-def save_page(profile: dict[str, Any], session):
-    filepath = FIXTURE_PAGES_DIR / f"{profile.get("public_identifier")}.html"
-    html_content = session.page.content()
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    logger.info("Saved ambiguous connection status page → %s", filepath)
 
 
 if __name__ == "__main__":

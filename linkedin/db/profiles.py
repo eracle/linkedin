@@ -64,8 +64,7 @@ def save_scraped_profile(
 
     db.commit()
 
-    if logger.isEnabledFor(logging.DEBUG):
-        debug_profile_preview(profile)
+    debug_profile_preview(profile) if logger.isEnabledFor(logging.DEBUG) else None
 
     logger.info(f"SUCCESS: Saved enriched profile → {public_id}")
 
@@ -82,35 +81,27 @@ def get_next_url_to_scrape(session: "AccountSession", limit: int = 1) -> List[st
 def count_pending_scrape(session: "AccountSession") -> int:
     return (session.db_session
             .query(Profile)
-            .filter(Profile.state != ProfileState.DISCOVERED.value)
+            .filter(Profile.state == ProfileState.DISCOVERED.value)
             .count())
 
 
 def url_to_public_id(url: str) -> str:
     """
-    Convert any LinkedIn profile URL → public_identifier (e.g. 'john-doe-1a2b3c4d')
-
-    Examples:
-      "https://www.linkedin.com/in/john-doe-1a2b3c4d/?originalSubdomain=fr" → "john-doe-1a2b3c4d"
-      "https://linkedin.com/in/alice/" → "alice"
-      "http://linkedin.com/in/bob-123/" → "bob-123"
+    Strict LinkedIn public ID extractor:
+    - Path MUST start with /in/
+    - Returns the second segment, percent-decoded
+    - Anything else → raises ValueError
     """
     if not url:
-        return ""
+        raise ValueError("Empty URL")
 
-    parsed = urlparse(url.strip().lower())
-    if not parsed.path:
-        return ""
+    path = urlparse(url.strip()).path
+    parts = path.strip("/").split("/")
 
-    # Remove leading '/in/' and trailing slash
-    path = parsed.path.strip("/")
-    if not path.startswith("in/"):
-        return ""
+    if len(parts) < 2 or parts[0] != "in":
+        raise ValueError(f"Not a valid /in/ profile URL: {url!r}")
 
-    public_id = path[3:]  # strip the "in/"
-    if public_id.endswith("/"):
-        public_id = public_id[:-1]
-
+    public_id = parts[1]
     return unquote(public_id)
 
 
@@ -168,5 +159,5 @@ def set_profile_state(session: "AccountSession", public_identifier, new_state: s
 
 def debug_profile_preview(enriched):
     pretty = json.dumps(enriched, indent=2, ensure_ascii=False, default=str)
-    preview_lines = pretty.splitlines()[:12]
+    preview_lines = pretty.splitlines()[:3]
     logger.debug("=== ENRICHED PROFILE PREVIEW ===\n%s\n...", '\n'.join(preview_lines))

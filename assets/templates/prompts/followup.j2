@@ -7,7 +7,6 @@ Name: {{ full_name }}
 Current role: {{ headline }}
 Company: {{ positions[0].company_name if positions else "their company" }}
 Location: {{ location_name or "your area" }}
-Connection: {{ "1st" if connection_degree == 1 else "2nd" if connection_degree == 2 else "3rd" if connection_degree == 3 else "out of network" }}
 
 Their summary says: "{{ summary | default("") }}"
 

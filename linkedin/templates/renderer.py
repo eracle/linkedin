@@ -1,13 +1,13 @@
 # linkedin/actions/template.py
 import logging
 from pathlib import Path
-from typing import Dict, Any
 
 import jinja2
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 from linkedin.conf import AI_MODEL, OPENAI_API_KEY
+from linkedin.sessions.account import AccountSession
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,9 @@ def call_llm(prompt: str) -> str:
     return response.content.strip()
 
 
-def render_template(template_file: str, template_type: str, context: Dict[str, Any]) -> str:
+def render_template(session: "AccountSession", template_file: str, template_type: str, profile: dict) -> str:
+    context = {**profile}
+
     logger.debug("Available template variables: %s", sorted(context.keys()))
 
     template_path = Path(template_file)
@@ -51,8 +53,12 @@ def render_template(template_file: str, template_type: str, context: Dict[str, A
 
     match template_type:
         case 'jinja':
-            return rendered
+            pass
         case 'ai_prompt':
-            return call_llm(rendered)
+            rendered = call_llm(rendered)
         case _:
             raise ValueError(f"Unknown template_type: {template_type}")
+
+    booking_link = session.account_cfg.get("booking_link", None)
+    rendered += f"\n{booking_link}" if booking_link else ""
+    return rendered

@@ -77,6 +77,7 @@ def get_account_config(handle: str) -> Dict[str, Any]:
         # Runtime paths
         "cookie_file": COOKIES_DIR / f"{handle}.json",
         "db_path": account_db_path,  # per-handle database
+        "booking_link": acct.get("booking_link"),
     }
 
 

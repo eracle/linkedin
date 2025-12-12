@@ -37,7 +37,7 @@ def send_connection_request(
 
     if template_file:
         from linkedin.templates.renderer import render_template
-        message = render_template(template_file, template_type, profile)
+        message = render_template(session, template_file, template_type, profile)
         logger.debug("Rendered note (%d chars): %r", len(message), message.strip()[:200])
     else:
         message = ""

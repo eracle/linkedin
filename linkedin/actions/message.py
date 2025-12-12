@@ -32,7 +32,7 @@ def send_follow_up_message(
     search_profile(session, profile)
 
     if message is None and template_file:
-        message = render_template(template_file, template_type, profile)
+        message = render_template(session, template_file, template_type, profile)
     elif message is None:
         message = ""
 

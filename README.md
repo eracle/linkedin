@@ -20,8 +20,6 @@
 
 ---
 
-<div align="center">
-
 ## 🚀 Quick Start
 
 Get up and running in minutes:
@@ -31,8 +29,6 @@ git clone https://github.com/eracle/OpenOutreach.git
 cd OpenOutreach
 make up
 ```
-
-</div>
 
 ---
 

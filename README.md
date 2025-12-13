@@ -21,6 +21,41 @@
 
 ---
 
+### ❤️ Support OpenOutreach – Keep the Leads Flowing!
+
+OpenOutreach is built and maintained in my spare time because I believe every business deserves powerful, open-source tools for growth – without expensive SaaS lock-in.
+
+But maintaining stealth automation, fixing bugs, adding new features (like multi-account scaling, better templates, or AI-enhanced messaging), and keeping it undetectable against LinkedIn changes **takes serious time and effort**.
+
+Your sponsorship directly funds more updates, faster support, and keeps this project alive and free for everyone.
+
+**Even a small monthly contribution makes a huge difference** – it allows me to dedicate more hours to making OpenOutreach the best LinkedIn autopilot tool out there.
+
+<div align="center">
+
+[![Sponsor with GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=for-the-badge&logo=github)](https://github.com/sponsors/eracle)
+
+
+<br/>
+
+**Popular Tiers & Perks:**
+
+| Tier              | Monthly | Benefits                                                                 |
+|-------------------|---------|--------------------------------------------------------------------------|
+| ☕ Supporter      | $5     | Huge thanks + name in README supporters list                             |
+| 🚀 Booster        | $25    | All above + priority feature requests + early access to new campaigns   |
+| 🦸 Hero           | $100   | All above + personal 1-on-1 support + influence roadmap                 |
+| 💎 Legend         | $500+  | All above + custom feature development + shoutout in releases            |
+
+**Thank you to all current sponsors – you're making open-source B2B growth possible!** 🚀
+
+<!-- Future: Add dynamic sponsors list here via GitHub Action for social proof -->
+
+</div>
+
+<br/>
+---
+
 ## 🚀 Quick Start
 
 Get up and running in minutes:

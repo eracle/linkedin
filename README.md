@@ -53,7 +53,8 @@ Your sponsorship directly funds more updates, faster support, and keeps this pro
 
 </div>
 
-<br/>
+
+
 ---
 
 ## 🚀 Quick Start

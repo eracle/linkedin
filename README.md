@@ -40,6 +40,7 @@ make up
 - [Usage](#-usage)
 - [Visual Debugging](#-visual-debugging)
 - [Project Structure](#-project-structure)
+- [Documentation](#-documentation)
 - [Configuration](#-configuration)
 - [Community](#-community)
 - [License](#-license)
@@ -146,6 +147,14 @@ Watch the browser automation live:
 
 ---
 
+## 📖 Documentation
+
+- [Configuration](./docs/configuration.md)
+- [Templating](./docs/templating.md)
+- [Testing Strategy](./docs/testing_strategy.md)
+
+---
+
 ## ⚙️ Configuration
 
 - `assets/accounts.secrets.yaml` – Add accounts and set `active: true`
@@ -180,6 +189,6 @@ detected using such tools. The authors and contributors assume no liability for 
 
 <div align="center">
 
-**Made with ❤️ by the open-source community**
+**Made with ❤️**
 
 </div>

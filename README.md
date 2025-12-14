@@ -21,7 +21,7 @@
 
 ### 🚀 What is OpenOutreach?
 
-OpenOutreach is a **self-hosted, open-source LinkedIn automation tool** designed for B2B lead generation — without the
+OpenOutreach is a **self-hosted, open-source LinkedIn automation tool** designed for B2B lead generation, without the
 risks and costs of cloud SaaS services.
 
 It automates the entire outreach process in a **stealthy, human-like way**:

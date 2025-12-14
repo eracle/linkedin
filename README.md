@@ -4,7 +4,6 @@
 
 <div align="center">
 
-
 [![GitHub stars](https://img.shields.io/github/stars/eracle/OpenOutreach.svg?style=flat-square&logo=github)](https://github.com/eracle/OpenOutreach/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/eracle/OpenOutreach.svg?style=flat-square&logo=github)](https://github.com/eracle/OpenOutreach/network/members)
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0)
@@ -12,52 +11,40 @@
 
 <br/>
 
-### See it in action!
+# Demo:
 
 <img src="docs/demo.gif" alt="Demo Animation" width="100%"/>
 
-
 </div>
 
 ---
 
-### ❤️ Support OpenOutreach – Keep the Leads Flowing!
+### 🚀 What is OpenOutreach?
 
-OpenOutreach is built and maintained in my spare time because I believe every business deserves powerful, open-source tools for growth – without expensive SaaS lock-in.
+OpenOutreach is a **self-hosted, open-source LinkedIn automation tool** designed for B2B lead generation — without the
+risks and costs of cloud SaaS services.
 
-But maintaining stealth automation, fixing bugs, adding new features (like multi-account scaling, better templates, or AI-enhanced messaging), and keeping it undetectable against LinkedIn changes **takes serious time and effort**.
+It automates the entire outreach process in a **stealthy, human-like way**:
 
-Your sponsorship directly funds more updates, faster support, and keeps this project alive and free for everyone.
+- Discovers and enriches target profiles
+- Sends personalized connection requests
+- Follows up with custom messages after acceptance
+- Tracks everything in a local database (full data ownership, resumable workflows)
 
-**Even a small monthly contribution makes a huge difference** – it allows me to dedicate more hours to making OpenOutreach the best LinkedIn autopilot tool out there.
+**Why choose OpenOutreach?**
 
-<div align="center">
+- 🛡️ **Undetectable** — Playwright + stealth plugins mimic real user behavior
+- 🐍 **Fully customizable** — Python-based campaigns for unlimited flexibility
+- 💾 **Local execution** — You own your workflow
+- 🐳 **Easy deployment** — Dockerized, one-command setup
+- ✨ **AI-ready** — Built-in templating for hyper-personalized messages (integrate GPT easily)
 
-[![Sponsor with GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=for-the-badge&logo=github)](https://github.com/sponsors/eracle)
-
-
-<br/>
-
-**Popular Tiers & Perks:**
-
-| Tier              | Monthly | Benefits                                                                 |
-|-------------------|---------|--------------------------------------------------------------------------|
-| ☕ Supporter      | $5     | Huge thanks + name in README supporters list                             |
-| 🚀 Booster        | $25    | All above + priority feature requests + early access to new campaigns   |
-| 🦸 Hero           | $100   | All above + personal 1-on-1 support + influence roadmap                 |
-| 💎 Legend         | $500+  | All above + custom feature development + shoutout in releases            |
-
-**Thank you to all current sponsors – you're making open-source B2B growth possible!** 🚀
-
-<!-- Future: Add dynamic sponsors list here via GitHub Action for social proof -->
-
-</div>
-
-
+Perfect for founders, sales teams, and agencies who want powerful automation **without account bans or subscription
+lock-in**.
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Quick Start
 
 Get up and running in minutes:
 
@@ -67,20 +54,21 @@ cd OpenOutreach
 make up
 ```
 
----
+### Setup Steps
 
-## 📚 Table of Contents
+1. **Configure LinkedIn accounts**
+   ```bash
+   cp assets/accounts.secrets.template.yaml assets/accounts.secrets.yaml
+   ```
+   Edit the file with your credentials (multi-account supported — set `active: true`).
 
-- [Features](#-features)
-- [Installation](#-installation)
-- [Usage](#-usage)
-- [Visual Debugging](#-visual-debugging)
-- [Project Structure](#-project-structure)
-- [Documentation](#-documentation)
-- [Configuration](#-configuration)
-- [Community](#-community)
-- [License](#-license)
-- [Legal Disclaimer](#-legal-disclaimer)
+2. **Add target profiles**  
+   Paste LinkedIn profile URLs into `assets/inputs/urls.csv`.
+
+3. **Run**  
+   `make up` launches the default campaign (connect + follow-up).
+
+The tool is fully resumable — stop/restart anytime without losing progress.
 
 ---
 
@@ -99,7 +87,103 @@ make up
 
 ---
 
-## 🛠️ Installation
+### ❤️ Support OpenOutreach – Keep the Leads Flowing!
+
+This project is built in spare time to provide powerful, **free** open-source growth tools.
+
+Maintaining stealth, fixing bugs, adding features (multi-account scaling, better templates, AI enhancements), and
+staying ahead of LinkedIn changes takes serious effort.
+
+**Your sponsorship funds faster updates and keeps it free for everyone.**
+
+<div align="center">
+
+[![Sponsor with GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=for-the-badge&logo=github)](https://github.com/sponsors/eracle)
+
+<br/>
+
+**Popular Tiers & Perks:**
+
+| Tier        | Monthly | Benefits                                                              |
+|-------------|---------|-----------------------------------------------------------------------|
+| ☕ Supporter | $5      | Huge thanks + name in README supporters list                          |
+| 🚀 Booster  | $25     | All above + priority feature requests + early access to new campaigns |
+| 🦸 Hero     | $100    | All above + personal 1-on-1 support + influence roadmap               |
+| 💎 Legend   | $500+   | All above + custom feature development + shoutout in releases         |
+
+**Thank you to all sponsors — you're powering open-source B2B growth!** 🚀
+
+</div>
+
+---
+
+### 🗓️ Book a Free 15-Minute Call
+
+Got a specific use case, feature request, or questions about setup?
+
+Book a **free 15-minute call** — I’d love to hear your needs and improve the tool based on real feedback.
+
+<div align="center">
+
+[![Book a 15-min call](https://img.shields.io/badge/Book%20a%2015--min%20call-28A745?style=for-the-badge&logo=calendar)](https://calendly.com/eracle/new-meeting)
+
+</div>
+
+---
+
+## 📖 Usage & Customization
+
+The default campaign (`linkedin/campaigns/connect_follow_up.py`) handles:
+
+- Profile enrichment
+- Connection requests
+- Personalized follow-ups
+
+**Profile states:** `DISCOVERED` → `ENRICHED` → `CONNECTED` → `COMPLETED` (or `FAILED`)
+
+Edit the campaign file directly for custom logic, templates, or AI integration.
+
+---
+
+## 🖥️ Visual Debugging
+
+Watch automation live:
+
+0. Install Vinagre
+1. Build: `make build`
+2. Run viewed mode: `make up-view`
+3. Connect VNC client to `localhost:5900` (password: `secret`)
+
+---
+
+## 📂 Project Structure
+
+```
+├── assets/
+│   ├── accounts.secrets.yaml      # LinkedIn credentials
+│   └── inputs/
+│       └── urls.csv               # Target profiles
+├── linkedin/
+│   ├── actions/                   # Browser actions
+│   ├── api/                       # Voyager API client
+│   ├── campaigns/                 # Workflows
+│   ├── db/                        # SQLite utilities
+│   ├── navigation/                # Login helpers
+│   └── sessions/                  # Session management
+├── main.py                        # Entry point
+├── local.yml                      # Docker Compose
+└── Makefile                       # Shortcuts
+```
+
+---
+
+## 📚 Documentation
+
+- [Configuration](./docs/configuration.md)
+- [Templating](./docs/templating.md)
+- [Testing Strategy](./docs/testing_strategy.md)
+
+---
 
 ### Prerequisites
 
@@ -108,118 +192,28 @@ make up
 - [Docker Compose](https://docs.docker.com/compose/)
 - [Git](https://git-scm.com/)
 
-### Steps
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/eracle/OpenOutreach.git
-   cd OpenOutreach
-   ```
-
-2. **Configure LinkedIn accounts**
-   ```bash
-   cp assets/accounts.secrets.template.yaml assets/accounts.secrets.yaml
-   ```
-   Edit `assets/accounts.secrets.yaml` and add your credentials (multiple accounts supported).
-
-3. **Add target profiles**
-   Add LinkedIn profile URLs to `assets/inputs/urls.csv`.
-
-4. **Build & run**
-   ```bash
-   make up
-   ```
-   The tool will select the first active account and begin processing.
-
----
-
-## 📖 Usage
-
-The default **Connect and Follow-Up Campaign** (`linkedin/campaigns/connect_follow_up.py`) automates:
-
-- Profile enrichment via Voyager API
-- Sending connection requests
-- Personalized follow-up messages after acceptance
-
-**Profile states:**
-
-- `DISCOVERED` → `ENRICHED` → `CONNECTED` → `COMPLETED` (or `FAILED`)
-
-The system is fully resumable – stop and restart without losing progress.
-
-Customize campaign logic and message templates directly in the Python campaign file.
-
----
-
-## 🖥️ Visual Debugging
-
-Watch the browser automation live:
-
-1. Install a VNC viewer (e.g., on Ubuntu: `sudo apt install vinagre`)
-2. Build containers: `make build`
-3. Run in view mode: `make up-view`
-4. Connect to `localhost:5900` with your VNC client (password: `secret`)
-
----
-
-## 📂 Project Structure
-
-```
-├── assets/
-│   ├── accounts.secrets.yaml      # Your LinkedIn credentials
-│   └── inputs/
-│       └── urls.csv               # Target profile URLs
-├── linkedin/
-│   ├── actions/                   # Low-level browser actions
-│   ├── api/                       # Voyager API client
-│   ├── campaigns/                 # Automation workflows
-│   ├── db/                        # SQLite models & utilities
-│   ├── navigation/                # Login & navigation helpers
-│   └── sessions/                  # Account session management
-├── main.py                        # Application entry point
-├── local.yml                      # Docker Compose config
-└── Makefile                       # Build/run shortcuts
-```
-
----
-
-## 📖 Documentation
-
-- [Configuration](./docs/configuration.md)
-- [Templating](./docs/templating.md)
-- [Testing Strategy](./docs/testing_strategy.md)
-
----
-
-## ⚙️ Configuration
-
-- `assets/accounts.secrets.yaml` – Add accounts and set `active: true`
-- `assets/inputs/urls.csv` – List of target LinkedIn profile URLs
-- Campaign file – Edit templates (Jinja or AI-prompt) and workflow logic
-
 ---
 
 ## 💬 Community
 
-Join the discussion and get support:  
+Join for support and discussions:  
 [Telegram Group](https://t.me/+Y5bh9Vg8UVg5ODU0)
 
 ---
 
 ## ⚖️ License
 
-Licensed under the [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0) – see [LICENCE.md](LICENCE.md) for details.
+[GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0) — see [LICENCE.md](LICENCE.md)
 
 ---
 
 ## 📜 Legal Disclaimer
 
-This project is **not affiliated with, endorsed by, or sponsored by LinkedIn**.
+**Not affiliated with LinkedIn.**
 
-Use of automation tools may violate LinkedIn's User Agreement (Section 8.2). LinkedIn may suspend or terminate accounts
-detected using such tools. The authors and contributors assume no liability for any consequences resulting from its use.
+Automation may violate LinkedIn's terms (Section 8.2). Risk of account suspension exists.
 
-**Use entirely at your own risk.**
+**Use at your own risk — no liability assumed.**
 
 ---
 

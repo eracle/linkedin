@@ -44,34 +44,73 @@ lock-in**.
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick Start (Local Installation)
 
-Get up and running in minutes:
+Get up and running in minutes by running the application directly on your machine.
 
+### Prerequisites
+
+- [Git](https://git-scm.com/)
+- [Python](https://www.python.org/downloads/) (3.11+ recommended)
+- `venv` for creating virtual environments (usually included with Python)
+
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/eracle/OpenOutreach.git
 cd OpenOutreach
-make up
 ```
 
-### Setup Steps
+### 2. Set Up a Virtual Environment
+It's highly recommended to use a virtual environment to manage dependencies.
+```bash
+# Create the virtual environment
+python -m venv venv
+
+# Activate it
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+We use `uv` for fast dependency management, which will be installed first.
+```bash
+# Install uv
+pip install uv
+
+# Install project dependencies
+uv pip install -r requirements/local.txt
+
+# Install required browser assets
+playwright install --with-deps chromium
+```
+
+### 4. Configure the Application
+You need to provide your LinkedIn credentials and target profiles.
 
 1. **Configure LinkedIn accounts**
    ```bash
    cp assets/accounts.secrets.template.yaml assets/accounts.secrets.yaml
    ```
-   Edit the file with your credentials (multi-account supported — set `active: true`).
+   Edit `assets/accounts.secrets.yaml` with your credentials.
 
 2. **Add target profiles**  
    Paste LinkedIn profile URLs into `assets/inputs/urls.csv`.
 
-3. **Run**  
-   `make up` launches the default campaign (connect + follow-up).
+### 5. Run the Application
 
+You can run the main script directly:
+```bash
+python main.py
+```
 The tool is fully resumable — stop/restart anytime without losing progress.
-
 ---
 
+## 🐳 Docker Installation
+
+We also support running the application via Docker. This is a great option for ensuring a consistent environment and simplifying dependency management.
+
+For full instructions, please see the **[Docker Installation Guide](./docs/docker.md)**.
+
+---
 ## ✨ Features
 
 | Feature                            | Description                                                                                                          |
@@ -145,17 +184,6 @@ Edit the campaign file directly for custom logic, templates, or AI integration.
 
 ---
 
-## 🖥️ Visual Debugging
-
-Watch automation live:
-
-0. Install Vinagre
-1. Build: `make build`
-2. Run viewed mode: `make up-view`
-3. Connect VNC client to `localhost:5900` (password: `secret`)
-
----
-
 ## 📂 Project Structure
 
 ```
@@ -163,6 +191,9 @@ Watch automation live:
 │   ├── accounts.secrets.yaml      # LinkedIn credentials
 │   └── inputs/
 │       └── urls.csv               # Target profiles
+├── docs/
+│   ├── docker.md                  # NEW: Docker setup guide
+│   └── ...
 ├── linkedin/
 │   ├── actions/                   # Browser actions
 │   ├── api/                       # Voyager API client
@@ -179,18 +210,10 @@ Watch automation live:
 
 ## 📚 Documentation
 
+- [Docker Installation](./docs/docker.md)
 - [Configuration](./docs/configuration.md)
-- [Templating](./docs/templating.md)
-- [Testing Strategy](./docs/testing_strategy.md)
-
----
-
-### Prerequisites
-
-- [Make](https://www.gnu.org/software/make/)
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
-- [Git](https://git-scm.com/)
+- [Templating](./docs.md)
+- [Testing Strategy](./docs/testing.md)
 
 ---
 

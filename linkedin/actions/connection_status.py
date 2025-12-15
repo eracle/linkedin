@@ -30,10 +30,6 @@ def get_connection_status(
         logger.debug("API reports 1st degree → instantly trusted as CONNECTED")
         return ConnectionStatus.CONNECTED
 
-    if degree:
-        logger.debug("API reports present → NOT CONNECTED")
-        return ConnectionStatus.NOT_CONNECTED
-
     logger.debug("connection_degree=%s → API unreliable, switching to UI inspection", degree or "None")
 
     top_card = get_top_card(session)
@@ -63,6 +59,10 @@ def get_connection_status(
     # 3b. Is there a "Connect" label?
     if any(indicator in main_text for indicator in ["Connect"]):
         logger.debug("Found 'Connect' label in page → NOT_CONNECTED")
+        return ConnectionStatus.NOT_CONNECTED
+
+    if degree:
+        logger.debug("API reports present → NOT CONNECTED")
         return ConnectionStatus.NOT_CONNECTED
 
     # 4. Ambiguous → default safe

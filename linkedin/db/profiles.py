@@ -150,6 +150,8 @@ def set_profile_state(session: "AccountSession", public_identifier, new_state: s
             log_msg = "\033[32mDISCOVERED\033[0m"
         case ProfileState.ENRICHED:
             log_msg = "\033[93mENRICHED\033[0m"
+        case ProfileState.PENDING:
+            log_msg = "\033[93mPENDING\033[0m"
         case ProfileState.CONNECTED:
             log_msg = "\033[32mCONNECTED\033[0m"
         case ProfileState.COMPLETED:

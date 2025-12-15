@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 from linkedin.db.profiles import set_profile_state, get_profile, save_scraped_profile
+from linkedin.navigation.enums import ConnectionStatus, ProfileState
 from linkedin.navigation.enums import MessageStatus
 from linkedin.navigation.exceptions import TerminalStateError
 from linkedin.sessions.registry import SessionKey
@@ -20,6 +21,17 @@ INPUT_CSV_PATH = Path("./assets/inputs/urls.csv")
 FOLLOWUP_TEMPLATE_FILE = "./assets/templates/prompts/followup.j2"
 FOLLOWUP_TEMPLATE_TYPE = "ai_prompt"
 
+message_status_to_state = {
+    MessageStatus.SENT: ProfileState.COMPLETED,
+    MessageStatus.SKIPPED: ProfileState.CONNECTED,
+}
+
+connection_status_to_state = {
+    ConnectionStatus.CONNECTED: ProfileState.CONNECTED,
+    ConnectionStatus.PENDING: ProfileState.PENDING,
+    ConnectionStatus.NOT_CONNECTED: ProfileState.ENRICHED,
+}
+
 
 # ———————————————————————————————— Core Logic ————————————————————————————————
 def process_profile_row(
@@ -30,8 +42,6 @@ def process_profile_row(
     from linkedin.actions.connect import send_connection_request
     from linkedin.actions.message import send_follow_up_message
     from linkedin.actions.profile import scrape_profile
-    from linkedin.navigation.enums import ConnectionStatus, ProfileState  # ← added ProfileState
-
     url = profile['url']
     public_identifier = profile['public_identifier']
     profile_row = get_profile(session, public_identifier)
@@ -58,11 +68,10 @@ def process_profile_row(
                 new_state = ProfileState.ENRICHED
                 save_scraped_profile(session, url, enriched_profile, data)
 
-        case ProfileState.ENRICHED:
+        case ProfileState.ENRICHED | ProfileState.PENDING:
             status = send_connection_request(key=key, profile=enriched_profile)
-            if status != ConnectionStatus.CONNECTED:
-                return False
-            new_state = ProfileState.CONNECTED
+            new_state = connection_status_to_state.get(status, ProfileState.ENRICHED)
+            enriched_profile = False if status != ConnectionStatus.CONNECTED else enriched_profile
 
         case ProfileState.CONNECTED:
             status = send_follow_up_message(
@@ -71,9 +80,8 @@ def process_profile_row(
                 template_file=FOLLOWUP_TEMPLATE_FILE,
                 template_type=FOLLOWUP_TEMPLATE_TYPE,
             )
-            if status != MessageStatus.SENT:
-                return False
-            new_state = ProfileState.COMPLETED
+            new_state = message_status_to_state.get(status, ProfileState.CONNECTED)
+            enriched_profile = False if status != MessageStatus.SENT else enriched_profile
 
         case _:
             raise TerminalStateError(f"Profile {public_identifier} is {current_state}")

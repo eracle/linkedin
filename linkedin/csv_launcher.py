@@ -7,6 +7,7 @@ import pandas as pd
 
 from linkedin.campaigns.connect_follow_up import process_profile_row, CAMPAIGN_NAME, INPUT_CSV_PATH
 from linkedin.conf import get_first_active_account
+from linkedin.db.profiles import get_updated_at_df
 from linkedin.db.profiles import url_to_public_id
 from linkedin.navigation.exceptions import SkipProfile
 from linkedin.navigation.utils import save_page
@@ -15,7 +16,7 @@ from linkedin.sessions.registry import AccountSessionRegistry
 logger = logging.getLogger(__name__)
 
 
-def load_profiles_urls_from_csv(csv_path: Path | str):
+def load_profiles_df(csv_path: Path | str):
     csv_path = Path(csv_path)
     if not csv_path.is_file():
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
@@ -47,7 +48,42 @@ def load_profiles_urls_from_csv(csv_path: Path | str):
                  f"{urls_df.head(10).to_string(index=False)}"
                  )
     logger.info(f"Loaded {len(urls_df):,} pristine LinkedIn profile URLs")
-    return urls_df.to_dict(orient="records")
+    return urls_df
+
+
+def sort_profiles(session: "AccountSession", profiles_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return a new DataFrame sorted by updated_at (oldest first).
+    Profiles not in the database come first.
+    """
+    if profiles_df.empty:
+        return profiles_df.copy()
+
+    public_ids = profiles_df["public_identifier"].tolist()
+
+    # Get DB timestamps as DataFrame
+    db_df = get_updated_at_df(session, public_ids)
+
+    # Left join: keep all input profiles
+    merged = profiles_df.merge(db_df, on="public_identifier", how="left")
+
+    # Sentinel for profiles not in DB
+    sentinel = pd.Timestamp("1970-01-01")
+    merged["updated_at"] = merged["updated_at"].fillna(sentinel)
+
+    # Sort: oldest (including new profiles) first
+    sorted_df = merged.sort_values(by="updated_at").drop(columns="updated_at")
+
+    logger.debug(f"Sorted:\n"
+                 f"{sorted_df.head(10).to_string(index=False)}"
+                 )
+    not_in_db = (merged["updated_at"] == sentinel).sum()
+    logger.info(
+        f"Sorted {len(sorted_df):,} profiles by last updated: "
+        f"{not_in_db} new, {len(sorted_df) - not_in_db} existing (oldest first)"
+    )
+
+    return sorted_df
 
 
 def launch_from_csv(
@@ -55,16 +91,20 @@ def launch_from_csv(
         csv_path: Path | str = INPUT_CSV_PATH,
         campaign_name: str = CAMPAIGN_NAME,
 ):
-    logger.info(f"Launching campaign '{campaign_name}' → running as @{handle} | CSV: {csv_path}")
-
-    profiles = load_profiles_urls_from_csv(csv_path)
-    logger.info(f"Loaded {len(profiles):,} profiles from CSV – ready for battle!")
-
     session, key = AccountSessionRegistry.get_or_create_from_path(
         handle=handle,
         campaign_name=campaign_name,
         csv_path=csv_path,
     )
+
+    logger.info(f"Launching campaign '{campaign_name}' → running as @{handle} | CSV: {csv_path}")
+
+    profiles_df = load_profiles_df(csv_path)
+    profiles_df = sort_profiles(session, profiles_df)
+
+    profiles = profiles_df.to_dict(orient="records")
+    logger.info(f"Loaded {len(profiles):,} profiles from CSV – ready for battle!")
+
     session.ensure_browser()
 
     for profile in profiles:

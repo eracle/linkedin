@@ -1,9 +1,11 @@
 # linkedin/db/profiles.py
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
+from typing import List
 from urllib.parse import urlparse, unquote
 
+import pandas as pd
 from sqlalchemy import func
 
 from linkedin.db.models import Profile
@@ -161,3 +163,28 @@ def debug_profile_preview(enriched):
     pretty = json.dumps(enriched, indent=2, ensure_ascii=False, default=str)
     preview_lines = pretty.splitlines()[:3]
     logger.debug("=== ENRICHED PROFILE PREVIEW ===\n%s\n...", '\n'.join(preview_lines))
+
+
+def get_updated_at_df(session: "AccountSession", public_identifiers: List[str]) -> pd.DataFrame:
+    """
+    Return a DataFrame with public_identifier and updated_at for existing profiles.
+    """
+    if not public_identifiers:
+        return pd.DataFrame(columns=["public_identifier", "updated_at"])
+
+    db = session.db_session
+
+    results = (
+        db.query(Profile.public_identifier, Profile.updated_at)
+        .filter(Profile.public_identifier.in_(public_identifiers))
+        .all()
+    )
+
+    if not results:
+        return pd.DataFrame(columns=["public_identifier", "updated_at"])
+
+    df = pd.DataFrame(results, columns=["public_identifier", "updated_at"])
+
+    logger.debug(f"Retrieved updated_at for {len(df)} profiles from DB")
+
+    return df

@@ -25,11 +25,11 @@ def _go_to_profile(session: "AccountSession", url: str, public_identifier: str):
 def search_profile(session: "AccountSession", profile: Dict[str, Any]):
     public_identifier = profile.get("public_identifier")
 
-    if f"/in/{public_identifier}" in session.page.url:
-        return
-
     # Ensure browser is alive before doing anything
     session.ensure_browser()
+
+    if f"/in/{public_identifier}" in session.page.url:
+        return
 
     # _simulate_human_search(session, profile) if SYNC_PROFILES else False
 
@@ -159,7 +159,6 @@ if __name__ == "__main__":
     )
 
     # Make sure browser is up
-    session.ensure_browser()
 
     test_profile = {
         "full_name": "Bill Gates",

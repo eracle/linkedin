@@ -1,8 +1,8 @@
 # linkedin/actions/connect.py
 import logging
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
-from linkedin.navigation.enums import ConnectionStatus
+from linkedin.navigation.enums import ProfileState
 from linkedin.navigation.exceptions import SkipProfile, ReachedConnectionLimit
 from linkedin.navigation.utils import get_top_card
 from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
@@ -13,14 +13,11 @@ logger = logging.getLogger(__name__)
 def send_connection_request(
         key: SessionKey,
         profile: Dict[str, Any],
-        template_file: Optional[str] = None,
-        template_type: str = "jinja",
-) -> ConnectionStatus:
+) -> ProfileState:
     """
     Sends a LinkedIn connection request WITHOUT a note (fastest & safest).
     All note-sending logic preserved below for future use.
     """
-    from linkedin.actions.search import search_profile
     from linkedin.actions.connection_status import get_connection_status
 
     session = AccountSessionRegistry.get_or_create(
@@ -28,28 +25,16 @@ def send_connection_request(
         campaign_name=key.campaign_name,
         csv_hash=key.csv_hash,
     )
-    session.ensure_browser()
-    session.wait()
 
     public_identifier = profile.get('public_identifier')
-
-    logger.debug("Navigating to profile → %s", public_identifier)
-    search_profile(session, profile)
-
-    if template_file:
-        from linkedin.templates.renderer import render_template
-        message = render_template(session, template_file, template_type, profile)
-        logger.debug("Rendered note (%d chars): %r", len(message), message.strip()[:200])
-    else:
-        message = ""
 
     logger.debug("Checking current connection status...")
     connection_status = get_connection_status(session, profile)
     logger.info("Current status → %s", connection_status.value)
 
     skip_reasons = {
-        ConnectionStatus.CONNECTED: "Already connected",
-        ConnectionStatus.PENDING: "Invitation already pending",
+        ProfileState.CONNECTED: "Already connected",
+        ProfileState.PENDING: "Invitation already pending",
     }
 
     if connection_status in skip_reasons:
@@ -64,7 +49,7 @@ def send_connection_request(
     s4 = s3 and _check_weekly_invitation_limit(session)
     success = s4
 
-    status = ConnectionStatus.PENDING if success else ConnectionStatus.NOT_CONNECTED
+    status = ProfileState.PENDING if success else ProfileState.ENRICHED
     logger.info(f"Connection request {status} → {public_identifier}")
     return status
 
@@ -75,6 +60,8 @@ def _check_weekly_invitation_limit(session):
         raise ReachedConnectionLimit("Weekly connection limit pop up appeared")
 
     return True
+
+
 def _connect_direct(session):
     session.wait()
     top_card = get_top_card(session)

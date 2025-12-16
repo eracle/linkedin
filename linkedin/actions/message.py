@@ -3,8 +3,7 @@ import logging
 from typing import Dict, Any, Optional
 
 from linkedin.actions.connection_status import get_connection_status
-from linkedin.actions.search import search_profile
-from linkedin.navigation.enums import ConnectionStatus, MessageStatus
+from linkedin.navigation.enums import ProfileState, MessageStatus
 from linkedin.navigation.utils import goto_page
 from linkedin.sessions.registry import AccountSessionRegistry, SessionKey
 from linkedin.templates.renderer import render_template
@@ -27,32 +26,23 @@ def send_follow_up_message(
         campaign_name=key.campaign_name,
         csv_hash=key.csv_hash,
     )
-    session.ensure_browser()
-
-    search_profile(session, profile)
-
-    if message is None and template_file:
-        message = render_template(session, template_file, template_type, profile)
-    elif message is None:
-        message = ""
-
-    return send_message_to_profile(session, profile, message)
-
-
-def get_messaging_availability(session: "AccountSession", profile: Dict[str, Any]) -> bool:
     status = get_connection_status(session, profile)
+
     public_identifier = profile.get("public_identifier")
-    logger.debug("Messaging check → %s → %s", public_identifier, status.value)
+    logger.debug(f"Messaging check → {public_identifier} → {status.value}")
 
-    if status == ConnectionStatus.CONNECTED:
-        return True
+    if status != ProfileState.CONNECTED:
+        logger.info(f"Message skipped → not connected with {public_identifier}")
+        return MessageStatus.SKIPPED
+    else:
+        if template_file:
+            message = render_template(session, template_file, template_type, profile)
 
-    if status == ConnectionStatus.NOT_CONNECTED:
-        logger.info("Messaging blocked → not connected with %s", public_identifier)
-    elif status == ConnectionStatus.PENDING:
-        logger.info("Messaging blocked → still pending with %s", public_identifier)
-
-    return False
+        s1 = _send_msg_pop_up(session, profile, message)
+        s2 = s1 or _send_message(session, profile, message)
+        success = s2
+        logger.info(f"Message sent: {message}") if success else None
+        return MessageStatus.SENT if success else MessageStatus.SKIPPED
 
 
 def _send_msg_pop_up(session: "AccountSession", profile: Dict[str, Any], message: str) -> bool:
@@ -133,21 +123,6 @@ def _send_message(session: "AccountSession", profile: Dict[str, Any], message: s
         public_identifier = profile.get("public_identifier")
         logger.error("Failed to send message to %s → %s", public_identifier, e)
         return False
-
-
-def send_message_to_profile(
-        session: "AccountSession",
-        profile: Dict[str, Any],
-        message: str,
-) -> MessageStatus:
-    if not get_messaging_availability(session, profile):
-        logger.info("Message skipped → not connected")
-        return MessageStatus.SKIPPED
-    s1 = _send_msg_pop_up(session, profile, message)
-    s2 = s1 or _send_message(session, profile, message)
-    success = s2
-    logger.info(f"Message sent: {message}") if success else None
-    return MessageStatus.SENT if success else MessageStatus.SKIPPED
 
 
 if __name__ == "__main__":

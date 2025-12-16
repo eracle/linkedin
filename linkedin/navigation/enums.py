@@ -1,12 +1,6 @@
 from enum import Enum
 
 
-class ConnectionStatus(Enum):
-    CONNECTED = "connected"
-    PENDING = "pending"
-    NOT_CONNECTED = "not_connected"
-
-
 class MessageStatus(Enum):
     SENT = "sent"
     SKIPPED = "skipped"

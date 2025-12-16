@@ -2,10 +2,12 @@
 import logging
 from pathlib import Path
 
+from linkedin.actions.connection_status import get_connection_status
 from linkedin.db.profiles import set_profile_state, get_profile, save_scraped_profile
-from linkedin.navigation.enums import ConnectionStatus, ProfileState
 from linkedin.navigation.enums import MessageStatus
-from linkedin.navigation.exceptions import TerminalStateError
+from linkedin.navigation.enums import ProfileState
+from linkedin.navigation.exceptions import TerminalStateError, SkipProfile, ReachedConnectionLimit
+from linkedin.navigation.utils import save_page
 from linkedin.sessions.registry import SessionKey
 
 logger = logging.getLogger(__name__)
@@ -15,8 +17,6 @@ CAMPAIGN_NAME = "connect_follow_up"
 INPUT_CSV_PATH = Path("./assets/inputs/urls.csv")
 
 # ———————————————————————————————— Template Config ————————————————————————————————
-# CONNECT_TEMPLATE_FILE = "./assets/templates/connect_notes/leader.j2"
-# CONNECT_TEMPLATE_TYPE = "jinja"
 
 FOLLOWUP_TEMPLATE_FILE = "./assets/templates/prompts/followup.j2"
 FOLLOWUP_TEMPLATE_TYPE = "ai_prompt"
@@ -24,12 +24,6 @@ FOLLOWUP_TEMPLATE_TYPE = "ai_prompt"
 message_status_to_state = {
     MessageStatus.SENT: ProfileState.COMPLETED,
     MessageStatus.SKIPPED: ProfileState.CONNECTED,
-}
-
-connection_status_to_state = {
-    ConnectionStatus.CONNECTED: ProfileState.CONNECTED,
-    ConnectionStatus.PENDING: ProfileState.PENDING,
-    ConnectionStatus.NOT_CONNECTED: ProfileState.ENRICHED,
 }
 
 
@@ -69,11 +63,14 @@ def process_profile_row(
                 new_state = ProfileState.ENRICHED
                 save_scraped_profile(session, url, enriched_profile, data)
 
-        case ProfileState.ENRICHED | ProfileState.PENDING:
-            status = send_connection_request(key=key, profile=enriched_profile) if perform_connections else ConnectionStatus.NOT_CONNECTED
-            new_state = connection_status_to_state.get(status, ProfileState.ENRICHED)
-            enriched_profile = False if status != ConnectionStatus.CONNECTED else enriched_profile
-
+        case ProfileState.ENRICHED:
+            if not perform_connections:
+                return None
+            new_state = send_connection_request(key=key, profile=enriched_profile)
+            enriched_profile = None if new_state != ProfileState.CONNECTED else enriched_profile
+        case ProfileState.PENDING:
+            new_state = get_connection_status(session, profile)
+            enriched_profile = None if new_state != ProfileState.CONNECTED else enriched_profile
         case ProfileState.CONNECTED:
             status = send_follow_up_message(
                 key=key,
@@ -82,7 +79,7 @@ def process_profile_row(
                 template_type=FOLLOWUP_TEMPLATE_TYPE,
             )
             new_state = message_status_to_state.get(status, ProfileState.CONNECTED)
-            enriched_profile = False if status != MessageStatus.SENT else enriched_profile
+            enriched_profile = None if status != MessageStatus.SENT else enriched_profile
 
         case _:
             raise TerminalStateError(f"Profile {public_identifier} is {current_state}")
@@ -90,3 +87,27 @@ def process_profile_row(
     set_profile_state(session, public_identifier, new_state.value)
 
     return enriched_profile
+
+
+def process_profiles(key, session, profiles: list[dict]):
+    perform_connections = True
+    for profile in profiles:
+        go_ahead = True
+        while go_ahead:
+            try:
+                profile = process_profile_row(
+                    key=key,
+                    session=session,
+                    profile=profile,
+                    perform_connections=perform_connections,
+                )
+                go_ahead = bool(profile)
+            except SkipProfile as e:
+                public_identifier = profile["public_identifier"]
+                logger.info(f"\033[91mSkipping profile: {public_identifier} reason: {e}\033[0m")
+                save_page(session, profile)
+                go_ahead = False
+            except ReachedConnectionLimit as e:
+                perform_connections = False
+                public_identifier = profile["public_identifier"]
+                logger.info(f"\033[91mSkipping profile: {public_identifier} reason: {e}\033[0m")

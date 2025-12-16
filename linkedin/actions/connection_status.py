@@ -2,7 +2,8 @@
 import logging
 from typing import Dict, Any
 
-from linkedin.navigation.enums import ConnectionStatus
+from linkedin.actions.search import search_profile
+from linkedin.navigation.enums import ProfileState
 from linkedin.navigation.utils import get_top_card
 from linkedin.sessions.registry import AccountSessionRegistry
 
@@ -12,13 +13,14 @@ logger = logging.getLogger(__name__)
 def get_connection_status(
         session: "AccountSession",
         profile: Dict[str, Any],
-) -> ConnectionStatus:
+) -> ProfileState:
     """
     Reliably detects connection status using UI inspection.
     Only trusts degree=1 as CONNECTED. Everything else is verified on the page.
     """
     # Ensure browser is ready (safe to call multiple times)
     session.ensure_browser()
+    search_profile(session, profile)
     session.wait()
 
     logger.debug("Checking connection status → %s", profile.get("public_identifier"))
@@ -28,7 +30,7 @@ def get_connection_status(
     # Fast path: API says 1st degree → trust it
     if degree == 1:
         logger.debug("API reports 1st degree → instantly trusted as CONNECTED")
-        return ConnectionStatus.CONNECTED
+        return ProfileState.CONNECTED
 
     logger.debug("connection_degree=%s → API unreliable, switching to UI inspection", degree or "None")
 
@@ -37,45 +39,44 @@ def get_connection_status(
     # 1. Pending invitation?
     if top_card.locator('button[aria-label*="Pending"]:visible').count() > 0:
         logger.debug("Detected 'Pending' button → PENDING")
-        return ConnectionStatus.PENDING
+        return ProfileState.PENDING
 
     main_text = top_card.inner_text()
     # 1b. Is there a "Pending" label?
     if any(x in main_text for x in ["Pending"]):
         logger.debug("Detected 'Pending' text in page → PENDING")
-        return ConnectionStatus.PENDING
+        return ProfileState.PENDING
 
     # 2. Already connected?
     if any(x in main_text for x in ["1st", "1st degree", "1º", "1er"]):
         logger.debug("Confirmed 1st degree via page text → CONNECTED")
-        return ConnectionStatus.CONNECTED
+        return ProfileState.CONNECTED
 
     # 3a. Connect button visible?
     invite_btn = top_card.locator('button[aria-label*="Invite"][aria-label*="to connect"]:visible')
     if invite_btn.count() > 0:
         logger.debug("Found 'Connect' button → NOT_CONNECTED")
-        return ConnectionStatus.NOT_CONNECTED
+        return ProfileState.ENRICHED
 
     # 3b. Is there a "Connect" label?
     if any(indicator in main_text for indicator in ["Connect"]):
         logger.debug("Found 'Connect' label in page → NOT_CONNECTED")
-        return ConnectionStatus.NOT_CONNECTED
+        return ProfileState.ENRICHED
 
     if degree:
         logger.debug("API reports present → NOT CONNECTED")
-        return ConnectionStatus.NOT_CONNECTED
+        return ProfileState.ENRICHED
 
     # 4. Ambiguous → default safe
     logger.debug("No clear indicators → defaulting to NOT_CONNECTED")
     # save_page(profile, session)  # uncomment if you want HTML dumps
-    return ConnectionStatus.NOT_CONNECTED
+    return ProfileState.ENRICHED
 
 
 if __name__ == "__main__":
     import sys
     import logging
     from linkedin.sessions.registry import SessionKey
-    from linkedin.actions.search import search_profile
     from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
 
     logging.basicConfig(
@@ -110,8 +111,6 @@ if __name__ == "__main__":
         campaign_name=key.campaign_name,
         csv_path=INPUT_CSV_PATH,
     )
-    session.ensure_browser()
-    search_profile(session, test_profile)
 
     # Check status
     status = get_connection_status(session, test_profile)

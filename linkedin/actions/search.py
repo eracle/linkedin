@@ -91,13 +91,30 @@ def _paginate_to_next_page(session: "AccountSession", page_num: int):
 
 
 def _simulate_human_search(session: "AccountSession", profile: Dict[str, Any]) -> bool:
-    full_name = profile.get("full_name")
-    target_id = profile.get("public_identifier")
+    full_name = profile.get("full_name", None)
+    public_identifier = profile.get("public_identifier")
 
-    if not full_name or not target_id:
-        raise ValueError("Need full_name and public_identifier for human search")
+    # Log the incoming profile info (redact sensitive data if needed)
+    logger.debug(
+        "Starting human search simulation for profile - "
+        f"full_name: '{full_name}', public_identifier: '{public_identifier}'"
+    )
 
-    logger.info("Human search → '%s' (target: %s)", full_name, target_id)
+    if not full_name:
+        logger.error(
+            f"Missing full_name in profile. public_identifier was: '{public_identifier}'. "
+            "Cannot perform human search simulation without a name."
+        )
+        return False
+
+    if not public_identifier:
+        logger.error(
+            f"Missing public_identifier in profile. full_name was: '{full_name}'. "
+            "Cannot perform human search simulation without a public ID."
+        )
+        raise ValueError("public_identifier is required for human search simulation")
+
+    logger.info("Human search → '%s' (target: %s)", full_name, public_identifier)
 
     _initiate_search(session, full_name)
 
@@ -109,18 +126,12 @@ def _simulate_human_search(session: "AccountSession", profile: Dict[str, Any]) -
         target_locator = None
         for link in session.page.locator('a[href*="/in/"]').all():
             href = link.get_attribute("href") or ""
-            if f"/in/{target_id}" in href:
+            if f"/in/{public_identifier}" in href:
                 target_locator = link
                 break
 
         if target_locator:
             logger.info("Target found in results → clicking")
-            #goto_page(
-            #    session,
-            #    action=lambda: target_locator.click(),
-            #    expected_url_pattern=f"/in/{target_id}",
-            #    error_message="Failed to open target profile from search results"
-            #)
             return False
 
         if session.page.get_by_text("No results found", exact=False).count() > 0:
@@ -131,7 +142,7 @@ def _simulate_human_search(session: "AccountSession", profile: Dict[str, Any]) -
             _paginate_to_next_page(session, current_page + 1)
             session.wait()
 
-    logger.info("Target %s not found → falling back to direct URL", target_id)
+    logger.info("Target %s not found → falling back to direct URL", public_identifier)
     return False
 
 

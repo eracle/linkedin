@@ -91,7 +91,6 @@ def _paginate_to_next_page(session: "AccountSession", page_num: int):
 
 
 def _simulate_human_search(session: "AccountSession", profile: Dict[str, Any]) -> bool:
-    page = session.page
     full_name = profile.get("full_name")
     target_id = profile.get("public_identifier")
 
@@ -108,7 +107,7 @@ def _simulate_human_search(session: "AccountSession", profile: Dict[str, Any]) -
         logger.info("Scanning search results page %s", current_page)
 
         target_locator = None
-        for link in page.locator('a[href*="/in/"]').all():
+        for link in session.page.locator('a[href*="/in/"]').all():
             href = link.get_attribute("href") or ""
             if f"/in/{target_id}" in href:
                 target_locator = link
@@ -116,15 +115,15 @@ def _simulate_human_search(session: "AccountSession", profile: Dict[str, Any]) -
 
         if target_locator:
             logger.info("Target found in results → clicking")
-            goto_page(
-                session,
-                action=lambda: target_locator.click(),
-                expected_url_pattern=f"/in/{target_id}",
-                error_message="Failed to open target profile from search results"
-            )
-            return True
+            #goto_page(
+            #    session,
+            #    action=lambda: target_locator.click(),
+            #    expected_url_pattern=f"/in/{target_id}",
+            #    error_message="Failed to open target profile from search results"
+            #)
+            return False
 
-        if page.get_by_text("No results found", exact=False).count() > 0:
+        if session.page.get_by_text("No results found", exact=False).count() > 0:
             logger.info("No results found → stopping search")
             break
 

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
+from termcolor import colored
 
 from linkedin.conf import get_account_config
 from linkedin.navigation.utils import goto_page
@@ -24,7 +25,7 @@ SELECTORS = {
 def playwright_login(session: "AccountSession"):
     page = session.page
     config = get_account_config(session.handle)
-    logger.info("\033[36mFresh login sequence starting for @%s\033[0m", session.handle)
+    logger.info(colored("Fresh login sequence starting", "cyan") + f" for @{session.handle}")
 
     goto_page(
         session,
@@ -60,7 +61,7 @@ def build_playwright(storage_state=None):
 
 
 def init_playwright_session(session: "AccountSession", handle: str):
-    logger.info("\033[96mConfiguring browser for @%s\033[0m", handle)
+    logger.info(colored("Configuring browser", "cyan", attrs=["bold"]) + f" for @{handle}")
     config = get_account_config(handle)
     state_file = Path(config["cookie_file"])
 
@@ -74,7 +75,7 @@ def init_playwright_session(session: "AccountSession", handle: str):
         playwright_login(session)
         state_file.parent.mkdir(parents=True, exist_ok=True)
         session.context.storage_state(path=str(state_file))
-        logger.info("\033[92mLogin successful – session saved → %s\033[0m", state_file)
+        logger.info(colored("Login successful – session saved", "green", attrs=["bold"]) + f" → {state_file}")
     else:
         goto_page(
             session,
@@ -86,7 +87,7 @@ def init_playwright_session(session: "AccountSession", handle: str):
         )
 
     session.page.wait_for_load_state("load")
-    logger.info("\033[1;32mBrowser awake and fully authenticated!\033[0m")
+    logger.info(colored("Browser awake and fully authenticated!", "green", attrs=["bold"]))
 
 
 if __name__ == "__main__":

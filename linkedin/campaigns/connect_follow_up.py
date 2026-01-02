@@ -2,6 +2,8 @@
 import logging
 from pathlib import Path
 
+from termcolor import colored
+
 from linkedin.actions.connection_status import get_connection_status
 from linkedin.db.profiles import set_profile_state, get_profile, save_scraped_profile
 from linkedin.navigation.enums import MessageStatus
@@ -104,10 +106,15 @@ def process_profiles(key, session, profiles: list[dict]):
                 go_ahead = bool(profile)
             except SkipProfile as e:
                 public_identifier = profile["public_identifier"]
-                logger.info(f"\033[91mSkipping profile: {public_identifier} reason: {e}\033[0m")
+                logger.info(
+                    colored(f"Skipping profile: {public_identifier} reason: {e}", "red", attrs=["bold"])
+                )
                 save_page(session, profile)
                 go_ahead = False
             except ReachedConnectionLimit as e:
                 perform_connections = False
                 public_identifier = profile["public_identifier"]
-                logger.info(f"\033[91mSkipping profile: {public_identifier} reason: {e}\033[0m")
+                logger.info(
+                    colored(f"Skipping profile: {public_identifier} reason: {e}", "red", attrs=["bold"])
+                )
+                go_ahead = False

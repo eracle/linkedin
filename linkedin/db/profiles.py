@@ -7,6 +7,7 @@ from urllib.parse import urlparse, unquote
 
 import pandas as pd
 from sqlalchemy import func
+from termcolor import colored
 
 from linkedin.db.models import Profile
 from linkedin.navigation.enums import ProfileState
@@ -147,17 +148,18 @@ def set_profile_state(session: "AccountSession", public_identifier, new_state: s
     log_msg = None
     match new_state:
         case ProfileState.DISCOVERED:
-            log_msg = "\033[32mDISCOVERED\033[0m"
+            log_msg = colored("DISCOVERED", "green")
         case ProfileState.ENRICHED:
-            log_msg = "\033[93mENRICHED\033[0m"
+            log_msg = colored("ENRICHED", "yellow", attrs=["bold"])
         case ProfileState.PENDING:
-            log_msg = "\033[93mPENDING\033[0m"
+            log_msg = colored("PENDING", "yellow", attrs=["bold"])
         case ProfileState.CONNECTED:
-            log_msg = "\033[32mCONNECTED\033[0m"
+            log_msg = colored("CONNECTED", "green")
         case ProfileState.COMPLETED:
-            log_msg = "\033[1;92mCOMPLETED\033[0m"
+            log_msg = colored("COMPLETED", "green", attrs=["bold"])
         case _:
-            log_msg = "\033[91mERROR\033[0m"
+            log_msg = colored("ERROR", "red", attrs=["bold"])
+
     logger.info(f"{public_identifier} {log_msg}")
 
 

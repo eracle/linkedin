@@ -45,7 +45,7 @@ SECRETS_PATH = ASSETS_DIR / "accounts.secrets.yaml"
 if not SECRETS_PATH.exists():
     raise FileNotFoundError(
         f"\nMissing config file: {SECRETS_PATH}\n"
-        "→ cp assets/accounts.secrets.example.yaml assets/accounts.secrets.yaml\n"
+        "→ cp assets/accounts.secrets.template.yaml assets/accounts.secrets.yaml\n"
         "  and fill in your accounts (public settings + credentials)\n"
     )
 
@@ -66,22 +66,20 @@ def get_account_config(handle: str) -> Dict[str, Any]:
 
     acct = _accounts_config[handle]
 
-    # Each account gets its own database: assets/data/elonmusk.db
+    # Per-account database path
     account_db_path = DATA_DIR / f"{handle}.db"
 
     return {
         "handle": handle,
         "active": acct.get("active", True),
-        "proxy": acct.get("proxy"),
-        "daily_connections": acct.get("daily_connections", 50),
-        "daily_messages": acct.get("daily_messages", 20),
-        # Credentials (can be missing during dev, but required in prod)
+        # Only the fields that still exist in the new template
         "username": acct.get("username"),
         "password": acct.get("password"),
+        "subscribe_newsletter": acct.get("subscribe_newsletter", None),
+        "booking_link": acct.get("booking_link"),
         # Runtime paths
         "cookie_file": COOKIES_DIR / f"{handle}.json",
-        "db_path": account_db_path,  # per-handle database
-        "booking_link": acct.get("booking_link"),
+        "db_path": account_db_path,
     }
 
 
@@ -130,7 +128,16 @@ if __name__ == "__main__":
         for handle in active_handles:
             cfg = get_account_config(handle)
             status = "ACTIVE" if cfg["active"] else "inactive"
-            print(f"{status} • {handle.ljust(20)}  →  DB: {cfg['db_path'].name}")
+            print(f"{status} • {handle}")
+            print("  Config values:")
+            for key, value in cfg.items():
+                # Make paths prettier and handle None
+                if isinstance(value, Path):
+                    value = value.as_posix()
+                elif value is None:
+                    value = "null"
+                print(f"    {key.ljust(20)} : {value}")
+            print()
 
         print("-" * 60)
         first = get_first_active_account()

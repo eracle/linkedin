@@ -43,6 +43,7 @@ def _save_profile_to_fixture(enriched_profile: Dict[str, Any], path: str | Path)
     logger.info("Enriched profile saved to fixture → %s", path)
 
 
+# python -m linkedin.actions.profile
 if __name__ == "__main__":
     import sys
     from linkedin.campaigns.connect_follow_up import INPUT_CSV_PATH
@@ -69,10 +70,11 @@ if __name__ == "__main__":
     )
 
     test_profile = {
-        "url": "https://www.linkedin.com/in/lexfridman/",
+        "url": "https://www.linkedin.com/in/me/",
     }
 
     profile, data = scrape_profile(key, test_profile)
+    from pprint import pprint
 
-    _save_profile_to_fixture(data, FIXTURE_PATH)
-    print(f"Fixture saved → {FIXTURE_PATH}")
+    pprint(profile)
+    # _save_profile_to_fixture(data, FIXTURE_PATH)
